@@ -1,0 +1,32 @@
+services:
+    php:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            target: dev
+        volumes:
+            - ./:/var/www/html
+        restart: unless-stopped
+        networks:
+            - internal
+
+    bds_reveal:
+        image: nginx:1.27-alpine
+        depends_on:
+            - php
+        expose:
+            - "80"              # visible seulement dans les réseaux Docker
+        volumes:
+            - ./:/var/www/html:ro
+            - ./nginx.conf:/etc/nginx/nginx.conf:ro
+        restart: unless-stopped
+        networks:
+            - internal
+            - caddy             # réseau partagé avec Caddy (app_default)
+
+networks:
+    internal:
+        driver: bridge
+    caddy:
+        external: true
+        name: app_default      # le réseau où est déjà ton conteneur Caddy
