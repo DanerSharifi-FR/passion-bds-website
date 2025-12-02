@@ -13,7 +13,7 @@ services:
     passion_bds:
         image: nginx:1.27-alpine
         depends_on:
-            - php
+            - php_bds
         expose:
             - "80"
         volumes:
