@@ -1,5 +1,5 @@
 services:
-    php:
+    php_bds:
         build:
             context: .
             dockerfile: Dockerfile
