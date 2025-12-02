@@ -424,3 +424,20 @@ FodyWeavers.xsd
 *.iws
 out/
 
+# Docker / System
+.DS_Store
+Thumbs.db
+compose.override.yaml
+
+# Laravel (Backend)
+server/vendor/
+server/node_modules/
+server/.env
+server/storage/*.key
+server/storage/logs/*.log
+
+# Angular (Frontend)
+client/node_modules/
+client/.angular/
+client/dist/
+client/.editorconfig
