@@ -10,23 +10,23 @@ services:
         networks:
             - internal
 
-    bds_reveal:
+    passion_bds:
         image: nginx:1.27-alpine
         depends_on:
             - php
         expose:
-            - "80"              # visible seulement dans les réseaux Docker
+            - "80"
         volumes:
             - ./:/var/www/html:ro
             - ./nginx.conf:/etc/nginx/nginx.conf:ro
         restart: unless-stopped
         networks:
             - internal
-            - caddy             # réseau partagé avec Caddy (app_default)
+            - caddy
 
 networks:
     internal:
         driver: bridge
     caddy:
         external: true
-        name: app_default      # le réseau où est déjà ton conteneur Caddy
+        name: app_default
