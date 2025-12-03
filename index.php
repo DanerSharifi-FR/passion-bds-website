@@ -49,6 +49,7 @@
                         'glow-silver': 'glow-silver 2s ease-in-out infinite alternate',
                         'glow-bronze': 'glow-bronze 2s ease-in-out infinite alternate',
                         'spin-slow': 'spin 3s linear infinite',
+                        'pop': 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                     },
                     keyframes: {
                         float: {
@@ -76,6 +77,10 @@
                         'glow-bronze': {
                             '0%': { boxShadow: '0 0 5px #92400E, 0 0 10px #D97706' },
                             '100%': { boxShadow: '0 0 20px #92400E, 0 0 30px #D97706' }
+                        },
+                        pop: {
+                            '0%': { transform: 'scale(0.5)', opacity: 0 },
+                            '100%': { transform: 'scale(1)', opacity: 1 }
                         }
                     }
                 }
@@ -251,7 +256,7 @@
         <nav class="flex gap-6 items-center">
             <a href="/poles" class="relative group py-2">
                 <div class="absolute inset-0 bg-passion-pink-300 skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
-                <span class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">L'équipe</span>
+                <span class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">La team P'AS'SION</span>
             </a>
             <a href="/galerie" class="relative group py-2">
                 <div class="absolute inset-0 bg-passion-pink-300 skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
@@ -493,7 +498,7 @@
                     <!-- MODE 1: ACTION IRL (Replaced old announce) -->
                     <div class="show-if-action w-full flex flex-col items-center">
                         <!-- Added ID for easier JS targeting -->
-                        <div id="action-preview-container" class="mb-1 flex items-center justify-center">
+                        <div id="action-preview-container" class="mb-1 flex items-center justify-center min-h-[40px]">
                             <span class="text-4xl">📸</span>
                         </div>
                         <p class="text-sm text-passion-pink-100 mb-1 font-bold uppercase">
@@ -577,7 +582,7 @@
     <a href="/poles" class="flex flex-col items-center p-2 text-gray-400 hover:text-passion-red transition-colors group">
         <!-- Icon Team -->
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-        <span class="text-[10px] font-bold uppercase tracking-wider">Équipe</span>
+        <span class="text-[10px] font-bold uppercase tracking-wider">La Team</span>
     </a>
     <a href="/galerie" class="flex flex-col items-center p-2 text-gray-400 hover:text-passion-red transition-colors group">
         <!-- Icon Gallery -->
@@ -711,11 +716,12 @@
             input.classList.remove('error-border', 'success-pulse', 'shake-element');
         }
         if(uploadBtn) {
-            uploadBtn.className = "show-if-logged-in bg-passion-fire-yellow text-[#9B1237] font-black italic uppercase px-6 py-3 rounded shadow-[4px_4px_0px_#000] hover:translate-y-1 hover:shadow-[2px_2px_0px_#000] transition-all flex flex-col items-center leading-none gap-1";
+            uploadBtn.className = "show-if-logged-in bg-passion-fire-yellow text-[#9B1237] font-black uppercase px-6 py-3 rounded shadow-[4px_4px_0px_#000] hover:translate-y-1 hover:shadow-[2px_2px_0px_#000] transition-all flex flex-col items-center leading-none gap-1";
             uploadBtn.innerHTML = '<span>J\'ai la photo !</span><span class="text-[10px] opacity-80 font-mono">+100 pts à gagner</span>';
         }
         if(previewContainer) {
             previewContainer.innerHTML = '<span class="text-4xl">📸</span>';
+            previewContainer.className = "mb-1 flex items-center justify-center min-h-[40px]"; // Reset height
         }
         if(statusText) {
             statusText.textContent = "Preuve requise (plus tard)";
@@ -747,11 +753,12 @@
                 // Create Preview URL
                 const url = URL.createObjectURL(file);
 
-                // Show Preview
-                previewContainer.innerHTML = `<img src="${url}" class="h-full w-auto object-contain rounded border-2 border-white shadow-sm animate-pop" alt="Preview">`;
+                // Show Preview (Adjusted sizing for mobile)
+                previewContainer.innerHTML = `<img src="${url}" class="h-32 md:h-40 w-auto object-contain rounded border-2 border-white shadow-sm animate-pop" alt="Preview">`;
+                previewContainer.className = "mb-2 flex items-center justify-center"; // Adjust container for image
 
                 // Update Button to "Change" state
-                btn.className = "show-if-logged-in bg-white/20 border-2 border-white/50 text-white font-black italic uppercase px-4 py-2 rounded hover:bg-white/30 transition-all flex flex-col items-center leading-none gap-1";
+                btn.className = "show-if-logged-in bg-white/20 border-2 border-white/50 text-white font-black uppercase px-4 py-2 rounded hover:bg-white/30 transition-all flex flex-col items-center leading-none gap-1";
                 btn.innerHTML = '<span>🔄 Changer la photo</span>';
 
                 // Update Status Message (Playful)
