@@ -9,6 +9,23 @@ services:
         restart: unless-stopped
         networks:
             - internal
+        depends_on:
+            - mysql_bds
+
+    mysql_bds:
+        image: mysql:8.0
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: passion_bds
+            MYSQL_USER: passion_bds
+            MYSQL_PASSWORD: passion_bds
+        volumes:
+            - mysql_data:/var/lib/mysql
+        networks:
+            - internal
+        ports:
+            - "3307:3306" # host 3307 -> container 3306 (for Adminer / DBeaver etc.)
 
     passion_bds:
         image: nginx:1.27-alpine
@@ -16,6 +33,8 @@ services:
             - php_bds
         expose:
             - "80"
+        ports:
+            - "8080:80"
         volumes:
             - ./:/var/www/html:ro
             - ./nginx.conf:/etc/nginx/nginx.conf:ro
@@ -27,6 +46,10 @@ services:
 networks:
     internal:
         driver: bridge
+
     caddy:
         external: true
         name: app_default
+
+volumes:
+    mysql_data:
