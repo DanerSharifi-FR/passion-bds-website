@@ -27,6 +27,20 @@ services:
         ports:
             - "3307:3306" # host 3307 -> container 3306 (for Adminer / DBeaver etc.)
 
+    phpmyadmin:
+        image: phpmyadmin:latest
+        depends_on:
+            - mysql_bds
+        environment:
+            PMA_HOST: mysql_bds
+            PMA_PORT: 3306
+            PMA_ARBITRARY: 0   # disable arbitrary servers, only mysql_bds
+        restart: unless-stopped
+        ports:
+            - "127.0.0.1:8081:80"  # only accessible from localhost (dev + prod)
+        networks:
+            - internal
+
     passion_bds:
         image: nginx:1.27-alpine
         depends_on:
