@@ -427,7 +427,7 @@ body {
 
     transform: rotate(-45deg);
     color: white;
-    font-family: 'Luckiest Guy', cursive;
+    font-family: cursive;
     font-size: 1.1rem;
     text-shadow: 1px 1px 0 #000;
 }
@@ -441,7 +441,7 @@ body {
     transform: translateX(-50%);
     background: #3c80ac;
     color: white;
-    font-family: 'Luckiest Guy', cursive;
+    font-family: cursive;
     padding: 1px 6px;
     border-radius: 4px;
     font-size: 0.75rem;
@@ -466,7 +466,7 @@ body {
     width: 100%;
     text-align: center;
     color: white;
-    font-family: 'Luckiest Guy', cursive;
+    font-family: cursive;
     text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
     font-size: 0.9rem;
     pointer-events: none;
