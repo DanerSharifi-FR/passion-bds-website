@@ -8,7 +8,8 @@
     >
 
     <title>@yield('title', "P'AS'SION BDS - Accueil")</title>
-    <meta name="description" content="@yield('meta_description', "Site de la campagne BDS P'AS'SION IMT Atlantique Nantes.")">
+    <meta name="description"
+          content="@yield('meta_description', "Site de la campagne BDS P'AS'SION IMT Atlantique Nantes.")">
     <meta name="author" content="Daner Sharifi">
     <meta name="robots" content="index, follow">
 
@@ -21,9 +22,11 @@
     {{-- Open Graph / Social Media --}}
     <meta property="og:type" content="website">
     <meta property="og:url" content="@yield('og_url', 'https://passion-bds.fr/')">
-    <meta property="og:title" content="@yield('og_title', "P'AS'SION : Bureau Des Sports")">
-    <meta property="og:description" content="@yield('og_description', "Site de la campagne BDS P'AS'SION IMT Atlantique Nantes.")">
-    <meta property="og:image" content="@yield('og_image', 'https://placehold.co/1200x630/9B1237/FFC94A?text=PASSION+BDS')">
+    <meta property="og:title" content="@yield('title', "P'AS'SION BDS - Accueil")">
+    <meta property="og:description"
+          content="@yield('meta_description', "Site de la campagne BDS P'AS'SION IMT Atlantique Nantes.")">
+    <meta property="og:image"
+          content="@yield('og_image', 'https://placehold.co/1200x630/9B1237/FFC94A?text=PASSION+BDS')">
 
     {{-- Favicons (change later if you want real files) --}}
     <link rel="icon" type="image/png" href="https://placehold.co/32x32/FF914D/9B1237?text=P">
@@ -59,33 +62,61 @@
     <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between w-full">
         <!-- Logo -->
         <div class="flex items-center gap-3 group cursor-pointer select-none">
-            <!-- LOGO IMAGE (Rounded Full) -->
-            <img src="logo.png" alt="Logo BDS" class="h-14 w-14 object-contain animate-bounce-slow drop-shadow-md rounded-full">
+            <a href="{{ route('home') }}"
+               class="flex items-center gap-3 transform group-hover:scale-105 transition-transform">
+                <!-- LOGO IMAGE (Rounded Full) -->
+                <img src="{{ asset('logo.png') }}" alt="Logo BDS"
+                     class="h-14 w-14 object-contain animate-bounce-slow drop-shadow-md rounded-full">
 
-            <div class="flex flex-col items-end leading-none skew-box">
-                <span class="font-display font-black text-2xl text-passion-fire-orange tracking-tighter">P'AS'SION</span>
-                <span class="font-display font-black text-xl text-passion-red tracking-tighter -mt-1">BDS</span>
-            </div>
+                <div class="flex flex-col items-end leading-none skew-box">
+                    <span
+                        class="font-display font-black text-2xl text-passion-fire-orange tracking-tighter">P'AS'SION</span>
+                    <span class="font-display font-black text-xl text-passion-red tracking-tighter -mt-1">BDS</span>
+                </div>
+            </a>
         </div>
 
         <!-- Desktop Nav -->
         <nav class="flex gap-6 items-center">
-            <a href="/poles" class="relative group py-2">
-                <div class="absolute inset-0 bg-passion-pink-300 skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
-                <span class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">La team P'AS'SION</span>
+            <a href="{{ route('home') }}" class="relative group py-2">
+                <div
+                    class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('home')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                <span
+                    class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Accueil</span>
+            </a>
+            <a href="{{ route('team') }}" class="relative group py-2">
+                <div
+                    class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('team')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                <span
+                    class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">La team P'AS'SION</span>
             </a>
             <a href="/shop" class="relative group py-2">
-                <div class="absolute inset-0 bg-passion-pink-300 skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
-                <span class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Le Shop</span>
+                <div
+                    class="absolute inset-0 bg-passion-pink-300 skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
+                <span
+                    class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Le Shop</span>
             </a>
-            <a href="/galerie" class="relative group py-2">
-                <div class="absolute inset-0 bg-passion-pink-300 skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
-                <span class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Galerie</span>
+            <a href="{{ route('gallery') }}" class="relative group py-2">
+                <div
+                    class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('gallery')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                <span
+                    class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Galerie</span>
             </a>
-            <a href="/allos" class="relative group py-2">
-                <div class="absolute inset-0 bg-passion-fire-orange skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
-                <span class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-white transition-colors">Allos</span>
-            </a>
+            @auth
+                <a href="/allos" class="relative group py-2">
+                    <div
+                        class="absolute inset-0 bg-passion-fire-orange skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
+                    <span
+                        class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-white transition-colors">Allos</span>
+                </a>
+            @else
+                <a href="{{ route('login') }}" class="relative group py-2">
+                    <div
+                        class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('login')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                    <span
+                        class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Allos</span>
+                </a>
+            @endauth
         </nav>
     </div>
 </header>
@@ -94,7 +125,8 @@
 <header class="lg:hidden w-full pt-8 pb-4 flex flex-col items-center justify-center bg-transparent relative z-10">
     <div class="flex items-center gap-3 select-none transform">
         <!-- LOGO IMAGE (Rounded Full) -->
-        <img src="logo.png" alt="Logo BDS" class="h-16 w-16 object-contain animate-bounce-slow drop-shadow-lg rounded-full">
+        <img src="logo.png" alt="Logo BDS"
+             class="h-16 w-16 object-contain animate-bounce-slow drop-shadow-lg rounded-full">
 
         <div class="flex flex-col items-end gap-0 skew-box leading-none">
             <!-- Stacked Layout: BDS Right Aligned -->
@@ -117,33 +149,78 @@
 </main>
 
 <!-- MOBILE BOTTOM NAVIGATION (Fixed) -->
-<nav class="lg:hidden fixed bottom-0 w-full bg-white border-t border-passion-pink-200 z-50 flex justify-around items-center pb-safe pt-2 h-16">
-    <a href="/" class="flex flex-col items-center p-2 text-passion-red hover:text-passion-fire-orange transition-colors group w-1/5">
-        <!-- Icon Home -->
-        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-        <span class="text-[9px] font-bold uppercase tracking-wider">Accueil</span>
-    </a>
-    <a href="/poles" class="flex flex-col items-center p-2 text-gray-400 hover:text-passion-red transition-colors group w-1/5 text-center">
-        <!-- Icon Team -->
-        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-        <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">La team P'AS'SION</span>
-    </a>
-    <a href="/shop" class="flex flex-col items-center p-2 text-gray-400 hover:text-passion-red transition-colors group w-1/5">
+<nav
+    class="lg:hidden fixed bottom-0 w-full bg-white border-t border-passion-pink-200 z-50 flex justify-around items-center pb-4 pt-3 h-20">
+    <a href="/shop" class="flex flex-col items-center p-2 text-gray-400 transition-colors group w-1/5">
         <!-- Icon Shopping Bag -->
-        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+        </svg>
         <span class="text-[9px] font-bold uppercase tracking-wider">Le Shop</span>
     </a>
-    <a href="/galerie" class="flex flex-col items-center p-2 text-gray-400 hover:text-passion-red transition-colors group w-1/5">
+    <a href="{{ route('team') }}"
+       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('team')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+        <!-- Icon Team -->
+        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">La team P'AS'SION</span>
+    </a>
+    <a href="{{ route('home') }}"
+       class="flex flex-col items-center p-2 transition-colors group w-1/5 @if(request()->routeIs('home')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+        <!-- Icon Home -->
+        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+        </svg>
+        <span class="text-[9px] font-bold uppercase tracking-wider">Accueil</span>
+    </a>
+    <a href="{{ route('gallery') }}"
+       class="flex flex-col items-center p-2 transition-colors group w-1/5 @if(request()->routeIs('gallery')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
         <!-- Icon Gallery -->
-        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
         <span class="text-[9px] font-bold uppercase tracking-wider">Galerie</span>
     </a>
-    <a href="/allos" class="flex flex-col items-center p-2 text-gray-400 hover:text-passion-red transition-colors group relative w-1/5">
-        <!-- Icon Fire -->
-        <div class="absolute -top-1 right-1/4 w-3 h-3 bg-passion-fire-orange rounded-full animate-pulse"></div>
-        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path></svg>
-        <span class="text-[9px] font-bold uppercase tracking-wider">Allos</span>
-    </a>
+    @auth
+        <a href="/allos"
+           class="flex flex-col items-center p-2 transition-colors group relative w-1/5 text-gray-400  hover:text-passion-red">
+            <!-- Icon Fire -->
+            <div
+                class="absolute -top-0 md:right-[35%] right-1/4 w-3 h-3 bg-passion-fire-orange rounded-full animate-pulse"></div>
+            <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path>
+            </svg>
+            <span class="text-[9px] font-bold uppercase tracking-wider">Allos</span>
+        </a>
+    @else
+        <a href="{{ route('login') }}"
+           class="flex flex-col items-center p-2 transition-colors group relative w-1/5 @if(request()->routeIs('login')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
+            <!-- Icon Fire -->
+            <div
+                class="absolute -top-0 md:right-[35%] right-1/4 w-3 h-3 bg-passion-fire-orange rounded-full animate-pulse"></div>
+            <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path>
+            </svg>
+            <span class="text-[9px] font-bold uppercase tracking-wider">Allos</span>
+        </a>
+    @endauth
 </nav>
 
 <!-- Footer -->
@@ -156,5 +233,6 @@
 </footer>
 
 <script src="{{ asset('assets/passion-common.js') }}"></script>
+@stack('end_scripts')
 </body>
 </html>

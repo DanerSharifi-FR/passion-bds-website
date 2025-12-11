@@ -1,9 +1,7 @@
 @extends('app')
 
-@section('title', "P'AS'SION BDS - La Team")
-@section('meta_description', "Voici la team du P'AS'SION BDS IMT Atlantique Nantes pour l'année 2024-2025.")
-@section('og_title', "P'AS'SION BDS - La Team")
-@section('og_description', "Voici la team du P'AS'SION BDS IMT Atlantique Nantes pour l'année 2024-2025.")
+@section('title', "P'AS'SION BDS - Galerie")
+@section('meta_description', "Galerie photo des événements du P'AS'SION BDS IMT Atlantique Nantes pour l'année 2025-2026.")
 
 @section('content')
         <!-- Page Title -->

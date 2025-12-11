@@ -2,8 +2,6 @@
 
 @section('title', "P'AS'SION BDS - Accueil")
 @section('meta_description', "Site de la campagne BDS P'AS'SION IMT Atlantique Nantes.")
-@section('og_title', "P'AS'SION : Bureau Des Sports")
-@section('og_description', "Site de la campagne BDS P'AS'SION IMT Atlantique Nantes.")
 
 @section('content')
     <!-- Big Sport Title Area -->
@@ -38,10 +36,10 @@
             <div class="relative group h-32 bg-passion-pink-100 border-2 border-passion-pink-300 overflow-hidden hover:border-passion-red transition-colors">
                 <div class="allo-real-content p-4 h-full flex flex-col justify-center transition-all duration-300">
                     <div class="flex justify-between items-start mb-1">
-                        <h3 class="font-display font-black text-xl text-passion-red uppercase">Petit Déj</h3>
-                        <span class="text-xs font-bold bg-white text-passion-red px-2 py-0.5 border border-passion-red rounded-sm">FOOD</span>
+                        <h3 class="font-display font-black text-xl text-passion-red uppercase">Petit puff</h3>
+                        <span class="text-xs font-bold bg-white text-passion-red px-2 py-0.5 border border-passion-red rounded-sm">FEET</span>
                     </div>
-                    <p class="text-sm font-medium text-passion-red leading-tight">Viennoiseries livrées direct au lit. 0 effort.</p>
+                    <p class="text-sm font-medium text-passion-red leading-tight">Doucement chef ! c'est la maquette hein... petit malin</p>
                 </div>
                 <div class="allo-mystery-overlay absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjRkNFMkVDIi8+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIHN0cm9rZT0iI0U0NDc2QSIgc3Ryb2tlLXdpZHRoPSIxIiBvcGFjaXR5PSIwLjEiLz4KPC9zdmc+')] flex items-center justify-center group-hover:bg-passion-pink-200 transition-colors">
                     <span class="font-display font-black text-2xl text-passion-pink-400 opacity-50 -rotate-6 group-hover:scale-110 transition-transform">LOCKED 🔒</span>
@@ -52,10 +50,10 @@
             <div class="relative group h-32 bg-passion-pink-100 border-2 border-passion-pink-300 overflow-hidden hover:border-passion-red transition-colors">
                 <div class="allo-real-content p-4 h-full flex flex-col justify-center transition-all duration-300">
                     <div class="flex justify-between items-start mb-1">
-                        <h3 class="font-display font-black text-xl text-passion-red uppercase">Vaisselle</h3>
+                        <h3 class="font-display font-black text-xl text-passion-red uppercase">BRAVO</h3>
                         <span class="text-xs font-bold bg-white text-passion-red px-2 py-0.5 border border-passion-red rounded-sm">CLEAN</span>
                     </div>
-                    <p class="text-sm font-medium text-passion-red leading-tight">Ton évier déborde ? On arrive avec des gants.</p>
+                    <p class="text-sm font-medium text-passion-red leading-tight">T'as su manipuler du css, maintenant va dormir on vous prepare des masterclasses</p>
                 </div>
                 <div class="allo-mystery-overlay absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjRkNFMkVDIi8+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIHN0cm9rZT0iI0U0NDc2QSIgc3Ryb2tlLXdpZHRoPSIxIiBvcGFjaXR5PSIwLjEiLz4KPC9zdmc+')] flex items-center justify-center group-hover:bg-passion-pink-200 transition-colors">
                     <span class="font-display font-black text-2xl text-passion-pink-400 opacity-50 -rotate-6 group-hover:scale-110 transition-transform">LOCKED 🔒</span>
@@ -65,10 +63,11 @@
 
         <!-- Footer Action -->
         <div class="flex flex-col items-center gap-4 text-center">
-            <p id="status-message" class="font-medium text-passion-red text-sm md:text-base px-2"></p>
-            <a href="/allos" class="main-btn skew-box px-6 py-3 md:px-10 md:py-4 font-display font-black text-lg md:text-xl uppercase tracking-wider transition-all duration-200 whitespace-nowrap shadow-md">
+            <p id="status-message" class="font-medium text-passion-red md:text-base px-2"></p>
+            <a href="{{ route('login') }}" class="main-btn skew-box px-6 py-3 md:px-10 md:py-4 font-display font-black text-lg md:text-xl uppercase tracking-wider transition-all duration-200 shadow-md">
                 <span class="unskew-text btn-text"></span>
             </a>
+
         </div>
 
         <div class="absolute -top-3 -right-3 w-8 h-8 bg-passion-fire-yellow border-2 border-passion-red z-10 skew-box"></div>
@@ -111,9 +110,6 @@
                         <h3 class="font-display font-bold text-lg md:text-xl uppercase flex items-center gap-2">
                             🏆 Top Joueurs
                         </h3>
-                        <div class="show-if-logged-in text-[10px] bg-passion-fire-yellow text-passion-red px-2 py-1 rounded font-bold animate-pulse">
-                            💡 Gagne des pts !
-                        </div>
                     </div>
 
                     <!-- PODIUM (Increased margin to mt-20 to fix crown overlap) -->
@@ -161,10 +157,10 @@
                     </div>
 
                     <!-- Logged In User Row (Position 4 - Fixed Layout) -->
-                    <div class="show-if-logged-in mt-auto">
+                    <div class="mt-auto show-if-logged-in">
                         <div class="flex justify-center mb-1">
-                                <span class="text-[10px] font-mono text-white/60 bg-black/30 px-2 rounded flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                                <span class="text-[12px] font-mono text-white/60 bg-black/30 px-2 rounded flex items-center gap-1">
+                                    <svg class="w-7 h-7 pt-1" fill="none" stroke="currentColor" viewBox="0 0 32 32"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                                     430 pts de retard sur Lucas M.
                                 </span>
                         </div>
@@ -191,7 +187,7 @@
 
                     <!-- Bottom of Leaderboard column -->
                     <div class="mt-4 pt-4 border-t border-white/10 text-center">
-                        <a href="/classement" class="inline-block px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-xs font-bold uppercase tracking-wider text-white transition-colors">
+                        <a href="{{ route('leaderboard') }}" class="inline-block px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-xs font-bold uppercase tracking-wider text-white transition-colors">
                             Voir tout le classement +
                         </a>
                     </div>
@@ -221,9 +217,9 @@
                         </p>
 
                         <!-- Guest Button (Fixed padding and text size) -->
-                        <button class="show-if-guest bg-transparent border-2 border-white text-white font-black uppercase px-4 py-3 md:px-6 md:py-3 rounded text-xs md:text-sm hover:bg-white hover:text-[#9B1237] transition-all whitespace-nowrap">
-                            Connecte-toi pour valider
-                        </button>
+                        <a href="{{ route('login') }}" class="show-if-guest bg-transparent border-2 border-white text-white font-black uppercase px-4 py-3 md:px-6 md:py-3 rounded text-xs md:text-sm hover:bg-white hover:text-[#9B1237] transition-all whitespace-nowrap">
+                            Je me connecte
+                        </a>
 
                         <!-- Logged In Button -->
                         <button id="btn-action-upload" onclick="triggerFileSelection()" class="show-if-logged-in bg-passion-fire-yellow text-[#9B1237] font-black uppercase px-6 py-3 rounded shadow-[4px_4px_0px_#000] hover:translate-y-1 hover:shadow-[2px_2px_0px_#000] transition-all flex flex-col items-center leading-none gap-1">
@@ -236,7 +232,7 @@
                         <span id="action-status-text" class="text-[10px] mt-3 uppercase tracking-widest opacity-60">Preuve requise (plus tard)</span>
                     </div>
 
-                    <!-- MODE 2: INPUT QUESTION (Type Answer) -->
+                    {{-- <!-- MODE 2: INPUT QUESTION (Type Answer) -->
                     <div class="show-if-input w-full">
                         <div class="text-left w-full mb-4">
                             <span class="text-[10px] uppercase font-bold text-passion-fire-yellow bg-black/40 px-2 py-0.5 rounded">Question 1/3</span>
@@ -274,7 +270,7 @@
                                 C. L'Amphi A
                             </button>
                         </div>
-                    </div>
+                    </div> --}}
 
                 </div>
 
