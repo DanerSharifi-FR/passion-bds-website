@@ -186,7 +186,7 @@
 
                     <!-- Utility Message Bottom -->
                     <p class="mt-4 text-[10px] md:text-xs text-center text-white/60 border-t border-white/10 pt-2">
-                        💡 Les points servent à payer tes Allos.
+                        💡 Les points servent à ...
                     </p>
 
                     <!-- Bottom of Leaderboard column -->
