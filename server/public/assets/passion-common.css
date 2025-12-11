@@ -1,0 +1,529 @@
+/* Consolidated styles for P'AS'SION BDS
+ * Base = index.html (home)
+ * Only one block per selector/@rule (body, .sky-bow, etc.).
+ * Other pages extend existing selectors or add new ones.
+ */
+
+/* --- GLOBAL TEXTURE --- */
+        body {
+
+              background-color: #FFF0F5;
+              background-image: radial-gradient(#E4476A 1px, transparent 1px);
+              background-size: 30px 30px; /* Jersey mesh vibe */
+              color: #9B1237;
+              overflow-x: hidden;
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+    /* Additional styles from gallery.html */
+
+              background-color: #FFF0F5;
+              background-image: radial-gradient(#E4476A 1px, transparent 1px);
+              background-size: 30px 30px;
+              color: #9B1237;
+              overflow-x: hidden;
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+}
+
+/* --- DYNAMIC SHAPES --- */
+        .skew-box {
+
+              transform: skewX(-6deg);
+    /* Additional styles from gallery.html */
+   transform: skewX(-6deg);
+}
+
+.unskew-text {
+
+              transform: skewX(6deg);
+    /* Additional styles from gallery.html */
+   transform: skewX(6deg);
+    /* Additional styles from login.html */
+   transform: skewX(6deg);
+}
+
+/* --- MACHINE CARD --- */
+        .machine-container {
+
+              background: rgba(255, 255, 255, 0.95);
+              border: 4px solid #9B1237;
+              box-shadow: 12px 12px 0px #FF914D; /* Hard shadow, retro sport style */
+              transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* --- FAN ZONE (New) --- */
+        .fan-zone-container {
+
+              background: #9B1237;
+              color: white;
+              box-shadow: -8px 8px 0px #000;
+}
+
+/* User State Visibility */
+        .state-logged-in .show-if-guest {
+   display: none !important;
+}
+
+.state-guest .show-if-logged-in {
+   display: none !important;
+}
+
+/* Game Modes Visibility */
+        .game-mode-action .show-if-input, .game-mode-action .show-if-qcm {
+   display: none !important;
+}
+
+.game-mode-input .show-if-action, .game-mode-input .show-if-qcm {
+   display: none !important;
+}
+
+.game-mode-qcm .show-if-action, .game-mode-qcm .show-if-input {
+   display: none !important;
+}
+
+/* --- RAIN ANIMATION --- */
+        #rain-container {
+
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              pointer-events: none;
+              z-index: -1; /* Behind everything */
+              overflow: hidden;
+    /* Additional styles from gallery.html */
+
+              position: fixed;
+              top: 0; left: 0; width: 100%; height: 100%;
+              pointer-events: none; z-index: -1;
+}
+
+.rain-icon {
+
+              position: absolute;
+              top: -50px;
+              user-select: none;
+              animation-name: fall;
+              animation-timing-function: linear;
+              animation-iteration-count: infinite;
+    /* Additional styles from gallery.html */
+
+              position: absolute; top: -50px; user-select: none;
+              animation: fall linear infinite;
+}
+
+@keyframes fall {
+
+              0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+              10% { opacity: 0.4; }
+              90% { opacity: 0.4; }
+              100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+    /* Additional styles from gallery.html */
+
+              0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+              10% { opacity: 0.4; }
+              90% { opacity: 0.4; }
+              100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+
+/* --- STATES --- */
+        /* CLOSED STATE */
+        .machine-state-closed .allo-real-content {
+
+              opacity: 0.1;
+              filter: grayscale(100%) blur(2px);
+              pointer-events: none;
+}
+
+.machine-state-closed .allo-mystery-overlay {
+
+              display: flex;
+}
+
+.machine-state-closed .status-indicator {
+
+              background-color: #E4476A;
+              color: white;
+}
+
+.machine-state-closed .main-btn {
+
+              background: white;
+              color: #9B1237;
+              border: 3px solid #9B1237;
+}
+
+/* OPEN STATE */
+        .machine-state-open .allo-real-content {
+
+              opacity: 1;
+              filter: none;
+}
+
+.machine-state-open .allo-mystery-overlay {
+
+              display: none;
+}
+
+.machine-state-open .status-indicator {
+
+              background-color: #FF914D; /* Fire Orange */
+              color: #9B1237;
+              animation: pulse 2s infinite;
+}
+
+.machine-state-open .main-btn {
+
+              background: #FF914D;
+              color: #9B1237;
+              border: 3px solid #9B1237;
+              box-shadow: 4px 4px 0 #9B1237;
+}
+
+.machine-state-open .main-btn:hover {
+
+              transform: translate(-2px, -2px);
+              box-shadow: 6px 6px 0 #9B1237;
+}
+
+/* --- UTILS --- */
+        .text-outline {
+
+              text-shadow:
+                  -1px -1px 0 #fff,
+                  1px -1px 0 #fff,
+                  -1px  1px 0 #fff,
+                  1px  1px 0 #fff;
+}
+
+/* Progress Bar Striped */
+        .progress-bar-striped {
+
+              background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+              background-size: 1rem 1rem;
+}
+
+/* Feedback Animations */
+        .shake-element {
+   animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+.success-pulse {
+   animation: pulse-fast 0.5s ease-in-out; border-color: #4ade80 !important;
+}
+
+.error-border {
+   border-color: #f87171 !important; background-color: rgba(248, 113, 113, 0.1) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+              *, ::before, ::after {
+                  animation-duration: 0.01ms !important;
+                  animation-iteration-count: 1 !important;
+                  transition-duration: 0.01ms !important;
+                  scroll-behavior: auto !important;
+              }
+}
+
+/* --- BASE SITE STYLES --- */
+        body {
+  /* From members.html */
+
+              background-color: #FFF0F5;
+              background-image: radial-gradient(#E4476A 1px, transparent 1px);
+              background-size: 30px 30px;
+              color: #9B1237;
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+}
+
+.skew-box {
+  /* From members.html */
+   transform: skewX(-6deg);
+    /* Additional styles from login.html */
+   transform: skewX(-6deg);
+}
+
+/* --- CARD DESIGNS --- */
+        .cr-card {
+  /* From members.html */
+
+              position: relative;
+              width: 130px;
+              height: 160px;
+              cursor: default;
+              transition: transform 0.15s ease;
+              user-select: none;
+              margin: 10px;
+}
+
+.cr-card:hover {
+  /* From members.html */
+   transform: scale(1.05) translateY(-5px); z-index: 10;
+}
+
+.cr-card-inner {
+  /* From members.html */
+
+              position: absolute;
+              inset: 0;
+              overflow: hidden;
+              background: #222;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+}
+
+.cr-card-image {
+  /* From members.html */
+
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              display: block;
+}
+
+/* RARITY STYLES */
+
+        .rarity-common .cr-card-inner {
+  /* From members.html */
+   border: 5px solid #8daebf; border-radius: 6px;
+}
+
+.rarity-rare .cr-card-inner {
+  /* From members.html */
+   border: 5px solid #fdae56; border-radius: 6px;
+}
+
+.rarity-epic .cr-card-inner {
+  /* From members.html */
+
+              border: 5px solid #c359d9;
+              border-radius: 6px;
+              box-shadow: 0 0 10px rgba(195, 89, 217, 0.4);
+}
+
+/* --- LEGENDARY ANIMATION DEFINITION --- */
+        @keyframes b5b6 {
+  /* From members.html */
+
+              0% { background-position: 0% 50%; }
+              100% { background-position: 800% 50%; }
+}
+
+/* LEGENDARY: Adapted user animation for Border/Frame */
+        .rarity-legendary .cr-card-inner {
+  /* From members.html */
+
+              /* Shape */
+              clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+              border: none;
+              border-radius: 0;
+
+              /* The specific animation logic requested */
+              padding: 4px; /* Thickness of the border */
+
+              /* Specific gradient provided */
+              background: linear-gradient(90deg, #FF99FF, #E8AFDD, #CACDB0, #99FF66, #F7FF95, #FFC621, #FF99FF);
+              background-size: 800%;
+              /* Changed from 6s to 18s (3x slower) */
+              animation: b5b6 18s linear infinite;
+
+              /* Shadows for depth */
+              filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.6));
+}
+
+.rarity-legendary .cr-card-image {
+  /* From members.html */
+
+              clip-path: polygon(15% 0, 85% 0, 100% 15%, 100% 85%, 85% 100%, 15% 100%, 0 85%, 0 15%);
+              background: #000;
+}
+
+/* Champion */
+        .rarity-champion .cr-card-inner {
+  /* From members.html */
+
+              border: 5px solid #fcd04d;
+              border-radius: 8px;
+              box-shadow: 0 0 15px rgba(252, 208, 77, 0.6);
+}
+
+.rarity-champion::after {
+  /* From members.html */
+
+              content: '';
+              position: absolute;
+              top: -8px;
+              left: 50%;
+              transform: translateX(-50%) rotate(45deg);
+              width: 16px;
+              height: 16px;
+              background: #fcd04d;
+              border: 2px solid #fff;
+              box-shadow: 0 0 5px #fcd04d;
+              z-index: 25;
+}
+
+/* Card Elements */
+        .cr-elixir {
+  /* From members.html */
+
+              position: absolute;
+              top: -8px;
+              left: -8px;
+              width: 32px;
+              height: 38px;
+              background: #C725E6;
+              border: 2px solid #fff;
+              border-radius: 50% 50% 50% 5px;
+              transform: rotate(45deg);
+              z-index: 20;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.cr-elixir span {
+  /* From members.html */
+
+              transform: rotate(-45deg);
+              color: white;
+              font-family: 'Luckiest Guy', cursive;
+              font-size: 1.1rem;
+              text-shadow: 1px 1px 0 #000;
+}
+
+.cr-level {
+  /* From members.html */
+
+              position: absolute;
+              bottom: -6px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: #3c80ac;
+              color: white;
+              font-family: 'Luckiest Guy', cursive;
+              padding: 1px 6px;
+              border-radius: 4px;
+              font-size: 0.75rem;
+              border: 1px solid #7cbbe2;
+              z-index: 20;
+              white-space: nowrap;
+              text-shadow: 1px 1px 0 #000;
+              box-shadow: 0 2px 3px rgba(0,0,0,0.4);
+}
+
+.rarity-champion .cr-level {
+  /* From members.html */
+   background: #dca318; border-color: #fceea6;
+}
+
+.cr-name-overlay {
+  /* From members.html */
+
+              position: absolute;
+              bottom: 24px;
+              width: 100%;
+              text-align: center;
+              color: white;
+              font-family: 'Luckiest Guy', cursive;
+              text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+              font-size: 0.9rem;
+              pointer-events: none;
+              z-index: 15;
+              letter-spacing: 0.5px;
+}
+
+.skew-box-r {
+  /* From gallery.html */
+   transform: skewX(6deg);
+}
+
+.unskew-text-r {
+  /* From gallery.html */
+   transform: skewX(-6deg);
+}
+
+/* --- PHOTO CARDS --- */
+    .gallery-card {
+  /* From gallery.html */
+
+          background: white;
+          border: 4px solid #9B1237;
+          box-shadow: 8px 8px 0px #E4476A;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          /* Ensure the skew doesn't cause paint issues on edges */
+          backface-visibility: hidden;
+}
+
+.gallery-card:hover {
+  /* From gallery.html */
+
+              transform: translate(-4px, -4px) skewX(-2deg); /* Reduce skew shift slightly on hover */
+              box-shadow: 12px 12px 0px #FF914D;
+}
+
+/* --- POLAROID EFFECT --- */
+        .polaroid {
+  /* From gallery.html */
+
+              background: white;
+              padding: 0.5rem;
+              padding-bottom: 2rem;
+              box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+              transform: rotate(-2deg);
+              transition: transform 0.3s ease;
+}
+
+.gallery-card:hover .polaroid:nth-child(1) {
+  /* From gallery.html */
+   transform: rotate(-6deg) scale(1.05); z-index: 10;
+}
+
+.gallery-card:hover .polaroid:nth-child(2) {
+  /* From gallery.html */
+   transform: rotate(0deg) scale(1.05); z-index: 10;
+}
+
+.gallery-card:hover .polaroid:nth-child(3) {
+  /* From gallery.html */
+   transform: rotate(6deg) scale(1.05); z-index: 10;
+}
+
+/* Custom Scrollbar for horizontal stack if needed */
+        .no-scrollbar::-webkit-scrollbar {
+  /* From gallery.html */
+   display: none;
+}
+
+.no-scrollbar {
+  /* From gallery.html */
+   -ms-overflow-style: none; scrollbar-width: none;
+}
+
+body {
+  /* From login.html */
+
+              background-color: #FFF0F5;
+              background-image: radial-gradient(#E4476A 1px, transparent 1px);
+              background-size: 30px 30px;
+              color: #9B1237;
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+}
+
+/* Floating stickers */
+        .sticker {
+  /* From login.html */
+
+              position: absolute;
+              z-index: 0;
+              opacity: 0.15; /* Lower opacity for background blend */
+              pointer-events: none;
+}
