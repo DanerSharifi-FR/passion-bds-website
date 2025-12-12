@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\AlloController;
 use App\Http\Controllers\Admin\ChallengeController;
 use App\Http\Controllers\Admin\TransactionApiController;
 use App\Http\Controllers\Admin\TransactionController;
+use App\Http\Controllers\Api\ActivityLeaderboardApiController;
 use App\Http\Controllers\Api\LeaderboardApiController;
 use App\Http\Controllers\Auth\CodeAuthController;
 use App\Http\Controllers\PageController;
@@ -24,11 +25,26 @@ Route::controller(PageController::class)->group(function () {
     Route::get('/poles', 'team')->name('team');
     Route::get('/galerie', 'gallery')->name('gallery');
     Route::get('/classement', 'leaderboard')->name('leaderboard');
+
+    Route::get('/activities/{activity}', 'activityLeaderboard')->name('activities.leaderboard');
+    Route::get('/activities', 'activities')->name('activities');
+
     Route::get('/allos', 'allos')->name('allos');
     Route::get('/connexion', 'login')->middleware('guest')->name('login');
 });
 
 Route::get('/api/leaderboard', [LeaderboardApiController::class, 'index'])->name('api.leaderboard');
+
+Route::prefix('api')->group(function () {
+    // API “web” (same-origin, comme admin)
+    Route::prefix('activities')->group(function () {
+        Route::get('/', [ActivitiesApiController::class, 'index'])
+            ->name('activities.api.index');
+
+        Route::get('/{activity}/leaderboard', [ActivityLeaderboardApiController::class, 'index'])
+            ->name('activities.api.leaderboard');
+    });
+});
 
 Route::prefix('auth')->as('auth.')->controller(CodeAuthController::class)->group(function () {
     Route::post('/request-code', 'requestCode')->middleware('guest')->name('request-code');

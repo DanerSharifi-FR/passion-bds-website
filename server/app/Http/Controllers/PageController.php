@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,22 @@ class PageController extends Controller
     public function allos()
     {
         return view('allos');
+    }
+
+    public function activities(): Factory|View
+    {
+        return view('activities');
+    }
+
+    public function activityLeaderboard(String $activity_slug): Factory|View
+    {
+        $activity = Activity::where('slug', $activity_slug)->firstOrFail();
+
+        abort_unless((bool) $activity->is_active, 404);
+
+        return view('activity_leaderboard', [
+            'activity' => $activity,
+        ]);
     }
 
     /**

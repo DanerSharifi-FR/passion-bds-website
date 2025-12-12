@@ -7,7 +7,8 @@
     const isLogin = path.includes('login');
     const isMembers = path.includes('members');
     const isClassement = path.includes('classement');
-    const isIndex = !isGallery && !isLogin && !isMembers && !isClassement;
+    // isIndex when url is '/' and nothing else
+    const isIndex = path === '/' || path === '/index.html';
 
     // --- Tailwind CDN config ---
     tailwind.config = {

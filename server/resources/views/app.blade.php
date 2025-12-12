@@ -274,6 +274,12 @@
                 <span
                     class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Accueil</span>
             </a>
+            <a href="{{ route('activities') }}" class="relative group py-2">
+                <div
+                    class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('activities')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                <span
+                    class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">APREM BDS</span>
+            </a>
             <a href="{{ route('team') }}" class="relative group py-2">
                 <div
                     class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('team')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
@@ -360,6 +366,14 @@
         </svg>
         <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">La team P'AS'SION</span>
     </a>
+    <a href="{{ route('activities') }}"
+       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('activities')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+        </svg>
+        <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">Aprem BDS</span>
+    </a>
     <a href="{{ route('home') }}"
        class="flex flex-col items-center p-2 transition-colors group w-1/5 @if(request()->routeIs('home')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
         <!-- Icon Home -->
@@ -418,7 +432,14 @@
     <div class="max-w-7xl mx-auto px-4 text-center">
         <h2 class="font-display font-black text-2xl uppercase tracking-tighter mb-2 animate-pulse">P'AS'SION BDS</h2>
         <p class="font-mono text-sm opacity-80">Campagne 2025 // Don't Stop The Game</p>
-        <p class="text-[10px] mt-2 opacity-50">Si tu lis ça, tu devrais réviser.</p>
+        <!-- credit developpé par text plus distingué avec emoji caffé -->
+        <p class="font-mono text-sm opacity-80 mt-2">
+            Développé avec
+            <span class="animate-pulse">+67 ☕</span>
+            par
+            <a href="https://daner-sharifi.com" target="_blank" rel="noopener noreferrer"
+               class="underline hover:text-passion-fire-yellow transition-colors">Daner Sharifi</a>
+        </p>
     </div>
 </footer>
 

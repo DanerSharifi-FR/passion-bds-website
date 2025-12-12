@@ -223,9 +223,9 @@
                     </p>
 
                     <div class="mt-4 pt-4 border-t border-white/10 text-center">
-                        <a href="{{ route('leaderboard') }}"
+                        <a href="{{ route('activities') }}"
                            class="inline-block px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-xs font-bold uppercase tracking-wider text-white transition-colors">
-                            Voir tout le classement +
+                            REJOINDRE L'APREM BDS
                         </a>
                     </div>
                 </div>

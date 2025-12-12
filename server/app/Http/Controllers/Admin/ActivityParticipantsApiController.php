@@ -143,7 +143,8 @@ class ActivityParticipantsApiController extends Controller
                     ->from('user_roles as ur')
                     ->whereColumn('ur.user_id', 'u.id');
             })
-            ->whereNotExists(function ($q) use ($activity) {
+            // FIX: changed whereNotExists to whereExists to correctly identify current participants
+            ->whereExists(function ($q) use ($activity) {
                 $q->select(DB::raw(1))
                     ->from('activity_participants as ap')
                     ->whereColumn('ap.user_id', 'u.id')
