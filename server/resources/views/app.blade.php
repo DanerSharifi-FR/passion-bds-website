@@ -32,6 +32,193 @@
     <link rel="icon" type="image/png" href="https://placehold.co/32x32/FF914D/9B1237?text=P">
     <link rel="apple-touch-icon" href="https://placehold.co/180x180/FF914D/9B1237?text=P">
 
+    <style>
+        :root{
+            --passion-red:#9B1237;
+            --passion-fire-orange:#FF914D;
+            --passion-fire-yellow:#FFC94A;
+            --passion-pink-300:#E7A3AB;
+        }
+
+        #pbds-loader-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2147483647;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(1200px 700px at 50% 18%, color-mix(in oklab, var(--passion-fire-orange, #FF914D) 22%, transparent), transparent 60%),
+            radial-gradient(900px 520px at 70% 82%, color-mix(in oklab, var(--passion-fire-yellow, #FFC94A) 18%, transparent), transparent 55%),
+            linear-gradient(#050206, #0b0610);
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity .22s ease, transform .22s ease;
+        }
+
+        #pbds-loader-overlay[data-hidden="1"] {
+            opacity: 0;
+            transform: scale(1.02);
+            pointer-events: none;
+        }
+
+        #pbds-loader-overlay::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(255, 255, 255, .06) 0px,
+                rgba(255, 255, 255, .06) 1px,
+                transparent 2px,
+                transparent 7px
+            );
+            opacity: .14;
+        }
+
+        #pbds-loader-overlay::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, transparent 0%, transparent 55%, rgba(0,0,0,.45) 80%);
+        }
+
+        #pbds-loader-overlay .pbds-loader-card {
+            position: relative;
+            width: min(460px, calc(100vw - 32px));
+            padding: 22px 22px 18px;
+            border-radius: 18px;
+            border: 2px solid color-mix(in oklab, var(--passion-fire-yellow, #FFC94A) 70%, transparent);
+            background: rgba(0, 0, 0, .58);
+            box-shadow: 0 18px 70px rgba(0, 0, 0, .6), 6px 6px 0 color-mix(in oklab, var(--passion-fire-yellow, #FFC94A) 90%, transparent);
+            backdrop-filter: blur(6px);
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        }
+
+        #pbds-loader-overlay .pbds-loader-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        #pbds-loader-overlay .pbds-loader-logo {
+            width: 54px;
+            height: 54px;
+            object-fit: contain;
+            border-radius: 999px; /* 100% */
+            filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .55));
+        }
+
+        #pbds-loader-overlay .pbds-loader-title {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            line-height: 1.1;
+        }
+
+        #pbds-loader-overlay .pbds-loader-title b {
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            font-weight: 800;
+            font-size: 14px;
+            color: rgba(255, 255, 255, .92);
+        }
+
+        #pbds-loader-overlay .pbds-loader-title span {
+            font-weight: 700;
+            font-size: 12px;
+            color: rgba(255, 255, 255, .68);
+        }
+
+        #pbds-loader-overlay .pbds-loader-row {
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        #pbds-loader-overlay .pbds-loader-spinner {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 3px solid rgba(255, 255, 255, .10);
+            border-top-color: var(--passion-fire-yellow, #FFC94A);
+            border-right-color: var(--passion-fire-orange, #FF914D);
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, .35) inset,
+            0 0 22px color-mix(in oklab, var(--passion-fire-orange, #FF914D) 35%, transparent);
+            animation: pbds-spin .9s linear infinite;
+        }
+
+        @keyframes pbds-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #pbds-loader-overlay .pbds-loader-badge {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            background: rgba(255, 255, 255, .05);
+            box-shadow: 2px 2px 0 color-mix(in oklab, var(--passion-red, #9B1237) 65%, transparent);
+            color: rgba(255, 255, 255, .86);
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        #pbds-loader-overlay .pbds-loader-progress-track {
+            margin-top: 14px;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .08);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .10);
+        }
+
+        #pbds-loader-overlay .pbds-loader-progress-bar {
+            display: block;
+            height: 100%;
+            width: 42%;
+            background: linear-gradient(90deg, var(--passion-red, #9B1237), var(--passion-fire-orange, #FF914D), var(--passion-fire-yellow, #FFC94A));
+            filter: saturate(1.15);
+            animation: pbds-bar 1.05s ease-in-out infinite;
+        }
+
+        @keyframes pbds-bar {
+            0% {
+                transform: translateX(-120%);
+            }
+            50% {
+                transform: translateX(40%);
+            }
+            100% {
+                transform: translateX(220%);
+            }
+        }
+
+        #pbds-loader-overlay .pbds-loader-footer {
+            margin-top: 10px;
+            color: rgba(255, 255, 255, .70);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #pbds-loader-overlay .pbds-loader-spinner,
+            #pbds-loader-overlay .pbds-loader-progress-bar {
+                animation: none !important;
+            }
+        }
+    </style>
+
     {{-- Fonts: Inter & Poppins --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -232,6 +419,222 @@
     </div>
 </footer>
 
+<script>
+    (() => {
+        if (window.__PBDS_LOADER_INSTALLED__) return;
+        window.__PBDS_LOADER_INSTALLED__ = true;
+
+        const LOADER_CONFIG = {
+            overlayId: "pbds-loader-overlay",
+            messageId: "pbds-loader-message",
+            logoSrc: "{{ asset("logo.png") }}", // change if needed
+            defaultMessage: "",
+            hideDelayMsAfterLoad: 120,
+        };
+
+        let loaderOverlayElement = null;
+
+        // -------- Scroll lock (prevents page move / jump) --------
+        let isScrollLocked = false;
+        let savedScrollY = 0;
+        let savedBodyStyles = null;
+
+        const lockPageScroll = () => {
+            if (isScrollLocked) return;
+            isScrollLocked = true;
+
+            savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+            savedBodyStyles = {
+                position: document.body.style.position,
+                top: document.body.style.top,
+                left: document.body.style.left,
+                right: document.body.style.right,
+                width: document.body.style.width,
+                paddingRight: document.body.style.paddingRight,
+                overflow: document.body.style.overflow,
+                htmlOverflow: document.documentElement.style.overflow,
+            };
+
+            document.documentElement.style.overflow = "hidden";
+            document.body.style.overflow = "hidden";
+
+            document.body.style.position = "fixed";
+            document.body.style.top = `-${savedScrollY}px`;
+            document.body.style.left = "0";
+            document.body.style.right = "0";
+            document.body.style.width = "100%";
+
+            if (scrollbarWidth > 0) {
+                document.body.style.paddingRight = `${scrollbarWidth}px`;
+            }
+        };
+
+        const unlockPageScroll = () => {
+            if (!isScrollLocked) return;
+            isScrollLocked = false;
+
+            if (savedBodyStyles) {
+                document.body.style.position = savedBodyStyles.position;
+                document.body.style.top = savedBodyStyles.top;
+                document.body.style.left = savedBodyStyles.left;
+                document.body.style.right = savedBodyStyles.right;
+                document.body.style.width = savedBodyStyles.width;
+                document.body.style.paddingRight = savedBodyStyles.paddingRight;
+                document.body.style.overflow = savedBodyStyles.overflow;
+                document.documentElement.style.overflow = savedBodyStyles.htmlOverflow;
+            } else {
+                document.body.style.position = "";
+                document.body.style.top = "";
+                document.body.style.left = "";
+                document.body.style.right = "";
+                document.body.style.width = "";
+                document.body.style.paddingRight = "";
+                document.body.style.overflow = "";
+                document.documentElement.style.overflow = "";
+            }
+
+            window.scrollTo(0, savedScrollY);
+        };
+        // ---------------------------------------------------------
+
+        const getLoaderMessageNode = () => document.getElementById(LOADER_CONFIG.messageId);
+
+        const ensureLoaderOverlayExists = () => {
+            if (loaderOverlayElement && document.getElementById(LOADER_CONFIG.overlayId)) return;
+
+            const existing = document.getElementById(LOADER_CONFIG.overlayId);
+            if (existing) {
+                loaderOverlayElement = existing;
+                return;
+            }
+
+            loaderOverlayElement = document.createElement("div");
+            loaderOverlayElement.id = LOADER_CONFIG.overlayId;
+
+            loaderOverlayElement.innerHTML = `
+      <div class="pbds-loader-card" role="status" aria-live="polite" aria-busy="true">
+        <div class="pbds-loader-header">
+          <img class="pbds-loader-logo" src="${LOADER_CONFIG.logoSrc}" alt="P'AS'SION BDS">
+          <div class="pbds-loader-title">
+            <b>P'AS'SION BDS</b>
+            <span id="${LOADER_CONFIG.messageId}">${LOADER_CONFIG.defaultMessage}</span>
+          </div>
+        </div>
+
+        <div class="pbds-loader-row">
+          <div class="pbds-loader-spinner" aria-hidden="true"></div>
+          <div class="pbds-loader-badge">SYSTEM LOADING...</div>
+        </div>
+
+        <div class="pbds-loader-progress-track" aria-hidden="true">
+          <i class="pbds-loader-progress-bar"></i>
+        </div>
+
+        <div class="pbds-loader-footer">Si ça prend trop longtemps, c’est pas toi : c’est le réseau.</div>
+      </div>
+    `.trim();
+
+            const appendOverlay = () => {
+                if (!document.body) return;
+                document.body.appendChild(loaderOverlayElement);
+            };
+
+            if (document.body) appendOverlay();
+            else window.addEventListener("DOMContentLoaded", appendOverlay, {once: true});
+        };
+
+        const showLoaderOverlay = (messageText) => {
+            ensureLoaderOverlayExists();
+
+            const messageNode = getLoaderMessageNode();
+            if (messageText && messageNode) messageNode.textContent = messageText;
+
+            loaderOverlayElement.dataset.hidden = "0";
+            lockPageScroll();
+        };
+
+        const hideLoaderOverlay = () => {
+            if (!loaderOverlayElement) return;
+            loaderOverlayElement.dataset.hidden = "1";
+            unlockPageScroll();
+        };
+
+        // Public API (optional)
+        window.PBDSLoader = {
+            show: showLoaderOverlay,
+            hide: hideLoaderOverlay,
+            setMessage: (text) => {
+                const node = getLoaderMessageNode();
+                if (node) node.textContent = text;
+            },
+        };
+
+        // Initial load behavior
+        showLoaderOverlay();
+        window.addEventListener(
+            "load",
+            () => setTimeout(hideLoaderOverlay, LOADER_CONFIG.hideDelayMsAfterLoad),
+            {once: true}
+        );
+
+        // BFCache restore
+        window.addEventListener("pageshow", (event) => {
+            if (event.persisted) hideLoaderOverlay();
+        });
+
+        // Classic multi-page Laravel: show loader on internal navigations + form submits
+        const isInternalUrl = (urlObject) => urlObject && urlObject.origin === location.origin;
+
+        document.addEventListener(
+            "click",
+            (event) => {
+                const anchor = event.target.closest && event.target.closest("a[href]");
+                if (!anchor) return;
+
+                if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+
+                const rawHref = anchor.getAttribute("href");
+                if (!rawHref || rawHref.startsWith("#")) return;
+
+                let targetUrl;
+                try {
+                    targetUrl = new URL(rawHref, location.href);
+                } catch {
+                    return;
+                }
+                if (!isInternalUrl(targetUrl)) return;
+
+                // same-page hash jump => no loader
+                const isSameDocumentHashJump =
+                    targetUrl.pathname === location.pathname &&
+                    targetUrl.search === location.search &&
+                    targetUrl.hash &&
+                    targetUrl.hash !== location.hash;
+                if (isSameDocumentHashJump) return;
+
+                showLoaderOverlay("Chargement…");
+            },
+            true
+        );
+
+        document.addEventListener(
+            "submit",
+            (event) => {
+                showLoaderOverlay("Envoi…");
+                setTimeout(() => {
+                    if (event.defaultPrevented) hideLoaderOverlay();
+                }, 0);
+            },
+            true
+        );
+
+        // Keep beforeunload silent (no "switch page" text)
+        window.addEventListener("beforeunload", () => showLoaderOverlay());
+    })();
+</script>
 <script src="{{ asset('assets/passion-common.js') }}"></script>
 @stack('end_scripts')
 </body>
