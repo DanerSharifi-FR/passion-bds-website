@@ -26,14 +26,14 @@ class PageController extends Controller
         // Random per session, reshuffles every week
         $weekKey = now()->format('o-\WW');
 
-        if (session('team_visuals_week') !== $weekKey) {
+        if (session('team_visuals_week_v2') !== $weekKey) {
             session([
-                'team_visuals_week' => $weekKey,
-                'team_visuals_seed' => random_int(1, PHP_INT_MAX),
+                'team_visuals_week_v2' => $weekKey,
+                'team_visuals_seed_v2' => random_int(1, PHP_INT_MAX),
             ]);
         }
 
-        $baseSeed = (int) session('team_visuals_seed', 123456);
+        $baseSeed = (int) session('team_visuals_seed_v2', 123456);
 
         $rarityClasses = [
             'rarity-common',

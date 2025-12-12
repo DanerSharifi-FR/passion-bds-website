@@ -23,11 +23,11 @@ class TeamSeeder extends Seeder
             ];
             $membersByPoleSlug = [
                 'bureau-restreint' => [
-                    ['full_name' => 'Tiago', 'nickname' => null, 'photo_base' => 'tiago'],
-                    ['full_name' => 'Antoine', 'nickname' => null, 'photo_base' => 'antoine'],
-                    ['full_name' => 'Hugo', 'nickname' => null, 'photo_base' => 'hugo'],
-                    ['full_name' => 'Barnabé', 'nickname' => null, 'photo_base' => 'barnabe'],
-                    ['full_name' => 'Arthur', 'nickname' => null, 'photo_base' => 'arthur'],
+                    ['full_name' => 'Tiago', 'nickname' => 'Prez', 'photo_base' => 'tiago'],
+                    ['full_name' => 'Antoine', 'nickname' => 'Vice-prez', 'photo_base' => 'antoine'],
+                    ['full_name' => 'Hugo', 'nickname' => 'Trez', 'photo_base' => 'hugo'],
+                    ['full_name' => 'Barnabé', 'nickname' => 'Vice-trez', 'photo_base' => 'barnabe'],
+                    ['full_name' => 'Arthur', 'nickname' => 'Secrétaire', 'photo_base' => 'arthur'],
                 ],
 
                 'pole-compet' => [
