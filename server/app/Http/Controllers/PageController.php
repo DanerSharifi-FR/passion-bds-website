@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Random\RandomException;
 
 class PageController extends Controller
 {
@@ -17,9 +18,104 @@ class PageController extends Controller
         ]);
     }
 
+    /**
+     * @throws RandomException
+     */
     public function team(): Factory|View
     {
-        return view('team');
+        // ✅ “Random per session” but reshuffled every week
+        // Week key ISO (year-week) so it changes automatically each week.
+        $weekKey = now()->format('o-\WW');
+
+        if (session('team_visuals_week') !== $weekKey) {
+            session([
+                'team_visuals_week' => $weekKey,
+                'team_visuals_seed' => random_int(1, PHP_INT_MAX),
+            ]);
+        }
+
+        $baseSeed = (int) session('team_visuals_seed', 123456);
+
+        $visiblePoles = DB::table('poles')
+            ->where('is_visible', 1)
+            ->orderBy('position')
+            ->get(['id', 'name', 'slug', 'description', 'icon_name', 'position']);
+
+        $visibleMembers = DB::table('team_members')
+            ->where('is_visible', 1)
+            ->orderBy('pole_id')
+            ->orderBy('position')
+            ->get([
+                'id',
+                'pole_id',
+                'full_name',
+                'nickname',
+                'bio',
+                'photo_url',
+                'instagram_url',
+                'position',
+            ]);
+
+        $membersGroupedByPoleId = $visibleMembers->groupBy('pole_id');
+
+        $teamPoles = $visiblePoles->map(function ($pole) use ($membersGroupedByPoleId, $baseSeed) {
+            $members = ($membersGroupedByPoleId->get($pole->id, collect()))
+                ->values()
+                ->map(function ($member) use ($baseSeed) {
+                    // ✅ Deterministic per member, per week, per session
+                    // (no global mt_srand, no side effects)
+                    $localSeed = (int) sprintf('%u', crc32($baseSeed . '|' . $member->id));
+                    $rng = new \Random\Randomizer(new \Random\Engine\Mt19937($localSeed));
+
+                    // Rarity roll (tweak thresholds if you want)
+                    $rarityRoll = $rng->getInt(1, 100);
+                    $rarityClass = match (true) {
+                        $rarityRoll <= 45 => 'rarity-common',
+                        $rarityRoll <= 70 => 'rarity-rare',
+                        $rarityRoll <= 85 => 'rarity-epic',
+                        $rarityRoll <= 95 => 'rarity-legendary',
+                        default => 'rarity-champion',
+                    };
+
+                    // Elixir roll (mostly 1-10, tiny chance of special)
+                    $specialRoll = $rng->getInt(1, 250);
+                    if ($specialRoll === 1) {
+                        $elixirValue = '∞';
+                    } elseif ($specialRoll === 2) {
+                        $elixirValue = '99';
+                    } else {
+                        $elixirValue = (string) $rng->getInt(1, 10);
+                    }
+
+                    return [
+                        'id' => (int) $member->id,
+                        'pole_id' => (int) $member->pole_id,
+                        'full_name' => $member->full_name,
+                        'nickname' => $member->nickname,
+                        'bio' => $member->bio,
+                        'photo_url' => asset(ltrim($member->photo_url, '/')),
+                        'instagram_url' => $member->instagram_url,
+                        'position' => (int) $member->position,
+
+                        // ✅ New: random visuals
+                        'rarity_class' => $rarityClass,
+                        'elixir_value' => $elixirValue,
+                    ];
+                })
+                ->all();
+
+            return [
+                'id' => (int) $pole->id,
+                'name' => $pole->name,
+                'slug' => $pole->slug,
+                'position' => (int) $pole->position,
+                'members' => $members,
+            ];
+        })->all();
+
+        return view('team', [
+            'teamPoles' => $teamPoles,
+        ]);
     }
 
     public function gallery(): Factory|View
