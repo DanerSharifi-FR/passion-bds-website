@@ -139,7 +139,7 @@
                         <div class="flex flex-col items-center w-1/3">
                             <div class="mb-2 text-center text-white/90">
                                 <span class="block text-2xl mb-1 filter drop-shadow">🥈</span>
-                                <span class="block font-black text-xs md:text-sm uppercase leading-tight truncate w-full">
+                                <span class="block font-black text-xs md:text-sm uppercase leading-tight truncate w-full podium-name">
                         {{ $second ? $second['name'] : '—' }}
                     </span>
                                 <span class="text-[10px] opacity-80 font-mono">
@@ -155,7 +155,7 @@
                         <div class="flex flex-col items-center w-1/3 z-10 -mt-8">
                             <div class="mb-2 text-center text-passion-fire-yellow">
                                 <span class="block text-4xl mb-1 filter drop-shadow-lg">👑</span>
-                                <span class="block font-black text-sm md:text-base uppercase leading-tight truncate w-full">
+                                <span class="block font-black text-sm md:text-base uppercase leading-tight truncate w-full podium-name">
                         {{ $first ? $first['name'] : '—' }}
                     </span>
                                 <span class="font-bold text-xs">
@@ -171,7 +171,7 @@
                         <div class="flex flex-col items-center w-1/3">
                             <div class="mb-2 text-center text-white/70">
                                 <span class="block text-2xl mb-1 filter drop-shadow">🥉</span>
-                                <span class="block font-black text-xs md:text-sm uppercase leading-tight truncate w-full">
+                                <span class="block font-black text-xs md:text-sm uppercase leading-tight truncate w-full podium-name">
                         {{ $third ? $third['name'] : '—' }}
                     </span>
                                 <span class="text-[10px] opacity-80 font-mono">
@@ -194,7 +194,7 @@
                                 <svg class="w-7 h-7 pt-1" fill="none" stroke="currentColor" viewBox="0 0 32 32">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
                                 </svg>
-                                {{ $me['gap_to_above'] }} pts de retard sur {{ $me['above_name'] }}
+                                {{ $me['gap_to_above'] }} pts de retard sur <span class="podium-name">{{ $me['above_name'] }}</span>
                             </span>
                                     </div>
                                 @endif
@@ -349,3 +349,20 @@
         </div>
     </section>
 @endsection
+
+@push('end_scripts')
+    <script>
+        function clampPodiumName(rawName, maxChars = 14) {
+            const name = String(rawName ?? '').trim();
+            if (name.length <= maxChars) return name;
+
+            // keep room for the dot
+            return name.slice(0, maxChars - 1) + '.';
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.podium-name').forEach((el) => {
+                el.textContent = clampPodiumName(el.textContent, 14);
+            });
+        });
+    </script>
+@endpush
