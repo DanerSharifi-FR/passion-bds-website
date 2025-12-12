@@ -321,7 +321,7 @@
 <header class="lg:hidden w-full pt-8 pb-4 flex flex-col items-center justify-center bg-transparent relative z-10">
     <div class="flex items-center gap-3 select-none transform">
         <!-- LOGO IMAGE (Rounded Full) -->
-        <img src="logo.png" alt="Logo BDS"
+        <img src="{{ asset('logo.png') }}" alt="Logo BDS"
              class="h-16 w-16 object-contain animate-bounce-slow drop-shadow-lg rounded-full">
 
         <div class="flex flex-col items-end gap-0 skew-box leading-none">
