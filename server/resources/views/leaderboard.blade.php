@@ -220,9 +220,9 @@
                     item.innerHTML = `
                 <div class="flex items-center lg:gap-4 sm:gap-2 gap-0">
                     <div class="w-8 text-center text-xl font-bold">${rankBadge}</div>
-                    <div class="text-2xl">${player.avatar ?? '👤'}</div>
+                    <div class="text-2xl md:inline d-hidden">${player.avatar ?? '👤'}</div>
                     <div class="flex flex-col">
-                        <span class="${textClass} text-lg uppercase tracking-tight font-bold">${escapeHtml(player.name)}</span>
+                        <span class="${textClass} text-lg uppercase tracking-tight font-bold podium-name">${escapeHtml(player.name)}</span>
                         ${player.isUser ? '<span class="text-[10px] uppercase font-bold tracking-widest opacity-70">C\'est toi !</span>' : ''}
                     </div>
                 </div>

@@ -34,11 +34,11 @@
     <link rel="apple-touch-icon" href="https://placehold.co/180x180/FF914D/9B1237?text=P">
 
     <style>
-        :root{
-            --passion-red:#9B1237;
-            --passion-fire-orange:#FF914D;
-            --passion-fire-yellow:#FFC94A;
-            --passion-pink-300:#E7A3AB;
+        :root {
+            --passion-red: #9B1237;
+            --passion-fire-orange: #FF914D;
+            --passion-fire-yellow: #FFC94A;
+            --passion-pink-300: #E7A3AB;
         }
 
         #pbds-loader-overlay {
@@ -82,7 +82,7 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            background: radial-gradient(circle at 50% 50%, transparent 0%, transparent 55%, rgba(0,0,0,.45) 80%);
+            background: radial-gradient(circle at 50% 50%, transparent 0%, transparent 55%, rgba(0, 0, 0, .45) 80%);
         }
 
         #pbds-loader-overlay .pbds-loader-card {
@@ -639,6 +639,37 @@
     })();
 </script>
 <script src="{{ asset('assets/passion-common.js') }}"></script>
+<script>
+    function shortName(raw) {
+        const s = String(raw ?? "").trim().replace(/\s+/g, " ");
+        if (!s) return "";
+
+        // If pass an email
+        const base = s.includes("@") ? s.split("@")[0].replace(/[._-]+/g, " ") : s;
+
+        const parts = base.trim().split(/\s+/).filter(Boolean);
+        if (parts.length === 1) return parts[0];
+
+        const first = parts[0];
+        const initial = parts[1][0].toLowerCase();
+        return `${first} ${initial}.`;
+    }
+
+    document.querySelectorAll(".podium-name").forEach((el) => {
+        const full = el.textContent;
+        el.textContent = shortName(full);
+        el.title = full;
+    });
+
+    window.addEventListener('load', () => {
+        document.querySelectorAll(".podium-name").forEach((el) => {
+            const full = el.textContent;
+            el.textContent = shortName(full);
+            el.title = full;
+        });
+    });
+
+</script>
 @stack('end_scripts')
 </body>
 </html>

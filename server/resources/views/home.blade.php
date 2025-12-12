@@ -349,30 +349,3 @@
         </div>
     </section>
 @endsection
-
-@push('end_scripts')
-    <script>
-        function shortName(raw) {
-            const s = String(raw ?? "").trim().replace(/\s+/g, " ");
-            if (!s) return "";
-
-            // If pass an email
-            const base = s.includes("@") ? s.split("@")[0].replace(/[._-]+/g, " ") : s;
-
-            const parts = base.trim().split(/\s+/).filter(Boolean);
-            if (parts.length === 1) return parts[0];
-
-            const first = parts[0];
-            const initial = parts[1][0].toLowerCase();
-            return `${first} ${initial}.`;
-        }
-
-        // Apply to podium names
-        document.querySelectorAll(".podium-name").forEach((el) => {
-            const full = el.textContent;
-            el.textContent = shortName(full);
-            el.title = full;
-        });
-
-    </script>
-@endpush
