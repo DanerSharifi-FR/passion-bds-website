@@ -355,41 +355,44 @@
         function clampPodiumNameSmart(rawName, maxChars = 14) {
             const name = String(rawName ?? "")
                 .trim()
-                .replace(/\s+/g, " "); // normalize spaces
+                .replace(/\s+/g, " ");
 
             if (name.length <= maxChars) return name;
 
             const words = name.split(" ");
 
-            // No spaces => hard cut
+            // Single long word => hard cut
             if (words.length === 1) {
                 return name.slice(0, maxChars - 1) + ".";
             }
 
-            // Build as many full words as possible
             let out = words[0];
 
             for (let i = 1; i < words.length; i++) {
                 const nextWord = words[i];
                 const fullCandidate = out + " " + nextWord;
 
-                // If full word fits, keep it
+                // If full fits perfectly but there are still words after -> prefer "initial."
+                if (fullCandidate.length === maxChars && i < words.length - 1) {
+                    const initialCandidate = out + " " + nextWord[0] + ".";
+                    return initialCandidate.length <= maxChars
+                        ? initialCandidate
+                        : (out.length + 1 <= maxChars ? out + "." : out.slice(0, maxChars - 1) + ".");
+                }
+
                 if (fullCandidate.length <= maxChars) {
                     out = fullCandidate;
                     continue;
                 }
 
-                // Otherwise try " initial."
                 const initialCandidate = out + " " + nextWord[0] + ".";
                 if (initialCandidate.length <= maxChars) return initialCandidate;
 
-                // If no room even for initial, just end with a dot (or hard cut if needed)
                 if (out.length + 1 <= maxChars) return out + ".";
                 return out.slice(0, maxChars - 1) + ".";
             }
 
-            // Fallback (shouldn’t happen if name.length > maxChars)
-            return out.slice(0, maxChars - 1) + ".";
+            return out.length <= maxChars ? out : out.slice(0, maxChars - 1) + ".";
         }
 
         document.querySelectorAll(".podium-name").forEach((el) => {
