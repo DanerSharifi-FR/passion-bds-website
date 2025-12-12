@@ -63,8 +63,8 @@ class PageController extends Controller
                 'position',
             ]);
 
-        // 1) First pass: deterministic random per member
-        $membersWithVisuals = $visibleMembers
+        // 1) Deterministic random per member
+        $membersArray = $visibleMembers
             ->values()
             ->map(function ($member) use ($baseSeed) {
                 $localSeed = (int) sprintf('%u', crc32($baseSeed . '|' . $member->id));
@@ -101,32 +101,37 @@ class PageController extends Controller
                     'rarity_class' => $rarityClass,
                     'elixir_value' => $elixirValue,
                 ];
-            });
+            })
+            ->all();
 
-        // 2) Enforce: at least one of each rarity class (if enough members)
-        if ($membersWithVisuals->count() >= count($rarityClasses)) {
+        // 2) Enforce: at least one of each rarity (if enough members)
+        if (count($membersArray) >= count($rarityClasses)) {
             $globalRng = new \Random\Randomizer(new \Random\Engine\Mt19937($baseSeed));
 
             $counts = array_fill_keys($rarityClasses, 0);
-            foreach ($membersWithVisuals as $m) {
+            foreach ($membersArray as $m) {
                 $counts[$m['rarity_class']] = ($counts[$m['rarity_class']] ?? 0) + 1;
             }
 
-            $missing = array_values(array_filter($rarityClasses, fn ($c) => ($counts[$c] ?? 0) === 0));
+            $missing = array_values(array_filter(
+                $rarityClasses,
+                fn ($c) => ($counts[$c] ?? 0) === 0
+            ));
+
             $usedIndexes = [];
 
             foreach ($missing as $missingClass) {
-                $n = $membersWithVisuals->count();
+                $n = count($membersArray);
                 $pickedIndex = null;
 
-                // pick someone from a rarity that has > 1 occurrence, so we don't create a new "missing"
+                // pick someone from a class that has > 1 (avoid creating a new missing)
                 for ($attempts = 0; $attempts < 300; $attempts++) {
                     $idx = $globalRng->getInt(0, $n - 1);
                     if (isset($usedIndexes[$idx])) {
                         continue;
                     }
 
-                    $currentClass = $membersWithVisuals[$idx]['rarity_class'];
+                    $currentClass = $membersArray[$idx]['rarity_class'];
                     if (($counts[$currentClass] ?? 0) <= 1) {
                         continue;
                     }
@@ -135,9 +140,9 @@ class PageController extends Controller
                     break;
                 }
 
-                // fallback (should almost never happen): just grab any non-used index
+                // fallback: any non-used index
                 if ($pickedIndex === null) {
-                    for ($idx = 0; $idx < $membersWithVisuals->count(); $idx++) {
+                    for ($idx = 0; $idx < $n; $idx++) {
                         if (!isset($usedIndexes[$idx])) {
                             $pickedIndex = $idx;
                             break;
@@ -146,8 +151,8 @@ class PageController extends Controller
                 }
 
                 if ($pickedIndex !== null) {
-                    $oldClass = $membersWithVisuals[$pickedIndex]['rarity_class'];
-                    $membersWithVisuals[$pickedIndex]['rarity_class'] = $missingClass;
+                    $oldClass = $membersArray[$pickedIndex]['rarity_class'];
+                    $membersArray[$pickedIndex]['rarity_class'] = $missingClass;
 
                     $counts[$oldClass]--;
                     $counts[$missingClass]++;
@@ -158,7 +163,7 @@ class PageController extends Controller
         }
 
         // 3) Group by pole and build view structure
-        $membersGroupedByPoleId = $membersWithVisuals->groupBy('pole_id');
+        $membersGroupedByPoleId = collect($membersArray)->groupBy('pole_id');
 
         $teamPoles = $visiblePoles->map(function ($pole) use ($membersGroupedByPoleId) {
             return [
@@ -166,7 +171,7 @@ class PageController extends Controller
                 'name' => $pole->name,
                 'slug' => $pole->slug,
                 'position' => (int) $pole->position,
-                'members' => ($membersGroupedByPoleId->get((int) $pole->id, collect()))->values()->all(),
+                'members' => $membersGroupedByPoleId->get((int) $pole->id, collect())->values()->all(),
             ];
         })->all();
 
