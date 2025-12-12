@@ -20,6 +20,9 @@ return new class extends Migration
             // what points are called for this activity (wins, seconds, kills, etc.)
             $table->string('points_label', 50);
 
+            // description (optional)
+            $table->text('description')->nullable();
+
             // INDIVIDUAL or TEAM
             $table->string('mode', 20)->default('INDIVIDUAL');
 
