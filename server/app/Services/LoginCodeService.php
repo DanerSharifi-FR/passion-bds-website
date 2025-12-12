@@ -33,7 +33,7 @@ class LoginCodeService
     private const EMAIL_REGEX = '/^[a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9-]*@imt-atlantique\.net$/i';
 
     private const CODE_LENGTH = 4;
-    private const EXPIRES_MINUTES = 10;
+    private const EXPIRES_MINUTES = 5;
     private const MAX_ATTEMPTS_PER_CODE = 5;
 
     // Cooldown strict : 30s entre 2 demandes depuis la même IP
