@@ -145,7 +145,7 @@
             btn.disabled = true;
 
             try {
-                await postJson('{{ route('auth.request-code') }}', {email});
+                await postJson('/auth/request-code', {email});
 
                 if (!isResend) {
                     proceedToStep2();
@@ -257,7 +257,7 @@
             }
 
             try {
-                await postJson('{{ route('auth.verify-code') }}', { email, code: digits });
+                await postJson('/auth/verify-code', { email, code: digits });
 
                 // REDIRECT FOR THIS PAGE:
                 window.location.href = '/'; // change if needed
