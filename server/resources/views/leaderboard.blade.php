@@ -218,7 +218,7 @@
                         "background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, scale 0.4s ease";
 
                     item.innerHTML = `
-                <div class="flex items-center lg:gap-4 sm:gap-2 gap-0">
+                <div class="flex items-center lg:gap-4 gap-2 gap-0">
                     <div class="w-8 text-center text-xl font-bold">${rankBadge}</div>
                     <div class="text-2xl md:inline-block hidden">${player.avatar ?? '👤'}</div>
                     <div class="flex flex-col">
