@@ -23,8 +23,7 @@ class PageController extends Controller
      */
     public function team(): Factory|View
     {
-        // ✅ “Random per session” but reshuffled every week
-        // Week key ISO (year-week) so it changes automatically each week.
+        // Random per session, reshuffles every week
         $weekKey = now()->format('o-\WW');
 
         if (session('team_visuals_week') !== $weekKey) {
@@ -35,6 +34,14 @@ class PageController extends Controller
         }
 
         $baseSeed = (int) session('team_visuals_seed', 123456);
+
+        $rarityClasses = [
+            'rarity-common',
+            'rarity-rare',
+            'rarity-epic',
+            'rarity-legendary',
+            'rarity-champion',
+        ];
 
         $visiblePoles = DB::table('poles')
             ->where('is_visible', 1)
@@ -56,60 +63,110 @@ class PageController extends Controller
                 'position',
             ]);
 
-        $membersGroupedByPoleId = $visibleMembers->groupBy('pole_id');
+        // 1) First pass: deterministic random per member
+        $membersWithVisuals = $visibleMembers
+            ->values()
+            ->map(function ($member) use ($baseSeed) {
+                $localSeed = (int) sprintf('%u', crc32($baseSeed . '|' . $member->id));
+                $rng = new \Random\Randomizer(new \Random\Engine\Mt19937($localSeed));
 
-        $teamPoles = $visiblePoles->map(function ($pole) use ($membersGroupedByPoleId, $baseSeed) {
-            $members = ($membersGroupedByPoleId->get($pole->id, collect()))
-                ->values()
-                ->map(function ($member) use ($baseSeed) {
-                    // ✅ Deterministic per member, per week, per session
-                    // (no global mt_srand, no side effects)
-                    $localSeed = (int) sprintf('%u', crc32($baseSeed . '|' . $member->id));
-                    $rng = new \Random\Randomizer(new \Random\Engine\Mt19937($localSeed));
+                $rarityRoll = $rng->getInt(1, 100);
+                $rarityClass = match (true) {
+                    $rarityRoll <= 45 => 'rarity-common',
+                    $rarityRoll <= 70 => 'rarity-rare',
+                    $rarityRoll <= 85 => 'rarity-epic',
+                    $rarityRoll <= 95 => 'rarity-legendary',
+                    default => 'rarity-champion',
+                };
 
-                    // Rarity roll (tweak thresholds if you want)
-                    $rarityRoll = $rng->getInt(1, 100);
-                    $rarityClass = match (true) {
-                        $rarityRoll <= 45 => 'rarity-common',
-                        $rarityRoll <= 70 => 'rarity-rare',
-                        $rarityRoll <= 85 => 'rarity-epic',
-                        $rarityRoll <= 95 => 'rarity-legendary',
-                        default => 'rarity-champion',
-                    };
+                $specialRoll = $rng->getInt(1, 250);
+                if ($specialRoll === 1) {
+                    $elixirValue = '∞';
+                } elseif ($specialRoll === 2) {
+                    $elixirValue = '99';
+                } else {
+                    $elixirValue = (string) $rng->getInt(1, 10);
+                }
 
-                    // Elixir roll (mostly 1-10, tiny chance of special)
-                    $specialRoll = $rng->getInt(1, 250);
-                    if ($specialRoll === 1) {
-                        $elixirValue = '∞';
-                    } elseif ($specialRoll === 2) {
-                        $elixirValue = '99';
-                    } else {
-                        $elixirValue = (string) $rng->getInt(1, 10);
+                return [
+                    'id' => (int) $member->id,
+                    'pole_id' => (int) $member->pole_id,
+                    'full_name' => $member->full_name,
+                    'nickname' => $member->nickname,
+                    'bio' => $member->bio,
+                    'photo_url' => asset(ltrim($member->photo_url, '/')),
+                    'instagram_url' => $member->instagram_url,
+                    'position' => (int) $member->position,
+
+                    'rarity_class' => $rarityClass,
+                    'elixir_value' => $elixirValue,
+                ];
+            });
+
+        // 2) Enforce: at least one of each rarity class (if enough members)
+        if ($membersWithVisuals->count() >= count($rarityClasses)) {
+            $globalRng = new \Random\Randomizer(new \Random\Engine\Mt19937($baseSeed));
+
+            $counts = array_fill_keys($rarityClasses, 0);
+            foreach ($membersWithVisuals as $m) {
+                $counts[$m['rarity_class']] = ($counts[$m['rarity_class']] ?? 0) + 1;
+            }
+
+            $missing = array_values(array_filter($rarityClasses, fn ($c) => ($counts[$c] ?? 0) === 0));
+            $usedIndexes = [];
+
+            foreach ($missing as $missingClass) {
+                $n = $membersWithVisuals->count();
+                $pickedIndex = null;
+
+                // pick someone from a rarity that has > 1 occurrence, so we don't create a new "missing"
+                for ($attempts = 0; $attempts < 300; $attempts++) {
+                    $idx = $globalRng->getInt(0, $n - 1);
+                    if (isset($usedIndexes[$idx])) {
+                        continue;
                     }
 
-                    return [
-                        'id' => (int) $member->id,
-                        'pole_id' => (int) $member->pole_id,
-                        'full_name' => $member->full_name,
-                        'nickname' => $member->nickname,
-                        'bio' => $member->bio,
-                        'photo_url' => asset(ltrim($member->photo_url, '/')),
-                        'instagram_url' => $member->instagram_url,
-                        'position' => (int) $member->position,
+                    $currentClass = $membersWithVisuals[$idx]['rarity_class'];
+                    if (($counts[$currentClass] ?? 0) <= 1) {
+                        continue;
+                    }
 
-                        // ✅ New: random visuals
-                        'rarity_class' => $rarityClass,
-                        'elixir_value' => $elixirValue,
-                    ];
-                })
-                ->all();
+                    $pickedIndex = $idx;
+                    break;
+                }
 
+                // fallback (should almost never happen): just grab any non-used index
+                if ($pickedIndex === null) {
+                    for ($idx = 0; $idx < $membersWithVisuals->count(); $idx++) {
+                        if (!isset($usedIndexes[$idx])) {
+                            $pickedIndex = $idx;
+                            break;
+                        }
+                    }
+                }
+
+                if ($pickedIndex !== null) {
+                    $oldClass = $membersWithVisuals[$pickedIndex]['rarity_class'];
+                    $membersWithVisuals[$pickedIndex]['rarity_class'] = $missingClass;
+
+                    $counts[$oldClass]--;
+                    $counts[$missingClass]++;
+
+                    $usedIndexes[$pickedIndex] = true;
+                }
+            }
+        }
+
+        // 3) Group by pole and build view structure
+        $membersGroupedByPoleId = $membersWithVisuals->groupBy('pole_id');
+
+        $teamPoles = $visiblePoles->map(function ($pole) use ($membersGroupedByPoleId) {
             return [
                 'id' => (int) $pole->id,
                 'name' => $pole->name,
                 'slug' => $pole->slug,
                 'position' => (int) $pole->position,
-                'members' => $members,
+                'members' => ($membersGroupedByPoleId->get((int) $pole->id, collect()))->values()->all(),
             ];
         })->all();
 
@@ -117,6 +174,7 @@ class PageController extends Controller
             'teamPoles' => $teamPoles,
         ]);
     }
+
 
     public function gallery(): Factory|View
     {
