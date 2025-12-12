@@ -44,15 +44,19 @@
 
     <div class="text-center mb-8">
         <a href="{{ route('activities') }}" class="inline-flex items-center gap-2 text-sm font-black uppercase text-passion-red bg-white/70 px-4 py-2 rounded-full">
-            <i class="fa-solid fa-arrow-left"></i> Activités
+            ← Activités
         </a>
 
         <h1 class="mt-4 font-display font-black text-4xl md:text-5xl uppercase tracking-tighter text-passion-red mb-2 drop-shadow-sm">
             {{ $activity->title }} <span class="text-passion-fire-orange">Live</span>
         </h1>
 
-        <p class="text-passion-pink-500 font-bold text-sm uppercase tracking-widest bg-white/60 inline-block px-4 py-1 rounded-full">
+        {{--<p class="text-passion-pink-500 font-bold text-sm uppercase tracking-widest bg-white/60 px-4 py-1 rounded-full">
             {{ $isTeamMode ? 'Classement par équipes' : 'Classement joueurs' }} — {{ $pointsLabel }}
+        </p>--}}
+
+        <p class="text-passion-pink-500 font-bold text-sm uppercase tracking-widest bg-white/60 px-4 py-1 rounded-full">
+            {{ $activity->description }}
         </p>
     </div>
 
@@ -114,13 +118,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const subLine = IS_TEAM_MODE
                 ? `<span class="text-[10px] uppercase font-black tracking-widest opacity-70">${Number(row.members_count || 0)} membres</span>`
                 : (row.isUser ? `<span class="text-[10px] uppercase font-bold tracking-widest opacity-70">C'est toi !</span>` : ``);
-
+            console.log(row);
             item.innerHTML = `
                 <div class="flex items-center lg:gap-4 gap-2">
                     <div class="w-8 text-center text-xl font-bold">${rankBadge}</div>
                     <div class="text-2xl md:inline-block hidden">${escapeHtml(row.avatar ?? (IS_TEAM_MODE ? '🏳️' : '👤'))}</div>
                     <div class="flex flex-col">
-                        <span class="${textClass} text-lg uppercase tracking-tight font-bold podium-name">${escapeHtml(row.name)}</span>
+                        <span class="${textClass} text-lg uppercase tracking-tight font-bold podium-name">${escapeHtml((IS_TEAM_MODE ? row.title : row.name))}</span>
                         ${subLine}
                     </div>
                 </div>

@@ -26,6 +26,7 @@ class ActivitiesApiController extends Controller
                 'a.id',
                 'a.title',
                 'a.slug',
+                'a.description',
                 'a.points_label',
                 'a.mode',
                 'a.is_active',
@@ -68,11 +69,51 @@ class ActivitiesApiController extends Controller
 
         return response()->json(['data' => $activities]);
     }
+    // In App\Http\Controllers\Admin\ActivitiesApiController.php
+
+    public function live()
+    {
+        $activities = Activity::where('is_active', true)
+            ->get() // Get all active activities first
+            ->map(function ($activity) {
+
+                // Re-using the logic we fixed:
+                $query = \Illuminate\Support\Facades\DB::table('point_transactions as pt')
+                    ->where('pt.activity_id', $activity->id);
+
+                if ($activity->mode === 'TEAM') {
+                    $query->join('activity_team_members as atm', 'atm.user_id', '=', 'pt.user_id')
+                        ->join('activity_teams as at', 'at.id', '=', 'atm.team_id')
+                        ->where('at.activity_id', $activity->id)
+                        ->selectRaw('at.id as entity_id, at.title as name, SUM(pt.amount) as points')
+                        ->groupBy('at.id', 'at.title');
+                } else {
+                    $query->join('users as u', 'u.id', '=', 'pt.user_id')
+                        ->selectRaw('u.id as entity_id, COALESCE(u.display_name, u.university_email) as name, SUM(pt.amount) as points')
+                        ->groupBy('u.id', 'u.display_name', 'u.university_email');
+                }
+
+                // Get Top 3
+                $podium = $query->orderByDesc('points')->limit(3)->get();
+
+                return [
+                    'id' => $activity->id,
+                    'slug' => $activity->slug,
+                    'title' => $activity->title,
+                    'mode' => $activity->mode,
+                    'podium' => $podium
+                ];
+            });
+
+        return response()->json(['data' => $activities]);
+    }
+
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'title'        => ['required', 'string', 'min:2', 'max:255', 'unique:activities,title'],
+            'description'  => ['nullable', 'string', 'max:255'],
             'points_label' => ['required', 'string', 'min:1', 'max:50'],
             'mode'         => ['required', Rule::in(['INDIVIDUAL', 'TEAM'])],
             'is_active'    => ['nullable', 'boolean'],
@@ -84,6 +125,7 @@ class ActivitiesApiController extends Controller
             $activity = Activity::create([
                 'title'         => $validated['title'],
                 'slug'          => Str::slug($validated['title']),
+                'description'   => $validated['description'],
                 'points_label'  => $validated['points_label'],
                 'mode'          => $validated['mode'],
                 'is_active'     => (bool)($validated['is_active'] ?? true),
@@ -100,11 +142,24 @@ class ActivitiesApiController extends Controller
             throw $e;
         }
 
-        DB::table('activity_admins')->insertOrIgnore([
+        // 1. Get unique IDs of users with the required roles
+        $adminIds = DB::table('user_roles')
+            ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+            ->whereIn('roles.name', ['ROLE_SUPER_ADMIN', 'ROLE_GAMEMASTER'])
+            ->pluck('user_roles.user_id')
+            ->unique();
+
+        // 2. Prepare the dataset
+        $data = $adminIds->map(fn($userId) => [
             'activity_id' => $activity->id,
-            'admin_id'    => Auth::id(),
+            'admin_id'    => $userId,
             'created_at'  => now(),
-        ]);
+        ])->toArray();
+
+        // 3. Bulk insert
+        if (!empty($data)) {
+            DB::table('activity_admins')->insertOrIgnore($data);
+        }
 
         return response()->json(['data' => $activity], 201);
     }
@@ -114,15 +169,16 @@ class ActivitiesApiController extends Controller
         $validated = $request->validate([
             'title'        => ['required', 'string', 'min:2', 'max:255', Rule::unique('activities', 'title')->ignore($activity->id)],
             'points_label' => ['required', 'string', 'min:1', 'max:50'],
+            'description'  => ['nullable', 'string', 'max:255'],
             'mode'         => ['required', Rule::in(['INDIVIDUAL', 'TEAM'])],
             'is_active'    => ['nullable', 'boolean'],
         ], [
             'title.unique' => "Ce nom d’activité existe déjà.",
         ]);
-
         $activity->update([
             'title'        => $validated['title'],
             'slug'         => Str::slug($validated['title']),
+            'description'  => $validated['description'],
             'points_label' => $validated['points_label'],
             'mode'         => $validated['mode'],
             'is_active'    => (bool)($validated['is_active'] ?? $activity->is_active),

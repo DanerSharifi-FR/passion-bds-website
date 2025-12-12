@@ -292,12 +292,12 @@
                 <span
                     class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Le Shop</span>
             </a>--}}
-            <a href="{{ route('gallery') }}" class="relative group py-2">
+            {{--<a href="{{ route('gallery') }}" class="relative group py-2">
                 <div
                     class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('gallery')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
                 <span
                     class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Galerie</span>
-            </a>
+            </a>--}}
             @auth
                 <a href="{{ route('allos') }}" class="relative group py-2">
                     <div
@@ -357,7 +357,7 @@
         <span class="text-[9px] font-bold uppercase tracking-wider">Le Shop</span>
     </a>--}}
 
-    <a href="{{ route('gallery') }}"
+    {{--<a href="{{ route('gallery') }}"
        class="flex flex-col items-center p-2 transition-colors group w-1/5 @if(request()->routeIs('gallery')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
         <!-- Icon Gallery -->
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
@@ -366,7 +366,7 @@
                   d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
         </svg>
         <span class="text-[9px] font-bold uppercase tracking-wider">Galerie</span>
-    </a>
+    </a>--}}
     <a href="{{ route('activities') }}"
        class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('activities')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

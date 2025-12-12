@@ -43,6 +43,8 @@ Route::prefix('api')->group(function () {
 
         Route::get('/{activity}/leaderboard', [ActivityLeaderboardApiController::class, 'index'])
             ->name('activities.api.leaderboard');
+
+        Route::get('/live', [ActivitiesApiController::class, 'live']);
     });
 });
 

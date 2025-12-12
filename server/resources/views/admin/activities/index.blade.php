@@ -110,6 +110,12 @@
                                            class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
                                            placeholder="Ex: Babyfoot">
                                 </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-1">Description </label>
+                                    <input type="text" id="createDescription" required
+                                           class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
+                                           placeholder="Ex: Ramenez des gants de boxe.">
+                                </div>
 
                                 <div>
                                     <label class="block text-sm font-medium text-slate-300 mb-1">Unité de points</label>
@@ -206,6 +212,11 @@
                                         <div>
                                             <label class="block text-sm font-medium text-slate-300 mb-1">Titre</label>
                                             <input type="text" id="manageTitle" minlength="2" required
+                                                   class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
+                                            <input type="text" id="manageDescription" required
                                                    class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5">
                                         </div>
 
@@ -322,6 +333,7 @@
             // Create modal elements
             const createModal = document.getElementById('createActivityModal');
             const createTitle = document.getElementById('createTitle');
+            const createDescription = document.getElementById('createDescription');
             const createPointsLabel = document.getElementById('createPointsLabel');
             const createMode = document.getElementById('createMode');
             const createIsActive = document.getElementById('createIsActive');
@@ -334,6 +346,7 @@
             const manageStatusBadge = document.getElementById('manageStatusBadge');
 
             const manageTitle = document.getElementById('manageTitle');
+            const manageDescription = document.getElementById('manageDescription');
             const managePointsLabel = document.getElementById('managePointsLabel');
             const manageMode = document.getElementById('manageMode');
             const manageIsActive = document.getElementById('manageIsActive');
@@ -539,6 +552,7 @@
 
             window.submitCreateActivity = async function () {
                 const title = (createTitle.value || '').trim();
+                const description = (createDescription.value || '').trim();
                 const pointsLabel = (createPointsLabel.value || '').trim();
                 const mode = (createMode.value || 'INDIVIDUAL').trim();
                 const isActive = !!createIsActive.checked;
@@ -553,6 +567,7 @@
                 try {
                     await httpJson(API_ACTIVITIES, 'POST', {
                         title,
+                        description,
                         points_label: pointsLabel,
                         mode,
                         is_active: isActive,
@@ -596,6 +611,8 @@
                 manageSlug.textContent = a.slug || '—';
 
                 manageTitle.value = (a.title || '').trim();
+                console.log(a);
+                manageDescription.value = (a.description || '').trim();
                 managePointsLabel.value = (a.points_label || '').trim();
                 manageMode.value = (a.mode || 'INDIVIDUAL').trim();
                 manageIsActive.checked = !!a.is_active;
@@ -627,6 +644,7 @@
 
                 const id = Number(manageActivityId.value || 0);
                 const title = (manageTitle.value || '').trim();
+                const description = (manageDescription.value || '').trim();
                 const pointsLabel = (managePointsLabel.value || '').trim();
                 const mode = (manageMode.value || 'INDIVIDUAL').trim();
                 const isActive = !!manageIsActive.checked;
@@ -642,6 +660,7 @@
                 try {
                     await httpJson(API_ACTIVITY(id), 'PUT', {
                         title,
+                        description,
                         points_label: pointsLabel,
                         mode,
                         is_active: isActive,

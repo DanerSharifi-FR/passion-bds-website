@@ -261,7 +261,7 @@
                             <table>
                                 <tr>
                                     <td class="pr-2 align-top text-right text-lg">📍</td>
-                                    <td>MDE IMT Atlantique Nantes</td>
+                                    <td>Gymnase IMT Atlantique Nantes</td>
                                 </tr>
                                 <tr>
                                     <td class="pr-2 align-top text-right text-lg pt-1 pb-1">🕜</td>

@@ -8,6 +8,7 @@ class Activity extends Model
 {
     protected $fillable = [
         'title',
+        'description',
         'slug',
         'points_label',
         'mode',
