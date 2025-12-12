@@ -533,6 +533,7 @@
                     let actionsHtml = `<span class="text-slate-600">—</span>`;
 
                     if (IS_SUPER_ADMIN) {
+                        console.log(u.roles.includes('ROLE_SUPER_ADMIN'))
                         actionsHtml = `
                             <button onclick="openModal(${u.id})" class="text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded hover:bg-indigo-500/20 transition-colors">
                                 <i class="fa-solid fa-pen-to-square mr-1"></i> Gérer
