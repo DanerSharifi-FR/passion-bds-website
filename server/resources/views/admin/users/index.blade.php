@@ -537,14 +537,13 @@
                         actionsHtml = `
                             <button onclick="openModal(${u.id})" class="text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded hover:bg-indigo-500/20 transition-colors">
                                 <i class="fa-solid fa-pen-to-square mr-1"></i> Gérer
-                            </button>
-                            ${(u.id !== CURRENT_USER_ID || !u.roles.includes('ROLE_SUPER_ADMIN')) ? `
-                            <button onclick="deleteUser(${u.id})"
-                                    class="ml-2 text-red-300 hover:text-red-200 bg-red-500/10 px-3 py-1.5 rounded hover:bg-red-500/20 transition-colors">
-                                <i class="fa-solid fa-trash mr-1"></i> Supprimer
-                            </button>
-                            ` : ''}
-                        `;
+                            </button>`;
+                            if (u.id !== CURRENT_USER_ID && !u.roles.includes('ROLE_SUPER_ADMIN')) {
+                                actionsHtml += `<button onclick="deleteUser(${u.id})"
+                                        class="ml-2 text-red-300 hover:text-red-200 bg-red-500/10 px-3 py-1.5 rounded hover:bg-red-500/20 transition-colors">
+                                    <i class="fa-solid fa-trash mr-1"></i> Supprimer
+                                </button>`;
+                            }
                     } else if (IS_GAMEMASTER) {
                         // Gamemaster: uniquement étudiants (0 rôle) => bouton "Renommer"
                         if (roles.length === 0) {
