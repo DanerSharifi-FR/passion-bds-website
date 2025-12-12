@@ -352,53 +352,27 @@
 
 @push('end_scripts')
     <script>
-        function clampPodiumNameSmart(rawName, maxChars = 14) {
-            const name = String(rawName ?? "")
-                .trim()
-                .replace(/\s+/g, " ");
+        function shortName(raw) {
+            const s = String(raw ?? "").trim().replace(/\s+/g, " ");
+            if (!s) return "";
 
-            if (name.length <= maxChars) return name;
+            // If pass an email
+            const base = s.includes("@") ? s.split("@")[0].replace(/[._-]+/g, " ") : s;
 
-            const words = name.split(" ");
+            const parts = base.trim().split(/\s+/).filter(Boolean);
+            if (parts.length === 1) return parts[0];
 
-            // Single long word => hard cut
-            if (words.length === 1) {
-                return name.slice(0, maxChars - 1) + ".";
-            }
-
-            let out = words[0];
-
-            for (let i = 1; i < words.length; i++) {
-                const nextWord = words[i];
-                const fullCandidate = out + " " + nextWord;
-
-                // If full fits perfectly but there are still words after -> prefer "initial."
-                if (fullCandidate.length === maxChars && i < words.length - 1) {
-                    const initialCandidate = out + " " + nextWord[0] + ".";
-                    return initialCandidate.length <= maxChars
-                        ? initialCandidate
-                        : (out.length + 1 <= maxChars ? out + "." : out.slice(0, maxChars - 1) + ".");
-                }
-
-                if (fullCandidate.length <= maxChars) {
-                    out = fullCandidate;
-                    continue;
-                }
-
-                const initialCandidate = out + " " + nextWord[0] + ".";
-                if (initialCandidate.length <= maxChars) return initialCandidate;
-
-                if (out.length + 1 <= maxChars) return out + ".";
-                return out.slice(0, maxChars - 1) + ".";
-            }
-
-            return out.length <= maxChars ? out : out.slice(0, maxChars - 1) + ".";
+            const first = parts[0];
+            const initial = parts[1][0].toLowerCase();
+            return `${first} ${initial}.`;
         }
 
+        // Apply to podium names
         document.querySelectorAll(".podium-name").forEach((el) => {
             const full = el.textContent;
-            el.textContent = clampPodiumNameSmart(full, 14);
+            el.textContent = shortName(full);
             el.title = full;
         });
+
     </script>
 @endpush
