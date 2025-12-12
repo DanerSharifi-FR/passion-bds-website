@@ -89,6 +89,7 @@
 @endsection
 
 @push('end_scripts')
+    <script src="{{ asset('assets/auth.js') }}"></script>
     <script>
         // Security State
         let lastActionTime = 0;
@@ -97,15 +98,15 @@
         const COOLDOWN_SAME_EMAIL = 30000; // 30s
         const COOLDOWN_DIFF_EMAIL = 15000; // 15s
 
-        function trySendCode(isResend = false) {
+        async function trySendCode(isResend = false) {
             const emailInput = document.getElementById('email-input');
-            const email = emailInput.value.trim();
+            const email = emailInput.value.trim().toLowerCase();
             const errorMsg = document.getElementById('error-msg');
             const resendError = document.getElementById('resend-error');
             const feedbackEl = isResend ? resendError : errorMsg;
 
             // 1. Regex Format Check
-            const mailFormat = /^.{2,}\..{2,}@imt-atlantique\.net$/;
+            const mailFormat = /^[a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9-]*@imt-atlantique\.net$/i;
             if (!mailFormat.test(email)) {
                 showError("T'es à l'IMT ou pas ? Mets ton mail de l'école.", feedbackEl, emailInput);
                 return;
@@ -133,25 +134,38 @@
                 return;
             }
 
-            // 3. Success -> Send Code (Mock)
+            // 3. Send Code (REAL)
             lastActionTime = now;
             lastEmail = email;
 
             if (cooldownTimer) clearInterval(cooldownTimer);
             hideError(feedbackEl, emailInput);
 
-            if(!isResend) {
-                proceedToStep2();
-            } else {
-                const btnResend = document.getElementById('btn-resend');
-                const originalText = btnResend.innerText;
-                btnResend.innerText = "Envoyé !";
-                btnResend.classList.add("text-green-500");
-                setTimeout(() => {
-                    btnResend.innerText = originalText;
-                    btnResend.classList.remove("text-green-500");
-                }, 2000);
+            const btn = document.getElementById('btn-send-code');
+            btn.disabled = true;
+
+            try {
+                await postJson('{{ route('auth.request-code') }}', {email});
+
+                if (!isResend) {
+                    proceedToStep2();
+                } else {
+                    const btnResend = document.getElementById('btn-resend');
+                    const originalText = btnResend.innerText;
+                    btnResend.innerText = "Envoyé !";
+                    btnResend.classList.add("text-green-500");
+                    setTimeout(() => {
+                        btnResend.innerText = originalText;
+                        btnResend.classList.remove("text-green-500");
+                    }, 2000);
+                }
+            } catch (e) {
+                // if backend says wait Xs, show it
+                showError(e.message || "Erreur", feedbackEl, emailInput);
+            } finally {
+                btn.disabled = false;
             }
+
         }
 
         function startRealtimeCooldown(durationMs, element, input) {
@@ -231,9 +245,28 @@
             trySendCode(false);
         }
 
-        function finishLogin() {
-            window.location.href = '/';
+        async function finishLogin() {
+            const email = document.getElementById('email-input').value.trim().toLowerCase();
+            const digits = Array.from(document.querySelectorAll('.code-digit')).map(i => i.value.trim()).join('');
+
+            // Basic UI validation
+            if (digits.length !== 4) {
+                const resendError = document.getElementById('resend-error');
+                showError("4 chiffres requis.", resendError, null);
+                return;
+            }
+
+            try {
+                await postJson('{{ route('auth.verify-code') }}', { email, code: digits });
+
+                // REDIRECT FOR THIS PAGE:
+                window.location.href = '/'; // change if needed
+            } catch (e) {
+                const resendError = document.getElementById('resend-error');
+                showError(e.message || "Code incorrect.", resendError, null);
+            }
         }
+
 
         const inputs = document.querySelectorAll('.code-digit');
         inputs.forEach((input, index) => {

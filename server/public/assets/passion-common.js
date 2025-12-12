@@ -6,7 +6,8 @@
     const isGallery = path.includes('gallery');
     const isLogin = path.includes('login');
     const isMembers = path.includes('members');
-    const isIndex = !isGallery && !isLogin && !isMembers; // default to home
+    const isClassement = path.includes('classement');
+    const isIndex = !isGallery && !isLogin && !isMembers && !isClassement;
 
     // --- Tailwind CDN config ---
     tailwind.config = {
@@ -460,7 +461,7 @@
             if (typeof changePage === 'function') window.changePage = changePage;
         }
 
-        if (isLogin) {
+        /*if (isLogin) {
             // Login page security & steps logic
             // Security State
             let lastActionTime = 0;
@@ -624,7 +625,7 @@
             if (typeof trySendCode === 'function') window.trySendCode = trySendCode;
             if (typeof goToStep1 === 'function') window.goToStep1 = goToStep1;
             if (typeof finishLogin === 'function') window.finishLogin = finishLogin;
-        }
+        }*/
 
     });
 })();

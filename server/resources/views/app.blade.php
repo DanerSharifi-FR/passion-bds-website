@@ -12,6 +12,7 @@
           content="@yield('meta_description', "Site de la campagne BDS P'AS'SION IMT Atlantique Nantes.")">
     <meta name="author" content="Daner Sharifi">
     <meta name="robots" content="index, follow">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- Mobile Web App --}}
     <meta name="theme-color" content="#9B1237">
@@ -241,6 +242,8 @@
 </head>
 <body class="font-sans antialiased selection:bg-passion-fire-orange selection:text-white pb-20 lg:pb-0">
 
+<div id="toast-container"></div>
+
 <!-- Rain Container -->
 <div id="rain-container"></div>
 
@@ -277,12 +280,12 @@
                 <span
                     class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">La team P'AS'SION</span>
             </a>
-            <a href="/shop" class="relative group py-2">
+            {{--<a href="/shop" class="relative group py-2">
                 <div
                     class="absolute inset-0 bg-passion-pink-300 skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
                 <span
                     class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Le Shop</span>
-            </a>
+            </a>--}}
             <a href="{{ route('gallery') }}" class="relative group py-2">
                 <div
                     class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('gallery')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
@@ -338,7 +341,7 @@
 <!-- MOBILE BOTTOM NAVIGATION (Fixed) -->
 <nav
     class="lg:hidden fixed bottom-0 w-full bg-white border-t border-passion-pink-200 z-50 flex justify-around items-center pb-4 pt-3 h-20">
-    <a href="/shop" class="flex flex-col items-center p-2 text-gray-400 transition-colors group w-1/5">
+    {{--<a href="/shop" class="flex flex-col items-center p-2 text-gray-400 transition-colors group w-1/5">
         <!-- Icon Shopping Bag -->
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
              viewBox="0 0 24 24">
@@ -346,7 +349,7 @@
                   d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
         </svg>
         <span class="text-[9px] font-bold uppercase tracking-wider">Le Shop</span>
-    </a>
+    </a>--}}
     <a href="{{ route('team') }}"
        class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('team')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
         <!-- Icon Team -->

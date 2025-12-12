@@ -1,206 +1,248 @@
-{{-- resources/views/admin/layout.blade.php --}}
-    <!DOCTYPE html>
-<html lang="fr">
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-900">
 <head>
     <meta charset="UTF-8">
-    <title>@yield('title', "Admin – P'AS'SION BDS")</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', "BDS Admin")</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Highlight.js for JSON formatting -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+
+        .modal-active {
+            overflow-y: hidden;
+        }
+
+        pre code.hljs {
+            background: #1e293b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        /* Modal Transition */
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+
+        .modal-active {
+            overflow-y: hidden;
+        }
+
+        /* Toast Animations */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        .toast-enter {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        .toast-exit {
+            animation: fadeOut 0.3s ease-in forwards;
+        }
+    </style>
+
+    {{-- Page-specific extra CSS if needed --}}
+    @stack('styles')
+
+    {{-- Page-specific extra JS in <head> if really needed --}}
+    @stack('head_scripts')
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-900">
-@php
-    /** @var \App\Models\User|null $authUser */
-    $authUser = auth()->user();
+<body class="h-full text-slate-200">
+<!-- TOAST CONTAINER -->
+<div id="toastContainer" class="fixed top-4 right-4 z-[100] flex flex-col gap-3 w-80 pointer-events-none"></div>
 
-    $roleNames = $authUser
-        ? $authUser->roles->pluck('name')->all()
-        : [];
+<div class="flex h-screen overflow-hidden">
 
-    $isSuperAdmin = in_array('ROLE_SUPER_ADMIN', $roleNames, true);
-
-    $canGamemaster = $authUser && (
-        $isSuperAdmin
-        || in_array('ROLE_GAMEMASTER', $roleNames, true)
-    );
-
-    $canBlogger = $authUser && (
-        $isSuperAdmin
-        || in_array('ROLE_BLOGGER', $roleNames, true)
-    );
-
-    $canTeam = $authUser && (
-        $isSuperAdmin
-        || in_array('ROLE_TEAM', $roleNames, true)
-    );
-
-    $canShop = $authUser && (
-        $isSuperAdmin
-        || in_array('ROLE_SHOP', $roleNames, true)
-    );
-@endphp
-
-<header class="bg-slate-900 text-white border-b border-slate-800">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('admin.dashboard') }}" class="text-xs text-slate-300 hover:text-white">
-                Admin
-            </a>
-            <div class="flex items-center gap-2">
-                <span class="font-black tracking-tight text-lg">
-                    P'AS'SION BDS
-                </span>
-                <span class="ml-1 text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-200 border border-slate-700 uppercase tracking-wide">
-                    Panel Admin
-                </span>
-
-                @hasSection('header-tag')
-                    <span class="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-200 border border-emerald-400/40">
-                        @yield('header-tag')
-                    </span>
-                @endif
-            </div>
+    <!-- SIDEBAR -->
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 border-r border-slate-700 transform -translate-x-full lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="h-16 flex items-center px-6 border-b border-slate-700 bg-indigo-600">
+            <i class="fa-solid fa-bolt text-xl text-white mr-3"></i>
+            <span class="text-lg font-bold text-white tracking-wide">BDS Admin</span>
         </div>
-
-        @if($authUser)
-            <div class="flex items-center gap-3">
-                <div class="text-right">
-                    <div class="text-sm font-semibold">
-                        {{ $authUser->display_name ?? $authUser->university_email }}
-                    </div>
-                    <div class="text-xs text-slate-300">
-                        @if(empty($roleNames))
-                            Aucun rôle admin
-                        @else
-                            {{ implode(' · ', $roleNames) }}
-                        @endif
-                    </div>
-                </div>
-
-                @if($authUser->avatar_url)
-                    <img
-                        src="{{ $authUser->avatar_url }}"
-                        alt="Avatar"
-                        class="w-8 h-8 rounded-full object-cover border border-slate-700"
-                    >
-                @else
-                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">
-                        {{ strtoupper(mb_substr($authUser->display_name ?? $authUser->university_email, 0, 2)) }}
-                    </div>
-                @endif
-
-                <form method="POST" action="{{ route('admin.logout') }}">
-                    @csrf
-                    <button
-                        type="submit"
-                        class="text-xs px-3 py-1.5 rounded-lg border border-slate-600 bg-slate-800 hover:bg-slate-700 text-slate-100"
-                    >
-                        Déconnexion
-                    </button>
-                </form>
-            </div>
-        @endif
-    </div>
-</header>
-
-<main class="max-w-6xl mx-auto px-4 py-6">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {{-- SIDEBAR --}}
-        <aside class="md:col-span-1">
-            <nav class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3 text-sm">
-                <div class="text-xs font-semibold text-slate-400 uppercase mb-1">
-                    Navigation
-                </div>
-
-                {{-- Dashboard --}}
+        <nav class="flex-1 overflow-y-auto py-4">
+            <div class="px-4 space-y-1">
+                <!-- Dashboard -->
                 <a href="{{ route('admin.dashboard') }}"
-                   class="flex items-center justify-between px-3 py-2 rounded-lg
-                        {{ request()->routeIs('admin.dashboard') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                    <span>Dashboard</span>
-                    @if(request()->routeIs('admin.dashboard'))
-                        <span class="text-[10px] uppercase tracking-wide opacity-80">Now</span>
-                    @endif
+                   class="flex items-center px-4 @if(request()->routeIs('admin.dashboard')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-indigo-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                    <i class="fa-solid fa-gauge-high w-6 @if(request()->routeIs('admin.dashboard')) text-indigo-400 @else group-hover:text-indigo-400 transition-colors @endif"></i>
+                    <span>Vue d'ensemble</span>
                 </a>
 
-                {{-- GAMEMASTER / POINTS / ALLOS --}}
-                @if($canGamemaster)
-                    <div class="mt-3 text-xs font-semibold text-slate-400 uppercase">
-                        Gamemaster
+                @if(auth()->user()->hasRole('ROLE_GAMEMASTER') || auth()->user()->hasRole('ROLE_SUPER_ADMIN'))
+                    <!-- Jeu & Points -->
+                    <div class="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jeu &
+                        Points
                     </div>
-
-                    <a href="{{ route('admin.allos.index') }}"
-                       class="block px-3 py-2 rounded-lg
-                            {{ request()->routeIs('admin.allos.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                        Allos
+                    <a href="{{ route('admin.transactions') }}"
+                       class="flex items-center px-4 @if(request()->routeIs('admin.transactions')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-yellow-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                        <i class="fa-solid fa-coins w-6 @if(request()->routeIs('admin.transactions')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
+                        <span>Transactions</span>
                     </a>
-
-                    <a href="{{ route('admin.points.index') }}"
-                       class="block px-3 py-2 rounded-lg
-                            {{ request()->routeIs('admin.points.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                        Points / Transactions
+                    <a href="{{ route('admin.challenges') }}"
+                       class="flex items-center px-4 @if(request()->routeIs('admin.challenges')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-yellow-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                        <i class="fa-solid fa-trophy w-6 @if(request()->routeIs('admin.challenges')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
+                        <span>Défis & Quêtes</span>
                     </a>
-
-                    <div class="px-3 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-slate-500 text-xs">
-                        Challenges (bientôt)
-                    </div>
-                @endif
-
-                {{-- BLOGGER --}}
-                @if($canBlogger)
-                    <div class="mt-3 text-xs font-semibold text-slate-400 uppercase">
-                        Contenu
-                    </div>
-
-                    <div class="px-3 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-slate-500 text-xs">
-                        Évènements / Galerie (bientôt)
-                    </div>
-                @endif
-
-                {{-- TEAM --}}
-                @if($canTeam)
-                    <div class="mt-3 text-xs font-semibold text-slate-400 uppercase">
-                        Équipe
-                    </div>
-
-                    <div class="px-3 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-slate-500 text-xs">
-                        Équipe / Pôles (bientôt)
-                    </div>
-                @endif
-
-                {{-- SHOP --}}
-                @if($canShop)
-                    <div class="mt-3 text-xs font-semibold text-slate-400 uppercase">
-                        Shop
-                    </div>
-
-                    <div class="px-3 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-slate-500 text-xs">
-                        Catalogue shop (bientôt)
-                    </div>
-                @endif
-
-                {{-- SUPER ADMIN --}}
-                @if($isSuperAdmin)
-                    <div class="mt-3 text-xs font-semibold text-slate-400 uppercase">
-                        Super Admin
-                    </div>
-
-                    <a href="{{ route('admin.users.index') }}"
-                       class="block px-3 py-2 rounded-lg
-                            {{ request()->routeIs('admin.users.*') ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                        Comptes & rôles
+                    <a href="{{ route('admin.allos') }}"
+                       class="flex items-center px-4 @if(request()->routeIs('admin.allos')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-yellow-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                        <i class="fa-solid fa-phone-volume w-6 @if(request()->routeIs('admin.allos')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
+                        <span>Allos</span>
                     </a>
-
-                    <div class="px-3 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-slate-500 text-xs">
-                        Audit logs (bientôt)
-                    </div>
                 @endif
-            </nav>
-        </aside>
 
-        {{-- CONTENT --}}
-        <section class="md:col-span-3 space-y-6">
+                @if(auth()->user()->hasRole('ROLE_BLOGGER') || auth()->user()->hasRole('ROLE_SUPER_ADMIN'))
+                    <!-- Contenu -->
+                    <div class="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Contenu
+                    </div>
+                    <a href="admin_events.html"
+                       class="flex items-center px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors">
+                        <i class="fa-solid fa-calendar-day w-6 group-hover:text-purple-400 transition-colors"></i>
+                        <span>Événements</span>
+                    </a>
+                    <a href="admin_team.html"
+                       class="flex items-center px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors">
+                        <i class="fa-solid fa-users w-6 group-hover:text-purple-400 transition-colors"></i>
+                        <span>L'Équipe (Pôles)</span>
+                    </a>
+                    <a href="admin_shop.html"
+                       class="flex items-center px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors">
+                        <i class="fa-solid fa-store w-6 group-hover:text-purple-400 transition-colors"></i>
+                        <span>Boutique</span>
+                    </a>
+                @endif
+
+                @if(auth()->user()->hasRole('ROLE_SUPER_ADMIN'))
+                    <!-- Système -->
+                    <div class="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Système
+                    </div>
+                    <a href="{{ route('admin.users') }}"
+                       class="flex items-center px-4 @if(request()->routeIs('admin.users')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-red-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                        <i class="fa-solid fa-users-gear w-6 @if(request()->routeIs('admin.users')) text-red-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
+                        <span>Utilisateurs & Rôles</span>
+                    </a>
+                    <!-- Active State -->
+                    <a href="admin_users.html"
+                       class="flex items-center px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors">
+                        <i class="fa-solid fa-clipboard-list w-6"></i>
+                        <span class="font-medium">Audit Logs</span>
+                    </a>
+                @endif
+            </div>
+        </nav>
+        <div class="p-4 border-t border-slate-700 bg-slate-900/50">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white text-xs">
+                    {{ strtoupper(substr(explode(' ', auth()->user()->display_name)[0], 0, 1) . substr(explode(' ', auth()->user()->display_name)[1] ?? '', 0, 1)) }}
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-white">
+                        {{ auth()->user()->display_name }}
+                    </p>
+                    <p class="text-xs text-slate-500">
+                        {{ ucwords(strtolower(str_replace(['ROLE_', '_'], ['', ' '], auth()->user()->roles->last()->name ?? 'Utilisateur'))) }}
+                    </p>
+                </div>
+                <div class="ml-auto">
+                    <form method="POST" action="{{ route('auth.logout') }}">
+                        @csrf
+                        <button type="submit" class="text-slate-400 hover:text-white">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/80 z-40 hidden lg:hidden glass-effect"
+         onclick="toggleSidebar()"></div>
+
+    <!-- MAIN CONTENT -->
+    <div class="flex-1 flex flex-col min-w-0 bg-slate-900">
+
+        <!-- Topbar -->
+        <header class="h-16 flex items-center justify-between px-4 lg:px-8 bg-slate-800 border-b border-slate-700">
+            <button onclick="toggleSidebar()" class="lg:hidden text-slate-400 hover:text-white">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            @yield('top_bar_buttons')
+            <div class="flex items-center space-x-4 ml-auto">
+                <a href="/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 font-medium">Voir le
+                    site <i class="fa-solid fa-external-link-alt ml-1"></i></a>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 lg:p-8">
             @yield('content')
-        </section>
+        </main>
     </div>
-</main>
+</div>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        if (sidebar.classList.contains('-translate-x-full')) {
+            // Open
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        } else {
+            // Close
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
+    }
+</script>
+@stack('end_scripts')
 </body>
 </html>

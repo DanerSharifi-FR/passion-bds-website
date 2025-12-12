@@ -1,87 +1,110 @@
-{{-- resources/views/admin/dashboard/index.blade.php --}}
 @extends('admin.layout')
 
-@section('title', "Admin – Dashboard")
-
-@section('header-tag', 'Dashboard')
+@section('title', "Tableau de bord admin - P'AS'SION BDS")
 
 @section('content')
-    @php
-        /** @var \App\Models\User|null $user */
-        $user = auth()->user();
-    @endphp
-
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-        <h1 class="text-xl font-semibold mb-1">
-            Bienvenue sur l’admin P'AS'SION BDS
-        </h1>
-        <p class="text-sm text-slate-600">
-            Cet espace est réservé aux rôles administrateurs
-            (<code class="bg-slate-100 px-1 rounded">ROLE_GAMEMASTER</code>,
-            <code class="bg-slate-100 px-1 rounded">ROLE_BLOGGER</code>,
-            <code class="bg-slate-100 px-1 rounded">ROLE_TEAM</code>,
-            <code class="bg-slate-100 px-1 rounded">ROLE_SHOP</code>,
-            <code class="bg-slate-100 px-1 rounded">ROLE_SUPER_ADMIN</code>).
-        </p>
+    <!-- Page Title -->
+    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-white">Tableau de Bord</h2>
+            <p class="text-slate-400 mt-1">Bienvenue, XXX</p>
+        </div>
+        {{--<div class="flex gap-3">
+            <button class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors">
+                <i class="fa-solid fa-plus mr-2"></i> Défi Rapide
+            </button>
+            <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20">
+                <i class="fa-solid fa-gift mr-2"></i> Donner Points
+            </button>
+        </div>--}}
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div class="text-xs font-semibold text-slate-400 uppercase mb-1">
-                Compte
+    <!-- Stats Grid -->
+    <!-- Grid responsive behavior kept standard (md:2 cols, lg:4 cols) as it fits content -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+        <!-- Card 1 -->
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Points Distribués</p>
+                    <h3 class="text-2xl font-bold text-white mt-1">124,500</h3>
+                </div>
+                <div class="p-2 bg-yellow-500/10 rounded-lg text-yellow-400">
+                    <i class="fa-solid fa-coins text-lg"></i>
+                </div>
             </div>
-            @if($user)
-                <div class="text-sm">
-                    <div><span class="font-semibold">Email :</span> {{ $user->university_email }}</div>
-                    @if($user->display_name)
-                        <div><span class="font-semibold">Nom affiché :</span> {{ $user->display_name }}</div>
-                    @endif
-                    <div class="mt-1 text-xs text-slate-500">
-                        Dernière connexion :
-                        {{ $user->last_login_at ? $user->last_login_at->format('d/m/Y H:i') : 'inconnue' }}
-                    </div>
-                </div>
-            @else
-                <div class="text-sm text-slate-500">
-                    Aucun utilisateur connecté.
-                </div>
-            @endif
+            <p class="text-xs text-green-400 mt-4 flex items-center">
+                <i class="fa-solid fa-arrow-trend-up mr-1"></i> +12% cette semaine
+            </p>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div class="text-xs font-semibold text-slate-400 uppercase mb-1">
-                Rôles
+        <!-- Card 2 -->
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Comptes Actifs</p>
+                    <h3 class="text-2xl font-bold text-white mt-1">843</h3>
+                </div>
+                <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
+                    <i class="fa-solid fa-users text-lg"></i>
+                </div>
             </div>
-            @if($user && $user->roles->isNotEmpty())
-                <ul class="text-sm list-disc list-inside space-y-0.5">
-                    @foreach($user->roles as $role)
-                        <li>
-                            <span class="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">
-                                {{ $role->name }}
-                            </span>
-                            @if($role->description)
-                                <span class="text-slate-500 text-xs">– {{ $role->description }}</span>
-                            @endif
-                        </li>
-                    @endforeach
-                </ul>
-            @else
-                <p class="text-sm text-slate-500">
-                    Aucun rôle administrateur assigné.
-                </p>
-            @endif
+            <p class="text-xs text-slate-500 mt-4">Sur 1200 étudiants</p>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div class="text-xs font-semibold text-slate-400 uppercase mb-1">
-                Prochaines étapes
+        <!-- Card 3 -->
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Allos en attente</p>
+                    <h3 class="text-2xl font-bold text-white mt-1">3</h3>
+                </div>
+                <div class="p-2 bg-red-500/10 rounded-lg text-red-400">
+                    <i class="fa-solid fa-phone text-lg"></i>
+                </div>
             </div>
-            <ul class="text-sm list-disc list-inside text-slate-600 space-y-0.5">
-                <li>Module Allos (CRUD + slots + usages).</li>
-                <li>Challenges (questions / actions / points).</li>
-                <li>Gestion évènements + galerie.</li>
-                <li>Équipe, pôles, shop, audit logs.</li>
-            </ul>
+            <p class="text-xs text-red-400 mt-4 flex items-center">
+                <i class="fa-solid fa-circle-exclamation mr-1"></i> Action requise
+            </p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Preuves Défis</p>
+                    <h3 class="text-2xl font-bold text-white mt-1">12</h3>
+                </div>
+                <div class="p-2 bg-green-500/10 rounded-lg text-green-400">
+                    <i class="fa-solid fa-image text-lg"></i>
+                </div>
+            </div>
+            <p class="text-xs text-slate-500 mt-4">À valider par les admins</p>
+        </div>
+    </div>
+
+    <!-- Recent Activity Table (Audit Logs) -->
+    <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-white">Activité</h3>
+            <a href="#" class="text-xs text-indigo-400 hover:text-indigo-300">Tout voir</a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-400">
+                <thead class="bg-slate-900/50 text-slate-200 uppercase text-xs font-semibold">
+                <tr>
+                    <th class="px-6 py-3">Admin</th>
+                    <th class="px-6 py-3">Action</th>
+                    <th class="px-6 py-3">Cible</th>
+                    <th class="px-6 py-3 text-right">Date</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700" id="activityTableBody">
+                <!-- Data injected via JS -->
+                </tbody>
+            </table>
         </div>
     </div>
 @endsection
