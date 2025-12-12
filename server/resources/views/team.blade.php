@@ -8,9 +8,9 @@
         <h1 class="font-display font-black text-4xl md:text-6xl uppercase tracking-tighter text-passion-red mb-2 drop-shadow-sm">
             LA&nbsp;&nbsp;TEAM&nbsp;&nbsp;<span class="text-passion-fire-orange">P'AS'SION</span>
         </h1>
-        <p class="font-bold text-passion-pink-500 bg-white/60 inline-block px-4 py-1 skew-x-[-6deg]">
+        {{--<p class="font-bold text-passion-pink-500 bg-white/60 inline-block px-4 py-1 skew-x-[-6deg]">
             Scrollez pour découvrir les cracks.
-        </p>
+        </p>--}}
     </div>
 
     @foreach(($teamPoles ?? []) as $pole)
