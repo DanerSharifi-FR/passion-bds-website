@@ -261,11 +261,11 @@
                             <table>
                                 <tr>
                                     <td class="pr-2 align-top text-right text-lg">📍</td>
-                                    <td>Foyer IMT Atlantique Nantes</td>
+                                    <td>MDE IMT Atlantique Nantes</td>
                                 </tr>
                                 <tr>
                                     <td class="pr-2 align-top text-right text-lg pt-1 pb-1">🕜</td>
-                                    <td>Demain 13/12 à 14h</td>
+                                    <td>Demain 13/12 à partir de 14h</td>
                                 </tr>
                                 <tr>
                                     <td class="pr-2 align-top text-right text-lg">🎯</td>
