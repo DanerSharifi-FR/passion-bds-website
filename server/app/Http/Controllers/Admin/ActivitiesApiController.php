@@ -100,6 +100,12 @@ class ActivitiesApiController extends Controller
             throw $e;
         }
 
+        DB::table('activity_admins')->insertOrIgnore([
+            'activity_id' => $activity->id,
+            'admin_id'    => Auth::id(),
+            'created_at'  => now(),
+        ]);
+
         return response()->json(['data' => $activity], 201);
     }
 

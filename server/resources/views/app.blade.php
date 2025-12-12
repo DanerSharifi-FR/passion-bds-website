@@ -356,15 +356,16 @@
         </svg>
         <span class="text-[9px] font-bold uppercase tracking-wider">Le Shop</span>
     </a>--}}
-    <a href="{{ route('team') }}"
-       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('team')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
-        <!-- Icon Team -->
+
+    <a href="{{ route('gallery') }}"
+       class="flex flex-col items-center p-2 transition-colors group w-1/5 @if(request()->routeIs('gallery')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+        <!-- Icon Gallery -->
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
              viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
         </svg>
-        <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">La team P'AS'SION</span>
+        <span class="text-[9px] font-bold uppercase tracking-wider">Galerie</span>
     </a>
     <a href="{{ route('activities') }}"
        class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('activities')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
@@ -384,15 +385,16 @@
         </svg>
         <span class="text-[9px] font-bold uppercase tracking-wider">Accueil</span>
     </a>
-    <a href="{{ route('gallery') }}"
-       class="flex flex-col items-center p-2 transition-colors group w-1/5 @if(request()->routeIs('gallery')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
-        <!-- Icon Gallery -->
+
+    <a href="{{ route('team') }}"
+       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('team')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+        <!-- Icon Team -->
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
              viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
-        <span class="text-[9px] font-bold uppercase tracking-wider">Galerie</span>
+        <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">La team P'AS'SION</span>
     </a>
     @auth
         <a href="{{ route('allos') }}"
