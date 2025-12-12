@@ -293,18 +293,18 @@
                     class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Galerie</span>
             </a>
             @auth
-                <a href="/allos" class="relative group py-2">
+                <a href="{{ route('allos') }}" class="relative group py-2">
                     <div
-                        class="absolute inset-0 bg-passion-fire-orange skew-box transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom"></div>
+                        class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('login') || request()->routeIs('allos')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
                     <span
-                        class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-white transition-colors">Allos</span>
+                        class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login') || request()->routeIs('allos')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Allos</span>
                 </a>
             @else
                 <a href="{{ route('login') }}" class="relative group py-2">
                     <div
-                        class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('login')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                        class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('login') || request()->routeIs('allos')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
                     <span
-                        class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Allos</span>
+                        class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login') || request()->routeIs('allos')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Allos</span>
                 </a>
             @endauth
         </nav>
@@ -381,8 +381,8 @@
         <span class="text-[9px] font-bold uppercase tracking-wider">Galerie</span>
     </a>
     @auth
-        <a href="/allos"
-           class="flex flex-col items-center p-2 transition-colors group relative w-1/5 text-gray-400  hover:text-passion-red">
+        <a href="{{ route('allos') }}"
+           class="flex flex-col items-center p-2 transition-colors group relative w-1/5 @if(request()->routeIs('login') || request()->routeIs('allos')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
             <!-- Icon Fire -->
             <div
                 class="absolute -top-0 md:right-[35%] right-1/4 w-3 h-3 bg-passion-fire-orange rounded-full animate-pulse"></div>
@@ -397,7 +397,7 @@
         </a>
     @else
         <a href="{{ route('login') }}"
-           class="flex flex-col items-center p-2 transition-colors group relative w-1/5 @if(request()->routeIs('login')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
+           class="flex flex-col items-center p-2 transition-colors group relative w-1/5 @if(request()->routeIs('login') || request()->routeIs('allos')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
             <!-- Icon Fire -->
             <div
                 class="absolute -top-0 md:right-[35%] right-1/4 w-3 h-3 bg-passion-fire-orange rounded-full animate-pulse"></div>

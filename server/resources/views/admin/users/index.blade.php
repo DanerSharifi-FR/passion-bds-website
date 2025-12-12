@@ -2,6 +2,21 @@
 
 @section('title', "Utilsateurs - P'AS'SION BDS")
 
+@php
+    $uid = auth()->id();
+
+    $actorRoleNames = $uid
+        ? \Illuminate\Support\Facades\DB::table('user_roles')
+            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+            ->where('user_roles.user_id', $uid)
+            ->pluck('roles.name')
+            ->all()
+        : [];
+
+    $isSuperAdmin = in_array('ROLE_SUPER_ADMIN', $actorRoleNames, true);
+    $isGameMaster = in_array('ROLE_GAMEMASTER', $actorRoleNames, true);
+@endphp
+
 @section('content')
     <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -9,10 +24,12 @@
             <p class="text-slate-400 mt-1">Gérez les permissions et les accès des organisateurs.</p>
         </div>
         <div>
-            <button onclick="openCreateModal()"
-                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20 flex items-center">
-                <i class="fa-solid fa-plus mr-2"></i> Créer Utilisateur
-            </button>
+            @if($isSuperAdmin)
+                <button onclick="openCreateModal()"
+                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20 flex items-center">
+                    <i class="fa-solid fa-plus mr-2"></i> Créer Utilisateur
+                </button>
+            @endif
         </div>
     </div>
 
@@ -24,16 +41,20 @@
                        class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block pl-10 p-3"
                        placeholder="Rechercher par nom, email...">
             </div>
-            <div class="w-full md:w-48">
-                <select id="roleFilter"
-                        class="bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3">
-                    <option value="">Tous les rôles</option>
-                    <option value="ADMIN">Admins Uniquement</option>
-                    <option value="ROLE_GAMEMASTER">Game Masters</option>
-                    <option value="ROLE_BLOGGER">Bloggers</option>
-                    <option value="ROLE_USER">Étudiants</option>
-                </select>
-            </div>
+            @if($isSuperAdmin)
+                <div class="w-full md:w-48">
+                    <select id="roleFilter"
+                            class="bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3">
+                        <option value="">Tous</option>
+
+                        <option value="ADMIN">Admins Uniquement</option>
+                        <option value="ROLE_GAMEMASTER">Game Masters</option>
+                        <option value="ROLE_BLOGGER">Bloggers</option>
+
+                        <option value="ROLE_USER">Étudiants</option>
+                    </select>
+                </div>
+            @endif
         </form>
     </div>
 
@@ -48,8 +69,7 @@
                     <th class="px-6 py-4 text-right">Actions</th>
                 </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-700" id="usersTableBody">
-                </tbody>
+                <tbody class="divide-y divide-slate-700" id="usersTableBody"></tbody>
             </table>
         </div>
 
@@ -62,7 +82,8 @@
                 </div>
                 <div>
                     <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <span class="relative inline-flex items-center px-4 py-2 border border-slate-600 bg-slate-800 text-sm font-medium text-slate-400">
+                        <span
+                            class="relative inline-flex items-center px-4 py-2 border border-slate-600 bg-slate-800 text-sm font-medium text-slate-400">
                             1
                         </span>
                     </nav>
@@ -75,93 +96,138 @@
 @push('end_scripts')
     <div id="toastContainer" class="fixed top-4 right-4 z-[9999] space-y-2 pointer-events-none"></div>
 
-    <div id="roleModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    {{-- Modal edition (nom toujours, rôles uniquement SUPER_ADMIN) --}}
+    <div id="roleModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+         aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-slate-900/80 transition-opacity" aria-hidden="true" onclick="closeModal()"></div>
+            <div class="fixed inset-0 bg-slate-900/80 transition-opacity" aria-hidden="true"
+                 onclick="closeModal()"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-            <div class="relative inline-block align-bottom bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-slate-700">
+            <div
+                class="relative inline-block align-bottom bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-slate-700">
                 <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">
-                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-indigo-900/50 sm:mx-0 sm:h-10 sm:w-10">
+                        <div
+                            class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-indigo-900/50 sm:mx-0 sm:h-10 sm:w-10">
                             <i class="fa-solid fa-user-shield text-indigo-400"></i>
                         </div>
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">Gérer les Rôles</h3>
+                            <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">
+                                {{ $isSuperAdmin ? 'Gérer l’utilisateur' : 'Modifier le nom' }}
+                            </h3>
+
                             <div class="mt-2">
                                 <p class="text-sm text-slate-400 mb-4">
-                                    Modification des permissions pour <span id="modalUserEmail" class="font-mono text-indigo-300"></span>
+                                    Utilisateur : <span id="modalUserEmail" class="font-mono text-indigo-300"></span>
                                 </p>
 
                                 <form id="rolesForm" class="space-y-3">
                                     <input type="hidden" id="editUserId">
 
-                                    <div class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
-                                        <div class="flex flex-col">
-                                            <span class="text-sm font-medium text-white">GAMEMASTER</span>
-                                            <span class="text-xs text-slate-400">Gère les points, allos et défis.</span>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="roles" value="ROLE_GAMEMASTER" class="sr-only peer">
-                                            <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                                        </label>
+                                    {{-- Nom (toujours) --}}
+                                    <div class="p-3 bg-slate-900/40 rounded-lg border border-slate-700">
+                                        <label class="block text-sm font-medium text-slate-300 mb-1">Nom complet</label>
+                                        <input
+                                            type="text"
+                                            id="editDisplayName"
+                                            name="display_name"
+                                            minlength="2"
+                                            required
+                                            class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-colors"
+                                            placeholder="Ex: Jean Dupont"
+                                        >
+                                        <p id="editDisplayNameError" class="text-xs text-red-400 mt-1 hidden">
+                                            <i class="fa-solid fa-circle-exclamation mr-1"></i> Nom requis (2 caractères
+                                            minimum).
+                                        </p>
                                     </div>
 
-                                    <div class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
-                                        <div class="flex flex-col">
-                                            <span class="text-sm font-medium text-white">BLOGGER</span>
-                                            <span class="text-xs text-slate-400">Gère événements et photos.</span>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="roles" value="ROLE_BLOGGER" class="sr-only peer">
-                                            <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                                        </label>
-                                    </div>
-
-                                    <div class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
-                                        <div class="flex flex-col">
-                                            <span class="text-sm font-medium text-white">TEAM</span>
-                                            <span class="text-xs text-slate-400">Gère la page équipe/pôles.</span>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="roles" value="ROLE_TEAM" class="sr-only peer">
-                                            <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
-                                        </label>
-                                    </div>
-
-                                    <div class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
-                                        <div class="flex flex-col">
-                                            <span class="text-sm font-medium text-white">SHOP</span>
-                                            <span class="text-xs text-slate-400">Gère la boutique goodies.</span>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="roles" value="ROLE_SHOP" class="sr-only peer">
-                                            <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                                        </label>
-                                    </div>
-
-                                    <div id="superAdminEditBadge" class="hidden flex items-center justify-between p-3 bg-red-900/10 rounded-lg border border-red-900/30 mt-4">
-                                        <div class="flex items-center">
-                                            <div class="bg-red-900/50 p-2 rounded-full mr-3">
-                                                <i class="fa-solid fa-crown text-red-400"></i>
-                                            </div>
+                                    {{-- Rôles (SUPER_ADMIN uniquement) --}}
+                                    @if($isSuperAdmin)
+                                        <div
+                                            class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
                                             <div class="flex flex-col">
-                                                <span class="text-sm font-bold text-red-400">SUPER ADMIN</span>
-                                                <span class="text-xs text-red-300/50">Géré uniquement en base de données.</span>
+                                                <span class="text-sm font-medium text-white">GAMEMASTER</span>
+                                                <span
+                                                    class="text-xs text-slate-400">Gère les points, allos et défis.</span>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="roles" value="ROLE_GAMEMASTER"
+                                                       class="sr-only peer">
+                                                <div
+                                                    class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            </label>
+                                        </div>
+
+                                        <div
+                                            class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-medium text-white">BLOGGER</span>
+                                                <span class="text-xs text-slate-400">Gère événements et photos.</span>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="roles" value="ROLE_BLOGGER"
+                                                       class="sr-only peer">
+                                                <div
+                                                    class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                            </label>
+                                        </div>
+
+                                        <div
+                                            class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-medium text-white">TEAM</span>
+                                                <span class="text-xs text-slate-400">Gère la page équipe/pôles.</span>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="roles" value="ROLE_TEAM"
+                                                       class="sr-only peer">
+                                                <div
+                                                    class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink-600"></div>
+                                            </label>
+                                        </div>
+
+                                        <div
+                                            class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-medium text-white">SHOP</span>
+                                                <span class="text-xs text-slate-400">Gère la boutique goodies.</span>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" name="roles" value="ROLE_SHOP"
+                                                       class="sr-only peer">
+                                                <div
+                                                    class="w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                            </label>
+                                        </div>
+
+                                        <div id="superAdminEditBadge"
+                                             class="hidden flex items-center justify-between p-3 bg-red-900/10 rounded-lg border border-red-900/30 mt-4">
+                                            <div class="flex items-center">
+                                                <div class="bg-red-900/50 p-2 rounded-full mr-3">
+                                                    <i class="fa-solid fa-crown text-red-400"></i>
+                                                </div>
+                                                <div class="flex flex-col">
+                                                    <span class="text-sm font-bold text-red-400">SUPER ADMIN</span>
+                                                    <span class="text-xs text-red-300/50">Géré uniquement en base de données.</span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-
+                                    @endif
                                 </form>
                             </div>
                         </div>
                     </div>
                 </div>
+
                 <div class="bg-slate-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-slate-700">
-                    <button type="button" id="btnSaveRoles" onclick="saveRoles()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
-                        Enregistrer
+                    <button type="button" id="btnSaveUser" onclick="saveUser()"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        {{ $isSuperAdmin ? 'Enregistrer' : 'Enregistrer le nom' }}
                     </button>
-                    <button type="button" onclick="closeModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-600 shadow-sm px-4 py-2 bg-slate-800 text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" onclick="closeModal()"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-600 shadow-sm px-4 py-2 bg-slate-800 text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                         Annuler
                     </button>
                 </div>
@@ -169,59 +235,90 @@
         </div>
     </div>
 
-    <div id="createUserModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    {{-- Create modal + JS restent (SUPER_ADMIN only côté UI + 403 côté API) --}}
+    <div id="createUserModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title"
+         role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-slate-900/80 transition-opacity" aria-hidden="true" onclick="closeCreateModal()"></div>
+            <div class="fixed inset-0 bg-slate-900/80 transition-opacity" aria-hidden="true"
+                 onclick="closeCreateModal()"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-            <div class="relative inline-block align-bottom bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-slate-700">
+            <div
+                class="relative inline-block align-bottom bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-slate-700">
                 <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <h3 class="text-lg leading-6 font-medium text-white mb-4">Ajouter un utilisateur</h3>
                     <form id="createUserForm" class="space-y-4" onsubmit="return false;">
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-1">Email IMT</label>
-                            <input type="email" id="newEmail" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-colors" placeholder="prenom.nom@imt-atlantique.net" required>
-                            <p id="createEmailError" class="text-xs text-red-400 mt-1 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i> Format requis: prenom.nom@imt-atlantique.net</p>
+                            <input type="email" id="newEmail"
+                                   class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-colors"
+                                   placeholder="prenom.nom@imt-atlantique.net" required>
+                            <p id="createEmailError" class="text-xs text-red-400 mt-1 hidden"><i
+                                    class="fa-solid fa-circle-exclamation mr-1"></i> Format requis:
+                                prenom.nom@imt-atlantique.net</p>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-300 mb-1">Nom Complet <span class="text-slate-500 text-xs">(Auto)</span></label>
-                            <input type="text" id="newName" class="w-full bg-slate-800 border border-slate-700 text-slate-400 text-sm rounded-lg cursor-not-allowed block p-2.5" placeholder="Généré automatiquement..." readonly>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">
+                                Nom Complet <span
+                                    class="text-slate-500 text-xs">(modifiable, 2 caractères minimum)</span>
+                            </label>
+                            <input type="text" id="newName"
+                                   class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 transition-colors"
+                                   placeholder="Ex: Jean Dupont"
+                                   minlength="2"
+                                   required>
+                            <p class="text-xs text-slate-500 mt-1">Pré-rempli depuis l’email si valide, puis tu peux le
+                                modifier.</p>
+                            <p id="createNameError" class="text-xs text-red-400 mt-1 hidden"><i
+                                    class="fa-solid fa-circle-exclamation mr-1"></i> Nom requis (2 caractères minimum).
+                            </p>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-2">Rôles Initiaux</label>
-                            <div class="space-y-2 bg-slate-900/50 p-3 rounded-lg border border-slate-600 max-h-60 overflow-y-auto">
+                            <div
+                                class="space-y-2 bg-slate-900/50 p-3 rounded-lg border border-slate-600 max-h-60 overflow-y-auto">
 
-                                <div class="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
+                                <div
+                                    class="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
                                     <span class="text-sm text-white">Gamemaster</span>
                                     <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" name="newRoles" value="ROLE_GAMEMASTER" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        <input type="checkbox" name="newRoles" value="ROLE_GAMEMASTER"
+                                               class="sr-only peer">
+                                        <div
+                                            class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
                                     </label>
                                 </div>
 
-                                <div class="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
+                                <div
+                                    class="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
                                     <span class="text-sm text-white">Blogger</span>
                                     <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" name="newRoles" value="ROLE_BLOGGER" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                                        <input type="checkbox" name="newRoles" value="ROLE_BLOGGER"
+                                               class="sr-only peer">
+                                        <div
+                                            class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
                                     </label>
                                 </div>
 
-                                <div class="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
+                                <div
+                                    class="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
                                     <span class="text-sm text-white">Team Manager</span>
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" name="newRoles" value="ROLE_TEAM" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
+                                        <div
+                                            class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
                                     </label>
                                 </div>
 
-                                <div class="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
+                                <div
+                                    class="flex items-center justify-between py-2 border-b border-slate-700 last:border-0">
                                     <span class="text-sm text-white">Shop Manager</span>
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" name="newRoles" value="ROLE_SHOP" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                                        <div
+                                            class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
                                     </label>
                                 </div>
 
@@ -234,10 +331,12 @@
                 </div>
 
                 <div class="bg-slate-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-slate-700">
-                    <button type="button" id="btnCreateUser" onclick="submitCreateUser()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" id="btnCreateUser" onclick="submitCreateUser()"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:ml-3 sm:w-auto sm:text-sm">
                         Créer
                     </button>
-                    <button type="button" onclick="closeCreateModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-600 shadow-sm px-4 py-2 bg-slate-800 text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" onclick="closeCreateModal()"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-600 shadow-sm px-4 py-2 bg-slate-800 text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                         Annuler
                     </button>
                 </div>
@@ -249,7 +348,11 @@
         (function () {
             const API_LIST = '/admin/api/users';
             const API_CREATE = '/admin/api/users';
-            const API_UPDATE_ROLES = (id) => `/admin/api/users/${id}/roles`;
+            const API_UPDATE_USER = (id) => `/admin/api/users/${id}`;
+
+            const IS_SUPER_ADMIN = @json($isSuperAdmin);
+            const IS_GAMEMASTER = @json($isGameMaster);
+            const CURRENT_USER_ID = {{ (int) auth()->id() }};
 
             const tbody = document.getElementById('usersTableBody');
             const searchInput = document.getElementById('searchInput');
@@ -261,17 +364,24 @@
             const modalEmail = document.getElementById('modalUserEmail');
             const rolesForm = document.getElementById('rolesForm');
             const superAdminEditBadge = document.getElementById('superAdminEditBadge');
-            const btnSaveRoles = document.getElementById('btnSaveRoles');
+            const btnSaveUser = document.getElementById('btnSaveUser');
+
+            const editDisplayNameInput = document.getElementById('editDisplayName');
+            const editDisplayNameError = document.getElementById('editDisplayNameError');
 
             const createModal = document.getElementById('createUserModal');
             const newEmailInput = document.getElementById('newEmail');
             const newNameInput = document.getElementById('newName');
             const createEmailError = document.getElementById('createEmailError');
+            const createNameError = document.getElementById('createNameError');
             const createRolesError = document.getElementById('createRolesError');
             const btnCreateUser = document.getElementById('btnCreateUser');
 
             let usersCache = [];
             let currentEditingUserId = null;
+
+            // Permet de ne pas écraser le nom si l’admin l’a modifié manuellement
+            let createNameTouchedByAdmin = false;
 
             function csrf() {
                 return document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -322,11 +432,22 @@
             function roleBadge(role) {
                 let color = 'bg-slate-600 text-slate-200';
                 let label = role.replace('ROLE_', '');
-                if (role === 'ROLE_SUPER_ADMIN') { color = 'bg-red-900 text-red-200 border border-red-800'; label = 'SUPER ADMIN'; }
-                else if (role === 'ROLE_GAMEMASTER') { color = 'bg-indigo-900 text-indigo-200 border border-indigo-800'; label = 'GAMEMASTER'; }
-                else if (role === 'ROLE_BLOGGER') { color = 'bg-purple-900 text-purple-200 border border-purple-800'; label = 'BLOGGER'; }
-                else if (role === 'ROLE_SHOP') { color = 'bg-green-900 text-green-200 border border-green-800'; label = 'SHOP'; }
-                else if (role === 'ROLE_TEAM') { color = 'bg-pink-900 text-pink-200 border border-pink-800'; label = 'TEAM'; }
+                if (role === 'ROLE_SUPER_ADMIN') {
+                    color = 'bg-red-900 text-red-200 border border-red-800';
+                    label = 'SUPER ADMIN';
+                } else if (role === 'ROLE_GAMEMASTER') {
+                    color = 'bg-indigo-900 text-indigo-200 border border-indigo-800';
+                    label = 'GAMEMASTER';
+                } else if (role === 'ROLE_BLOGGER') {
+                    color = 'bg-purple-900 text-purple-200 border border-purple-800';
+                    label = 'BLOGGER';
+                } else if (role === 'ROLE_SHOP') {
+                    color = 'bg-green-900 text-green-200 border border-green-800';
+                    label = 'SHOP';
+                } else if (role === 'ROLE_TEAM') {
+                    color = 'bg-pink-900 text-pink-200 border border-pink-800';
+                    label = 'TEAM';
+                }
 
                 return `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${color} mr-1 mb-1">${escapeHtml(label)}</span>`;
             }
@@ -366,11 +487,16 @@
 
                 const text = await res.text();
                 let payload = null;
-                try { payload = text ? JSON.parse(text) : null; } catch {}
+                try {
+                    payload = text ? JSON.parse(text) : null;
+                } catch {
+                }
 
                 if (!res.ok) {
                     const msg =
                         payload?.errors?.email?.[0] ||
+                        payload?.errors?.display_name?.[0] ||
+                        payload?.errors?.name?.[0] ||
                         payload?.errors?.roles?.[0] ||
                         payload?.message ||
                         'Erreur serveur';
@@ -404,6 +530,31 @@
                         roleBadges = adminRoles.map(roleBadge).join('');
                     }
 
+                    let actionsHtml = `<span class="text-slate-600">—</span>`;
+
+                    if (IS_SUPER_ADMIN) {
+                        actionsHtml = `
+                            <button onclick="openModal(${u.id})" class="text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded hover:bg-indigo-500/20 transition-colors">
+                                <i class="fa-solid fa-pen-to-square mr-1"></i> Gérer
+                            </button>
+                            ${u.id !== CURRENT_USER_ID ? `
+                            <button onclick="deleteUser(${u.id})"
+                                    class="ml-2 text-red-300 hover:text-red-200 bg-red-500/10 px-3 py-1.5 rounded hover:bg-red-500/20 transition-colors">
+                                <i class="fa-solid fa-trash mr-1"></i> Supprimer
+                            </button>
+                            ` : ''}
+                        `;
+                    } else if (IS_GAMEMASTER) {
+                        // Gamemaster: uniquement étudiants (0 rôle) => bouton "Renommer"
+                        if (roles.length === 0) {
+                            actionsHtml = `
+                                <button onclick="openModal(${u.id})" class="text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded hover:bg-indigo-500/20 transition-colors">
+                                    <i class="fa-solid fa-pen-to-square mr-1"></i> Renommer
+                                </button>
+                            `;
+                        }
+                    }
+
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-slate-700/50 transition-colors';
 
@@ -426,15 +577,8 @@
                             <span class="text-sm font-mono text-yellow-400 font-bold">${escapeHtml(String(u.points ?? 0))}</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button onclick="openModal(${u.id})" class="text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded hover:bg-indigo-500/20 transition-colors">
-                                <i class="fa-solid fa-pen-to-square mr-1"></i> Gérer
-                            </button>
-                            <button onclick="deleteUser(${u.id})"
-                                    class="ml-2 text-red-300 hover:text-red-200 bg-red-500/10 px-3 py-1.5 rounded hover:bg-red-500/20 transition-colors">
-                                <i class="fa-solid fa-trash mr-1"></i> Supprimer
-                            </button>
+                            ${actionsHtml}
                         </td>
-
                     `;
 
                     tbody.appendChild(tr);
@@ -443,7 +587,7 @@
 
             async function loadUsers() {
                 const search = (searchInput.value || '').trim();
-                const role = (roleFilter.value || '').trim();
+                const role = (roleFilter?.value || '').trim();
 
                 let queryRole = role;
                 let filterStudentsClientSide = false;
@@ -465,8 +609,13 @@
 
                 let list = data;
 
+                // Gamemaster safety: on garde uniquement les étudiants côté client aussi
+                if (IS_GAMEMASTER && !IS_SUPER_ADMIN) {
+                    list = list.filter(u => Array.isArray(u.roles) && u.roles.length === 0);
+                }
+
                 if (filterStudentsClientSide) {
-                    list = data.filter(u => Array.isArray(u.roles) && u.roles.length === 0);
+                    list = list.filter(u => Array.isArray(u.roles) && u.roles.length === 0);
                 }
 
                 renderTable(list);
@@ -480,26 +629,56 @@
                 };
             }
 
+            function markInputInvalid(inputEl) {
+                inputEl.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                inputEl.classList.remove('border-slate-600', 'focus:border-indigo-500', 'focus:ring-indigo-500');
+            }
+
+            function markInputValid(inputEl) {
+                inputEl.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                inputEl.classList.add('border-slate-600', 'focus:border-indigo-500', 'focus:ring-indigo-500');
+            }
+
+            editDisplayNameInput.addEventListener('input', function () {
+                const v = (this.value || '').trim();
+                if (v.length >= 2) {
+                    editDisplayNameError.classList.add('hidden');
+                    markInputValid(this);
+                }
+            });
+
             window.openModal = function (id) {
                 currentEditingUserId = id;
 
                 const user = usersCache.find(u => u.id === id);
                 if (!user) return;
 
+                const roles = Array.isArray(user.roles) ? user.roles : [];
+
+                // Gamemaster: sécurité client-side (normalement déjà filtré)
+                if (IS_GAMEMASTER && !IS_SUPER_ADMIN && roles.length > 0) {
+                    showToast("Non autorisé: tu peux modifier uniquement des étudiants.", "error");
+                    return;
+                }
+
                 modalEmail.textContent = user.email || '';
                 document.getElementById('editUserId').value = String(id);
 
-                const roles = Array.isArray(user.roles) ? user.roles : [];
+                const fallbackName = displayNameFromEmail(user.email || '');
+                editDisplayNameInput.value = (user.display_name || fallbackName || '').trim();
 
+                editDisplayNameError.classList.add('hidden');
+                markInputValid(editDisplayNameInput);
+
+                // Rôles (uniquement si inputs présents => SUPER_ADMIN)
                 const checkboxes = rolesForm.querySelectorAll('input[type="checkbox"][name="roles"]');
                 checkboxes.forEach(cb => {
                     cb.checked = roles.includes(cb.value);
                 });
 
-                if (roles.includes('ROLE_SUPER_ADMIN')) {
-                    superAdminEditBadge.classList.remove('hidden');
-                } else {
-                    superAdminEditBadge.classList.add('hidden');
+                if (superAdminEditBadge) {
+                    if (roles.includes('ROLE_SUPER_ADMIN')) superAdminEditBadge.classList.remove('hidden');
+                    else superAdminEditBadge.classList.add('hidden');
                 }
 
                 modal.classList.remove('hidden');
@@ -512,34 +691,52 @@
                 currentEditingUserId = null;
             };
 
-            window.saveRoles = async function () {
+            window.saveUser = async function () {
                 if (!currentEditingUserId) return;
 
-                const formData = new FormData(rolesForm);
-                const selected = [];
-
-                for (const [k, v] of formData.entries()) {
-                    if (k === 'roles') selected.push(v);
+                const displayName = (editDisplayNameInput.value || '').trim();
+                if (displayName.length < 2) {
+                    editDisplayNameError.classList.remove('hidden');
+                    markInputInvalid(editDisplayNameInput);
+                    showToast("Nom requis (2 caractères minimum)", "error");
+                    return;
                 }
 
-                const original = btnSaveRoles.innerHTML;
-                btnSaveRoles.disabled = true;
-                btnSaveRoles.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i>`;
+                const payload = {display_name: displayName};
+
+                // Roles seulement SUPER_ADMIN
+                if (IS_SUPER_ADMIN) {
+                    const formData = new FormData(rolesForm);
+                    const selectedRoles = [];
+                    for (const [k, v] of formData.entries()) {
+                        if (k === 'roles') selectedRoles.push(v);
+                    }
+                    payload.roles = selectedRoles;
+                }
+
+                const original = btnSaveUser.innerHTML;
+                btnSaveUser.disabled = true;
+                btnSaveUser.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i>`;
 
                 try {
-                    await httpJson(API_UPDATE_ROLES(currentEditingUserId), 'PUT', { roles: selected });
-                    showToast('Rôles mis à jour', 'success');
+                    await httpJson(API_UPDATE_USER(currentEditingUserId), 'PUT', payload);
+                    showToast('Utilisateur mis à jour', 'success');
                     window.closeModal();
                     await loadUsers();
                 } catch (e) {
                     showToast(e.message || 'Erreur', 'error');
                 } finally {
-                    btnSaveRoles.disabled = false;
-                    btnSaveRoles.innerHTML = original;
+                    btnSaveUser.disabled = false;
+                    btnSaveUser.innerHTML = original;
                 }
-            }
+            };
 
             window.deleteUser = async function (id) {
+                if (!IS_SUPER_ADMIN) {
+                    showToast("Non autorisé.", "error");
+                    return;
+                }
+
                 if (!confirm("Supprimer = désactiver le compte + retirer ses rôles. Continuer ?")) return;
 
                 try {
@@ -552,6 +749,10 @@
             };
 
             window.openCreateModal = function () {
+                if (!IS_SUPER_ADMIN) {
+                    showToast("Non autorisé.", "error");
+                    return;
+                }
                 createModal.classList.remove('hidden');
                 document.body.classList.add('modal-active');
                 newEmailInput.focus();
@@ -564,40 +765,68 @@
                 newEmailInput.value = '';
                 newNameInput.value = '';
                 createEmailError.classList.add('hidden');
+                createNameError.classList.add('hidden');
                 createRolesError.classList.add('hidden');
 
-                newEmailInput.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
-                newEmailInput.classList.add('border-slate-600', 'focus:border-indigo-500', 'focus:ring-indigo-500');
+                createNameTouchedByAdmin = false;
+
+                markInputValid(newEmailInput);
+                markInputValid(newNameInput);
 
                 document.querySelectorAll('input[name="newRoles"]').forEach(cb => cb.checked = false);
             };
+
+            newNameInput.addEventListener('input', function () {
+                createNameTouchedByAdmin = true;
+
+                const value = (this.value || '').trim();
+                if (value.length >= 2) {
+                    createNameError.classList.add('hidden');
+                    markInputValid(this);
+                }
+            });
 
             newEmailInput.addEventListener('input', function () {
                 const email = this.value.trim().toLowerCase();
 
                 if (email.length > 0 && !emailRegexOk(email)) {
-                    this.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
-                    this.classList.remove('border-slate-600', 'focus:border-indigo-500', 'focus:ring-indigo-500');
+                    markInputInvalid(this);
                     createEmailError.classList.remove('hidden');
-                    newNameInput.value = '';
+
+                    if (!createNameTouchedByAdmin) {
+                        newNameInput.value = '';
+                    }
                 } else {
-                    this.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
-                    this.classList.add('border-slate-600', 'focus:border-indigo-500', 'focus:ring-indigo-500');
+                    markInputValid(this);
                     createEmailError.classList.add('hidden');
                 }
 
-                if (emailRegexOk(email)) {
+                if (emailRegexOk(email) && !createNameTouchedByAdmin) {
                     newNameInput.value = displayNameFromEmail(email);
                 }
             });
 
             window.submitCreateUser = async function () {
+                if (!IS_SUPER_ADMIN) {
+                    showToast("Non autorisé.", "error");
+                    return;
+                }
+
                 const email = (newEmailInput.value || '').trim().toLowerCase();
+                const displayName = (newNameInput.value || '').trim();
 
                 createRolesError.classList.add('hidden');
+                createNameError.classList.add('hidden');
 
                 if (!emailRegexOk(email)) {
                     showToast("Format d'email invalide", 'error');
+                    return;
+                }
+
+                if (displayName.length < 2) {
+                    createNameError.classList.remove('hidden');
+                    markInputInvalid(newNameInput);
+                    showToast("Nom requis (2 caractères minimum)", "error");
                     return;
                 }
 
@@ -609,7 +838,7 @@
                 btnCreateUser.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i>`;
 
                 try {
-                    await httpJson(API_CREATE, 'POST', { email, roles: selectedRoles });
+                    await httpJson(API_CREATE, 'POST', {email, display_name: displayName, roles: selectedRoles});
                     showToast('Utilisateur créé', 'success');
                     window.closeCreateModal();
                     await loadUsers();
@@ -626,9 +855,10 @@
             }, 250);
 
             searchInput.addEventListener('input', debouncedReload);
-            roleFilter.addEventListener('change', debouncedReload);
+            roleFilter?.addEventListener('change', debouncedReload);
 
-            loadUsers().catch(e => showToast(e.message || 'Erreur', 'error'));
+
+            loadUsers().catch(e => console.error(e.message)/*showToast(e.message || 'Erreur', 'error')*/);
         })();
     </script>
 @endpush

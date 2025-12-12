@@ -18,6 +18,11 @@ class PageController extends Controller
         ]);
     }
 
+    public function allos()
+    {
+        return view('allos');
+    }
+
     /**
      * @throws RandomException
      */

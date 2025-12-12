@@ -127,6 +127,11 @@
                         <i class="fa-solid fa-coins w-6 @if(request()->routeIs('admin.transactions')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
                         <span>Transactions</span>
                     </a>
+                    <a href="{{ route('admin.activities') }}"
+                       class="flex items-center px-4 @if(request()->routeIs('admin.activities*')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-yellow-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                        <i class="fa-solid fa-trophy w-6 @if(request()->routeIs('admin.activities*')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
+                        <span>Activités</span>
+                    </a>
                     <a href="{{ route('admin.challenges') }}"
                        class="flex items-center px-4 @if(request()->routeIs('admin.challenges')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-yellow-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
                         <i class="fa-solid fa-trophy w-6 @if(request()->routeIs('admin.challenges')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
@@ -160,27 +165,32 @@
                     </a>
                 @endif
 
-                @if(auth()->user()->hasRole('ROLE_SUPER_ADMIN'))
+                @if(auth()->user()->hasRole('ROLE_SUPER_ADMIN') || auth()->user()->hasRole('ROLE_GAMEMASTER'))
                     <!-- Système -->
                     <div class="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Système
                     </div>
-                    <a href="{{ route('admin.users') }}"
-                       class="flex items-center px-4 @if(request()->routeIs('admin.users')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-red-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
-                        <i class="fa-solid fa-users-gear w-6 @if(request()->routeIs('admin.users')) text-red-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
-                        <span>Utilisateurs & Rôles</span>
-                    </a>
-                    <!-- Active State -->
-                    <a href="admin_users.html"
-                       class="flex items-center px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors">
-                        <i class="fa-solid fa-clipboard-list w-6"></i>
-                        <span class="font-medium">Audit Logs</span>
-                    </a>
+                    @if(auth()->user()->hasRole('ROLE_SUPER_ADMIN') || auth()->user()->hasRole('ROLE_GAMEMASTER'))
+                        <a href="{{ route('admin.users') }}"
+                           class="flex items-center px-4 @if(request()->routeIs('admin.users')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-red-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                            <i class="fa-solid fa-users-gear w-6 @if(request()->routeIs('admin.users')) text-red-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
+                            <span>Utilisateurs & Rôles</span>
+                        </a>
+                    @endif
+                    @if(auth()->user()->hasRole('ROLE_SUPER_ADMIN'))
+                        <!-- Active State -->
+                        <a href="admin_users.html"
+                           class="flex items-center px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors">
+                            <i class="fa-solid fa-clipboard-list w-6"></i>
+                            <span class="font-medium">Audit Logs</span>
+                        </a>
+                    @endif
                 @endif
             </div>
         </nav>
         <div class="p-4 border-t border-slate-700 bg-slate-900/50">
             <div class="flex items-center">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white text-xs">
+                <div
+                    class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white text-xs">
                     {{ strtoupper(substr(explode(' ', auth()->user()->display_name)[0], 0, 1) . substr(explode(' ', auth()->user()->display_name)[1] ?? '', 0, 1)) }}
                 </div>
                 <div class="ml-3">
@@ -233,11 +243,11 @@
         const overlay = document.getElementById('sidebarOverlay');
 
         if (sidebar.classList.contains('-translate-x-full')) {
-            // Open
+// Open
             sidebar.classList.remove('-translate-x-full');
             overlay.classList.remove('hidden');
         } else {
-            // Close
+// Close
             sidebar.classList.add('-translate-x-full');
             overlay.classList.add('hidden');
         }

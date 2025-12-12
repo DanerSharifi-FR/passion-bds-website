@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CreateAdminUserRequest;
-use App\Http\Requests\Admin\UpdateUserRolesRequest;
+use App\Http\Requests\Admin\UpdateAdminUserRequest;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -19,10 +20,68 @@ class AdminUsersApiController extends Controller
         'ROLE_TEAM',
     ];
 
+    private ?array $actorRolesCache = null;
+
+    private function actorRoleNames(): array
+    {
+        if ($this->actorRolesCache !== null) {
+            return $this->actorRolesCache;
+        }
+
+        $actorId = auth()->id();
+        if (!$actorId) {
+            return $this->actorRolesCache = [];
+        }
+
+        return $this->actorRolesCache = DB::table('user_roles')
+            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+            ->where('user_roles.user_id', $actorId)
+            ->pluck('roles.name')
+            ->all();
+    }
+
+    private function actorIsSuperAdmin(): bool
+    {
+        return in_array('ROLE_SUPER_ADMIN', $this->actorRoleNames(), true);
+    }
+
+    private function actorIsGameMaster(): bool
+    {
+        return in_array('ROLE_GAMEMASTER', $this->actorRoleNames(), true);
+    }
+
+    private function ensureCanAccessList(): void
+    {
+        if (!auth()->check()) abort(401);
+
+        if (!$this->actorIsSuperAdmin() && !$this->actorIsGameMaster()) {
+            abort(403, 'Accès interdit.');
+        }
+    }
+
+    private function ensureSuperAdmin(): void
+    {
+        if (!auth()->check()) abort(401);
+
+        if (!$this->actorIsSuperAdmin()) {
+            abort(403, 'Réservé au SUPER ADMIN.');
+        }
+    }
+
+    private function userHasAnyAdminRole(int $userId): bool
+    {
+        // Dans ton modèle: étudiant = 0 rôle en base. Donc "admin" = au moins 1 ligne user_roles.
+        return DB::table('user_roles')->where('user_id', $userId)->exists();
+    }
+
     public function index(Request $request)
     {
+        $this->ensureCanAccessList();
+
         $search = trim((string) $request->query('search', ''));
         $role = trim((string) $request->query('role', ''));
+
+        $actorIsSuperAdmin = $this->actorIsSuperAdmin();
 
         $users = User::query()
             ->select([
@@ -39,6 +98,15 @@ class AdminUsersApiController extends Controller
                     ->selectRaw('COALESCE(SUM(amount), 0)')
                     ->whereColumn('point_transactions.user_id', 'users.id'),
             ]);
+
+        // ✅ Gamemaster: ne voit AUCUN admin (donc uniquement étudiants)
+        if (!$actorIsSuperAdmin) {
+            $users->whereNotExists(function ($q) {
+                $q->selectRaw('1')
+                    ->from('user_roles')
+                    ->whereColumn('user_roles.user_id', 'users.id');
+            });
+        }
 
         if ($search !== '') {
             $users->where(function ($q) use ($search) {
@@ -79,7 +147,11 @@ class AdminUsersApiController extends Controller
 
     public function store(CreateAdminUserRequest $request)
     {
+        // ✅ Seul SUPER_ADMIN peut créer (sinon un GM peut “ajouter des admins”)
+        $this->ensureSuperAdmin();
+
         $email = mb_strtolower(trim($request->string('email')->toString()));
+        $displayNameInput = trim((string) $request->validated('display_name', ''));
 
         // roles can be null/absent => student
         $roles = $request->validated('roles', []);
@@ -92,18 +164,28 @@ class AdminUsersApiController extends Controller
             fn ($r) => in_array($r, self::ALLOWED_ROLES, true) && $r !== 'ROLE_SUPER_ADMIN'
         )));
 
-        $user = DB::transaction(function () use ($email, $roles) {
+        $user = DB::transaction(function () use ($email, $roles, $displayNameInput) {
             $user = User::where('university_email', $email)->lockForUpdate()->first();
 
             if (!$user) {
                 $user = new User();
                 $user->university_email = $email;
-                $user->display_name = $this->displayNameFromEmail($email);
+
+                $name = $displayNameInput;
+                if (mb_strlen($name) < 2) {
+                    $name = $this->displayNameFromEmail($email);
+                }
+
+                $user->display_name = $name;
                 $user->avatar_url = null;
                 $user->is_active = true;
                 $user->save();
             } elseif (!$user->display_name) {
-                $user->display_name = $this->displayNameFromEmail($email);
+                $name = $displayNameInput;
+                if (mb_strlen($name) < 2) {
+                    $name = $this->displayNameFromEmail($email);
+                }
+                $user->display_name = $name;
                 $user->save();
             }
 
@@ -119,13 +201,11 @@ class AdminUsersApiController extends Controller
                 ->pluck('id')
                 ->all();
 
-            // Delete everything not desired and not protected
             DB::table('user_roles')
                 ->where('user_id', $user->id)
                 ->whereNotIn('role_id', array_values(array_unique(array_merge($roleIds, $protectedRoleIds))))
                 ->delete();
 
-            // Insert desired roles (can be empty => student)
             foreach ($roleIds as $rid) {
                 DB::table('user_roles')->updateOrInsert(
                     ['user_id' => $user->id, 'role_id' => $rid],
@@ -149,58 +229,106 @@ class AdminUsersApiController extends Controller
         ], 201);
     }
 
-    public function updateRoles(UpdateUserRolesRequest $request, User $user)
+    public function update(UpdateAdminUserRequest $request, User $user): JsonResponse
     {
-        $roles = $request->validated('roles', []);
+        $actorId = auth()->id();
+        if (!$actorId) {
+            abort(401);
+        }
+
+        $actorRoles = DB::table('user_roles')
+            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+            ->where('user_roles.user_id', $actorId)
+            ->pluck('roles.name')
+            ->all();
+
+        $actorIsSuperAdmin = in_array('ROLE_SUPER_ADMIN', $actorRoles, true);
+        $actorIsGameMaster = in_array('ROLE_GAMEMASTER', $actorRoles, true);
+
+        if (!$actorIsSuperAdmin && !$actorIsGameMaster) {
+            abort(403, 'Accès interdit.');
+        }
+
+        $payload = $request->validated();
+
+        $displayNameProvided = array_key_exists('display_name', $payload);
+        $displayName = $displayNameProvided ? trim((string) $payload['display_name']) : null;
+
+        $rolesProvided = array_key_exists('roles', $payload);
+        $roles = $rolesProvided ? $payload['roles'] : [];
         if (!is_array($roles)) {
             $roles = [];
         }
 
+        // Nettoyage rôles demandés (SUPER_ADMIN ne peut jamais être attribué via cet endpoint)
         $roles = array_values(array_unique(array_filter(
             $roles,
             fn ($r) => in_array($r, self::ALLOWED_ROLES, true) && $r !== 'ROLE_SUPER_ADMIN'
         )));
 
-        $updated = DB::transaction(function () use ($user, $roles) {
-
-            // Lock the user row properly
+        $updated = DB::transaction(function () use (
+            $user,
+            $actorIsSuperAdmin,
+            $displayNameProvided,
+            $displayName,
+            $rolesProvided,
+            $roles
+        ) {
             $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-            // Check if SUPER_ADMIN is currently present
-            $superRoleId = DB::table('roles')->where('name', 'ROLE_SUPER_ADMIN')->value('id');
-            $keepSuperAdmin = $superRoleId
-                ? DB::table('user_roles')->where('user_id', $lockedUser->id)->where('role_id', $superRoleId)->exists()
-                : false;
+            $targetHasAnyRole = DB::table('user_roles')
+                ->where('user_id', $lockedUser->id)
+                ->exists();
 
-            // Resolve ids for requested roles (can be empty)
-            $roleIds = DB::table('roles')
-                ->whereIn('name', $roles)
-                ->pluck('id')
-                ->all();
+            // ✅ Gamemaster: uniquement étudiants (0 rôles) + jamais de modif rôles
+            if (!$actorIsSuperAdmin) {
+                if ($targetHasAnyRole) {
+                    abort(403, 'Non autorisé: tu ne peux modifier que des étudiants.');
+                }
 
-            // Desired final set: requested roles + (optional) protected super admin
-            if ($keepSuperAdmin && $superRoleId) {
-                $roleIds[] = $superRoleId;
-            }
-            $roleIds = array_values(array_unique($roleIds));
-
-            // Replace roles: delete everything not in desired set
-            if (count($roleIds) === 0) {
-                // Student => remove all roles EXCEPT super admin doesn't exist here anyway
-                DB::table('user_roles')->where('user_id', $lockedUser->id)->delete();
-            } else {
-                DB::table('user_roles')
-                    ->where('user_id', $lockedUser->id)
-                    ->whereNotIn('role_id', $roleIds)
-                    ->delete();
+                if ($rolesProvided && count($roles) > 0) {
+                    abort(403, 'Non autorisé: tu ne peux pas attribuer des rôles.');
+                }
             }
 
-            // Insert missing desired roles
-            foreach ($roleIds as $rid) {
-                DB::table('user_roles')->updateOrInsert(
-                    ['user_id' => $lockedUser->id, 'role_id' => $rid],
-                    []
-                );
+            // ✅ Update display name (si fourni)
+            if ($displayNameProvided && $displayName !== null && $displayName !== '' && $displayName !== (string) $lockedUser->display_name) {
+                $lockedUser->display_name = $displayName;
+                $lockedUser->save();
+            }
+
+            // ✅ Update roles (SUPER_ADMIN uniquement, et seulement si "roles" est présent dans la requête)
+            if ($actorIsSuperAdmin && $rolesProvided) {
+                $superRoleId = DB::table('roles')->where('name', 'ROLE_SUPER_ADMIN')->value('id');
+                $keepSuperAdmin = $superRoleId
+                    ? DB::table('user_roles')->where('user_id', $lockedUser->id)->where('role_id', $superRoleId)->exists()
+                    : false;
+
+                $roleIds = DB::table('roles')
+                    ->whereIn('name', $roles)
+                    ->pluck('id')
+                    ->all();
+
+                if ($keepSuperAdmin && $superRoleId) {
+                    $roleIds[] = $superRoleId;
+                }
+                $roleIds = array_values(array_unique($roleIds));
+
+                if (count($roleIds) === 0) {
+                    DB::table('user_roles')->where('user_id', $lockedUser->id)->delete();
+                } else {
+                    DB::table('user_roles')
+                        ->where('user_id', $lockedUser->id)
+                        ->whereNotIn('role_id', $roleIds)
+                        ->delete();
+                }
+
+                foreach ($roleIds as $rid) {
+                    DB::table('user_roles')->updateOrInsert(
+                        ['user_id' => $lockedUser->id, 'role_id' => $rid],
+                        []
+                    );
+                }
             }
 
             $lockedUser->load('roles:id,name');
@@ -221,6 +349,9 @@ class AdminUsersApiController extends Controller
 
     public function destroy(User $user)
     {
+        // GM peut accéder au listing, mais on ne lui laisse pas toucher aux admins.
+        $this->ensureCanAccessList();
+
         $actorId = auth()->id();
 
         if ($actorId && (int) $actorId === (int) $user->id) {
@@ -228,6 +359,15 @@ class AdminUsersApiController extends Controller
                 'message' => "Tu peux pas te supprimer toi-même.",
                 'errors' => ['user' => ["Tu peux pas te supprimer toi-même."]],
             ], 422);
+        }
+
+        if (!$this->actorIsSuperAdmin()) {
+            if ($this->userHasAnyAdminRole((int) $user->id)) {
+                return response()->json([
+                    'message' => "Non autorisé: tu ne peux pas supprimer un admin.",
+                    'errors' => ['user' => ["Non autorisé: tu ne peux pas supprimer un admin."]],
+                ], 403);
+            }
         }
 
         $isSuperAdmin = DB::table('user_roles')
@@ -256,19 +396,6 @@ class AdminUsersApiController extends Controller
         if (DB::table('allo_usages')->where('user_id', $user->id)->exists()) $blockers[] = 'allo_usages.user_id';
         if (DB::table('allo_usages')->where('handled_by_id', $user->id)->exists()) $blockers[] = 'allo_usages.handled_by_id';
         if (DB::table('allo_usages')->where('done_by_id', $user->id)->exists()) $blockers[] = 'allo_usages.done_by_id';
-
-
-        // if (DB::table('media_items')->where('uploader_id', $user->id)->exists()) $blockers[] = 'media_items.uploader_id';
-
-        // if (DB::table('team_members')->where('user_id', $user->id)->exists()) $blockers[] = 'team_members.user_id';
-
-        // if (DB::table('audit_logs')->where('actor_id', $user->id)->exists()) $blockers[] = 'audit_logs.actor_id';
-
-        // if (DB::table('challenges')->where('created_by_id', $user->id)->exists()) $blockers[] = 'challenges.created_by_id';
-        // if (DB::table('challenges')->where('updated_by_id', $user->id)->exists()) $blockers[] = 'challenges.updated_by_id';
-
-        // if (DB::table('challenge_attempts')->where('user_id', $user->id)->exists()) $blockers[] = 'challenge_attempts.user_id';
-        // if (DB::table('challenge_attempts')->where('reviewed_by_id', $user->id)->exists()) $blockers[] = 'challenge_attempts.reviewed_by_id';
 
         if (count($blockers) > 0) {
             return response()->json([

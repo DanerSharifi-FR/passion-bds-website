@@ -30,6 +30,15 @@ return new class extends Migration
             $table->string('context_type', 50)->nullable();
             $table->unsignedBigInteger('context_id')->nullable();
 
+            /**
+             * NEW: optional activity link
+             * NULL => global classement (current behavior)
+             */
+            $table->foreignId('activity_id')
+                ->nullable()
+                ->constrained('activities')
+                ->nullOnDelete();
+
             // Admin / system user who created the transaction
             $table->foreignId('created_by_id')
                 ->nullable()
@@ -38,6 +47,9 @@ return new class extends Migration
 
             // Only created_at is tracked for this table
             $table->timestamp('created_at')->useCurrent();
+
+            // Perf: leaderboard queries
+            $table->index(['activity_id', 'user_id'], 'pt_activity_user_idx');
         });
 
         // DB-level rule: a transaction can’t be 0 points
