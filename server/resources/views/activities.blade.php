@@ -26,7 +26,7 @@
             let isFirstLoad = true;
 
             // Configuration
-            const REFRESH_RATE = 2500; // 2.5 seconds
+            const REFRESH_RATE = 30000; // 2.5 seconds
             const API_URL = '/api/activities/live'; // Ensure this matches your route
 
             // --- HELPER: Template for a single Activity Card ---
