@@ -1,12 +1,12 @@
 @extends('admin.layout')
 
-@section('title', "Tableau de bord admin - P'AS'SION BDS")
+@section('title', "Logs - P'AS'SION BDS")
 
 @section('content')
     <!-- Page Title -->
     <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-white">Tableau de Bord</h2>
+            <h2 class="text-2xl font-bold text-white">Audit Logs</h2>
             <p class="text-slate-400 mt-1">
                 Bienvenue,
                 <span class="text-slate-200 font-semibold">
@@ -15,81 +15,6 @@
             </p>
         </div>
         {{-- Buttons placeholder (disabled for now) --}}
-    </div>
-
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Card 1 -->
-        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Points Distribués</p>
-                    <h3 class="text-2xl font-bold text-white mt-1">
-                        {{ number_format((int) ($stats['points_distributed'] ?? 0), 0, ',', ' ') }}
-                    </h3>
-                </div>
-                <div class="p-2 bg-yellow-500/10 rounded-lg text-yellow-400">
-                    <i class="fa-solid fa-coins text-lg"></i>
-                </div>
-            </div>
-            <p class="text-xs text-slate-500 mt-4">
-                {{ $stats['points_distributed_hint'] ?? '—' }}
-            </p>
-        </div>
-
-        <!-- Card 2 -->
-        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Comptes Actifs</p>
-                    <h3 class="text-2xl font-bold text-white mt-1">
-                        {{ number_format((int) ($stats['active_users'] ?? 0), 0, ',', ' ') }}
-                    </h3>
-                </div>
-                <div class="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
-                    <i class="fa-solid fa-users text-lg"></i>
-                </div>
-            </div>
-            <p class="text-xs text-slate-500 mt-4">
-                {{ $stats['active_users_hint'] ?? '—' }}
-            </p>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Allos en attente</p>
-                    <h3 class="text-2xl font-bold text-white mt-1">
-                        {{ number_format((int) ($stats['pending_allos'] ?? 0), 0, ',', ' ') }}
-                    </h3>
-                </div>
-                <div class="p-2 bg-red-500/10 rounded-lg text-red-400">
-                    <i class="fa-solid fa-phone text-lg"></i>
-                </div>
-            </div>
-            <p class="text-xs text-slate-500 mt-4">
-                {{ $stats['pending_allos_hint'] ?? '—' }}
-            </p>
-        </div>
-
-        <!-- Card 4 -->
-        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Preuves Défis</p>
-                    <h3 class="text-2xl font-bold text-white mt-1">
-                        {{ number_format((int) ($stats['pending_challenge_proofs'] ?? 0), 0, ',', ' ') }}
-                    </h3>
-                </div>
-                <div class="p-2 bg-green-500/10 rounded-lg text-green-400">
-                    <i class="fa-solid fa-image text-lg"></i>
-                </div>
-            </div>
-            <p class="text-xs text-slate-500 mt-4">
-                {{ $stats['pending_challenge_proofs_hint'] ?? '—' }}
-            </p>
-        </div>
     </div>
 
     <!-- Recent Activity Table (Audit Logs) -->
