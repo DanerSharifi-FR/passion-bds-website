@@ -310,7 +310,7 @@
                     <div
                         class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('login') || request()->routeIs('allos')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
                     <span
-                        class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login') || request()->routeIs('allos')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Allos</span>
+                        class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login') || request()->routeIs('allos')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Connexion</span>
                 </a>
             @endauth
         </nav>
@@ -424,7 +424,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path>
             </svg>
-            <span class="text-[9px] font-bold uppercase tracking-wider">Allos</span>
+            <span class="text-[9px] font-bold uppercase tracking-wider">Connexion</span>
         </a>
     @endauth
 </nav>
