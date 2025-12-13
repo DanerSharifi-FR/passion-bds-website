@@ -21,11 +21,6 @@
     <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
             <h3 class="text-lg font-bold text-white">Activité</h3>
-
-            {{-- adapte ce lien quand tu auras la page index --}}
-            <a href="{{ url('/admin/audit-logs') }}" class="text-xs text-indigo-400 hover:text-indigo-300">
-                Tout voir
-            </a>
         </div>
 
         <div class="overflow-x-auto">
