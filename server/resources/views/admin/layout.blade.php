@@ -172,15 +172,15 @@
                     @if(auth()->user()->hasRole('ROLE_SUPER_ADMIN') || auth()->user()->hasRole('ROLE_GAMEMASTER'))
                         <a href="{{ route('admin.users') }}"
                            class="flex items-center px-4 @if(request()->routeIs('admin.users')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-red-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
-                            <i class="fa-solid fa-users-gear w-6 @if(request()->routeIs('admin.users')) text-red-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
+                            <i class="fa-solid fa-users-gear w-6 @if(request()->routeIs('admin.users')) text-red-400 @else group-hover:text-red-400 transition-colors @endif"></i>
                             <span>Utilisateurs & Rôles</span>
                         </a>
                     @endif
-                    @if(auth()->user()->hasRole('ROLE_SUPER_ADMIN'))
+                    @if(auth()->user()->hasRole('ROLE_SUPER_ADMIN') || auth()->user()->hasRole('ROLE_GAMEMASTER'))
                         <!-- Active State -->
                         <a href="{{ route('admin.logs') }}"
                            class="flex items-center px-4 @if(request()->routeIs('admin.logs')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-red-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
-                            <i class="fa-solid fa-clipboard-list w-6 @if(request()->routeIs('admin.logs')) text-red-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
+                            <i class="fa-solid fa-clipboard-list w-6 @if(request()->routeIs('admin.logs')) text-red-400 @else group-hover:text-red-400 transition-colors @endif"></i>
                             <span class="font-medium">Audit Logs</span>
                         </a>
                     @endif

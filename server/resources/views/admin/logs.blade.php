@@ -135,7 +135,7 @@
             const activityTableBodyElement = document.getElementById('activityTableBody');
             if (!activityTableBodyElement) return;
 
-            const auditLogsEndpointUrl = "{{ url('/admin/api/audit-logs') }}";
+            const auditLogsEndpointUrl = "{{ secure_url('/admin/api/audit-logs') }}";
 
             const seenLogIds = new Set();
             let lastSeenId = 0;
