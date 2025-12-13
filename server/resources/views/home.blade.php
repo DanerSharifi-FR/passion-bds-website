@@ -265,7 +265,7 @@
                                 </tr>
                                 <tr>
                                     <td class="pr-2 align-top text-right text-lg pt-1 pb-1">🕜</td>
-                                    <td>le 13/12 à partir de 14h</td>
+                                    <td>13/12 à partir de 14h</td>
                                 </tr>
                                 <tr>
                                     <td class="pr-2 align-top text-right text-lg">🎯</td>
