@@ -376,7 +376,7 @@ class ActivityParticipantsApiController extends Controller
 
         return DB::table('activity_admins')
             ->where('activity_id', $activityId)
-            ->where('user_id', $actorId)
+            ->where('admin_id', $actorId)
             ->exists();
     }
 
