@@ -91,12 +91,24 @@
 @push('end_scripts')
     <script src="{{ asset('assets/auth.js') }}"></script>
     <script>
-        // Security State
-        let lastActionTime = 0;
-        let lastEmail = "";
+        // Security State (cooldown ONLY after a successful server request)
+        let lastRequestTime = 0;
+        let lastRequestedEmail = "";
         let cooldownTimer = null;
+        let requestInFlight = false;
+
         const COOLDOWN_SAME_EMAIL = 30000; // 30s
         const COOLDOWN_DIFF_EMAIL = 15000; // 15s
+
+        function stopRealtimeCooldown(element, input) {
+            if (cooldownTimer) {
+                clearInterval(cooldownTimer);
+                cooldownTimer = null;
+            }
+            // Important: don't hide errors blindly if caller wants to show another message right after.
+            // Caller decides what to display.
+            hideError(element, input);
+        }
 
         async function trySendCode(isResend = false) {
             const emailInput = document.getElementById('email-input');
@@ -105,52 +117,60 @@
             const resendError = document.getElementById('resend-error');
             const feedbackEl = isResend ? resendError : errorMsg;
 
-            // 1. Regex Format Check
+            // 1) Regex Format Check (NO cooldown here, and STOP any running cooldown that could overwrite this)
             const mailFormat = /^[a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9-]*@imt-atlantique\.net$/i;
             if (!mailFormat.test(email)) {
+                stopRealtimeCooldown(feedbackEl, emailInput);
                 showError("T'es à l'IMT ou pas ? Mets ton mail de l'école.", feedbackEl, emailInput);
                 return;
             } else {
                 hideError(feedbackEl, emailInput);
             }
 
-            // 2. Rate Limiting Logic
+            // 2) Rate Limiting Logic (ONLY if we had a successful request before)
             const now = Date.now();
-            let requiredCooldown = 0;
 
-            if (lastEmail) {
-                if (email === lastEmail) {
-                    requiredCooldown = COOLDOWN_SAME_EMAIL;
-                } else {
-                    requiredCooldown = COOLDOWN_DIFF_EMAIL;
+            if (lastRequestTime > 0) {
+                const requiredCooldown = (email === lastRequestedEmail)
+                    ? COOLDOWN_SAME_EMAIL
+                    : COOLDOWN_DIFF_EMAIL;
+
+                const timeDiff = now - lastRequestTime;
+
+                if (timeDiff < requiredCooldown) {
+                    const remainingMs = requiredCooldown - timeDiff;
+                    startRealtimeCooldown(remainingMs, feedbackEl, emailInput);
+                    return;
                 }
             }
 
-            const timeDiff = now - lastActionTime;
+            if (requestInFlight) return;
+            requestInFlight = true;
 
-            if (lastActionTime > 0 && timeDiff < requiredCooldown) {
-                const remainingMs = requiredCooldown - timeDiff;
-                startRealtimeCooldown(remainingMs, feedbackEl, emailInput);
-                return;
+            // 3) Send Code (REAL)
+            // Stop any running cooldown on this element so it doesn't overwrite other messages
+            if (cooldownTimer) {
+                clearInterval(cooldownTimer);
+                cooldownTimer = null;
             }
-
-            // 3. Send Code (REAL)
-            lastActionTime = now;
-            lastEmail = email;
-
-            if (cooldownTimer) clearInterval(cooldownTimer);
             hideError(feedbackEl, emailInput);
 
-            const btn = document.getElementById('btn-send-code');
-            btn.disabled = true;
+            const btnSend = document.getElementById('btn-send-code');
+            const btnResend = document.getElementById('btn-resend');
+            const activeBtn = isResend ? btnResend : btnSend;
+
+            if (activeBtn) activeBtn.disabled = true;
 
             try {
-                await postJson('/auth/request-code', {email});
+                await postJson('/auth/request-code', { email });
+
+                // Cooldown starts ONLY after server request succeeded
+                lastRequestTime = Date.now();
+                lastRequestedEmail = email;
 
                 if (!isResend) {
                     proceedToStep2();
                 } else {
-                    const btnResend = document.getElementById('btn-resend');
                     const originalText = btnResend.innerText;
                     btnResend.innerText = "Envoyé !";
                     btnResend.classList.add("text-green-500");
@@ -160,44 +180,53 @@
                     }, 2000);
                 }
             } catch (e) {
-                // if backend says wait Xs, show it
+                // Make sure no cooldown timer is overwriting this error
+                if (cooldownTimer) {
+                    clearInterval(cooldownTimer);
+                    cooldownTimer = null;
+                }
                 showError(e.message || "Erreur", feedbackEl, emailInput);
             } finally {
-                btn.disabled = false;
+                requestInFlight = false;
+                if (activeBtn) activeBtn.disabled = false;
             }
-
         }
 
         function startRealtimeCooldown(durationMs, element, input) {
             if (cooldownTimer) clearInterval(cooldownTimer);
 
-            let secondsLeft = Math.ceil(durationMs / 1000);
+            const endsAt = Date.now() + durationMs;
 
             const updateText = () => {
+                const msLeft = endsAt - Date.now();
+                const secondsLeft = Math.ceil(msLeft / 1000);
+
                 if (secondsLeft <= 0) {
                     clearInterval(cooldownTimer);
+                    cooldownTimer = null;
                     hideError(element, input);
                     return;
                 }
-                showError(`Doucement l'athlète ! Attends ${secondsLeft}s.`, element, null);
-                secondsLeft--;
+
+                // IMPORTANT: pass `input` so the UI stays consistent and the timer can't "fight" other states
+                showError(`Doucement l'athlète ! Attends ${secondsLeft}s.`, element, input);
             };
 
             updateText();
-            cooldownTimer = setInterval(updateText, 1000);
+            cooldownTimer = setInterval(updateText, 250);
         }
 
         function showError(msg, el, input) {
             el.innerText = msg;
             el.classList.remove('hidden');
-            if(input) {
+            if (input) {
                 input.classList.add('border-red-500', 'bg-red-50');
             }
         }
 
         function hideError(el, input) {
             el.classList.add('hidden');
-            if(input) {
+            if (input) {
                 input.classList.remove('border-red-500', 'bg-red-50');
             }
         }
@@ -205,7 +234,12 @@
         function proceedToStep2() {
             const s1 = document.getElementById('step-1');
             const s2 = document.getElementById('step-2');
-            const resendError = document.getElementById('resend-error'); // Step 2 error
+            const resendError = document.getElementById('resend-error');
+
+            // Stop any cooldown that might still be running on step 1 UI
+            const emailInput = document.getElementById('email-input');
+            const errorMsg = document.getElementById('error-msg');
+            stopRealtimeCooldown(errorMsg, emailInput);
 
             // CLEANUP: Ensure Step 2 is clean before showing it
             hideError(resendError, null);
@@ -226,11 +260,14 @@
             const s2 = document.getElementById('step-2');
             const errorMsg = document.getElementById('error-msg');
             const resendError = document.getElementById('resend-error');
+            const emailInput = document.getElementById('email-input');
 
-            hideError(errorMsg, document.getElementById('email-input'));
+            // Stop any cooldown so it can't overwrite messages on either step
+            stopRealtimeCooldown(errorMsg, emailInput);
+            stopRealtimeCooldown(resendError, null);
+
+            hideError(errorMsg, emailInput);
             hideError(resendError, null);
-
-            if (cooldownTimer) clearInterval(cooldownTimer);
 
             s2.classList.add('opacity-0');
             setTimeout(() => {
@@ -249,7 +286,6 @@
             const email = document.getElementById('email-input').value.trim().toLowerCase();
             const digits = Array.from(document.querySelectorAll('.code-digit')).map(i => i.value.trim()).join('');
 
-            // Basic UI validation
             if (digits.length !== 4) {
                 const resendError = document.getElementById('resend-error');
                 showError("4 chiffres requis.", resendError, null);
@@ -258,25 +294,22 @@
 
             try {
                 await postJson('/auth/verify-code', { email, code: digits });
-
-                // REDIRECT FOR THIS PAGE:
-                window.location.href = '/'; // change if needed
+                window.location.href = '/';
             } catch (e) {
                 const resendError = document.getElementById('resend-error');
                 showError(e.message || "Code incorrect.", resendError, null);
             }
         }
 
-
         const inputs = document.querySelectorAll('.code-digit');
         inputs.forEach((input, index) => {
             input.addEventListener('input', (e) => {
-                if(e.target.value.length === 1 && index < inputs.length - 1) {
+                if (e.target.value.length === 1 && index < inputs.length - 1) {
                     inputs[index + 1].focus();
                 }
             });
             input.addEventListener('keydown', (e) => {
-                if(e.key === 'Backspace' && !e.target.value && index > 0) {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
                     inputs[index - 1].focus();
                 }
             });
