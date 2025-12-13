@@ -178,9 +178,9 @@
                     @endif
                     @if(auth()->user()->hasRole('ROLE_SUPER_ADMIN'))
                         <!-- Active State -->
-                        <a href="admin_users.html"
-                           class="flex items-center px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors">
-                            <i class="fa-solid fa-clipboard-list w-6"></i>
+                        <a href="{{ route('admin.logs') }}"
+                           class="flex items-center px-4 @if(request()->routeIs('admin.logs')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-red-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                            <i class="fa-solid fa-clipboard-list w-6 @if(request()->routeIs('admin.logs')) text-red-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
                             <span class="font-medium">Audit Logs</span>
                         </a>
                     @endif

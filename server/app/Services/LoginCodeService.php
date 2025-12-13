@@ -47,6 +47,12 @@ class LoginCodeService
     private const VERIFY_LIMIT = 20;
     private const VERIFY_WINDOW_SECONDS = 600;   // 10 minutes
 
+
+    public function __construct(private AuditLogService $auditLogService)
+    {
+    }
+
+
     /**
      * @throws ValidationException
      */
@@ -74,6 +80,26 @@ class LoginCodeService
         // Rate limit : empêcher spam d’envoi de codes (par email + ip)
         $rateKey = 'login_code_req:' . sha1($email . '|' . $ip);
         if (RateLimiter::tooManyAttempts($rateKey, self::REQUEST_LIMIT)) {
+            $wait = RateLimiter::availableIn($rateKey);
+
+            $this->auditLogService->log(
+                actor: null,
+                action: 'AUTH.LOGIN_CODE.REQUEST_RATE_LIMIT',
+                entityType: 'login_codes',
+                entityId: null,
+                description: 'SPAMMING USER: +6 in 10min',
+                metadata: [
+                    'email' => $email,
+                    'ip' => $ip,
+                    'rate_key' => $rateKey,
+                    'wait_seconds' => $wait,
+                    'max_attempts' => self::REQUEST_LIMIT,
+                    'window_seconds' => self::REQUEST_WINDOW_SECONDS,
+                ],
+                ip: $ip,
+                userAgent: $userAgent,
+            );
+
             throw ValidationException::withMessages([
                 'email' => 'Trop de demandes. Réessaie plus tard.',
             ]);
@@ -139,6 +165,7 @@ class LoginCodeService
         $cooldownKey = 'admin_login_code_cooldown_ip:' . $ip;
         if (RateLimiter::tooManyAttempts($cooldownKey, 1)) {
             $wait = RateLimiter::availableIn($cooldownKey);
+
             throw ValidationException::withMessages(['email' => "Attends {$wait}s avant de redemander un code."]);
         }
         RateLimiter::hit($cooldownKey, self::IP_COOLDOWN_SECONDS);
@@ -150,6 +177,26 @@ class LoginCodeService
         // rate limit email+ip
         $rateKey = 'admin_login_code_req:' . sha1($email . '|' . $ip);
         if (RateLimiter::tooManyAttempts($rateKey, self::REQUEST_LIMIT)) {
+            $wait = RateLimiter::availableIn($rateKey);
+
+            $this->auditLogService->log(
+                actor: null,
+                action: 'AUTH.ADMIN_LOGIN_CODE.COOLDOWN_HIT',
+                entityType: 'login_codes',
+                entityId: null,
+                description: 'SPAMMING ADMIN: +6 in 10min',
+                metadata: [
+                    'email' => $email,
+                    'ip' => $ip,
+                    'cooldown_key' => $cooldownKey,
+                    'wait_seconds' => $wait,
+                    'max_attempts' => 1,
+                    'window_seconds' => self::IP_COOLDOWN_SECONDS,
+                ],
+                ip: $ip,
+                userAgent: $userAgent,
+            );
+
             throw ValidationException::withMessages(['email' => 'Trop de demandes. Réessaie plus tard.']);
         }
         RateLimiter::hit($rateKey, self::REQUEST_WINDOW_SECONDS);
@@ -230,6 +277,35 @@ class LoginCodeService
                 'code' => 'Code invalide (4 chiffres).',
             ]);
         }
+
+        // Rate limit verify attempts (email+ip)
+        $verifyKey = 'login_code_verify:' . sha1($email . '|' . $ip);
+        if (RateLimiter::tooManyAttempts($verifyKey, self::VERIFY_LIMIT)) {
+            $wait = RateLimiter::availableIn($verifyKey);
+
+            $this->auditLogService->log(
+                actor: null,
+                action: 'AUTH.LOGIN_CODE.VERIFY_RATE_LIMIT',
+                entityType: 'login_codes',
+                entityId: null,
+                description: 'Rate limit hit on login code verification',
+                metadata: [
+                    'email' => $email,
+                    'ip' => $ip,
+                    'verify_key' => $verifyKey,
+                    'wait_seconds' => $wait,
+                    'max_attempts' => self::VERIFY_LIMIT,
+                    'window_seconds' => self::VERIFY_WINDOW_SECONDS,
+                ],
+                ip: $ip,
+                userAgent: null,
+            );
+
+            throw ValidationException::withMessages([
+                'code' => 'Trop de tentatives. Réessaie plus tard.',
+            ]);
+        }
+        RateLimiter::hit($verifyKey, self::VERIFY_WINDOW_SECONDS);
 
         return DB::transaction(function () use ($email, $code) {
 

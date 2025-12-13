@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ActivityParticipantsApiController;
 use App\Http\Controllers\Admin\ActivityPlayersController;
 use App\Http\Controllers\Admin\ActivityTeamsApiController;
 use App\Http\Controllers\Admin\ActivityTransactionsApiController;
+use App\Http\Controllers\Admin\AdminAuditLogsApiController;
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AdminUsersApiController;
@@ -144,10 +145,13 @@ Route::prefix('admin')->as('admin.')->group(function () {
                     ->name('activities.teams.destroy');
 
                 Route::put('/activities/{activity}/participants/{userId}/points', [ActivityParticipantsApiController::class, 'setPoints']);
+
+                Route::get('/audit-logs', [AdminAuditLogsApiController::class, 'index']);
             });
 
         // Users page + API (keep as-is)
         Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')->group(function () {
+            Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
             Route::get('/users', [AdminUsersController::class, 'index'])->name('users');
 
             Route::prefix('api')->name('api.')->group(function () {

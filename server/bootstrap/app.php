@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\RequireRole;
+use App\Http\Middleware\TemporaryIpBlockMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Http\Request;
+
 
 return Application::configure(
     basePath: dirname(__DIR__),
@@ -24,6 +26,7 @@ return Application::configure(
         if ($request->is('admin') || $request->is('admin/*')) return route('admin.login');
         return route('login');
     });
+    $middleware->append(TemporaryIpBlockMiddleware::class);
 })->withExceptions(
     function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
