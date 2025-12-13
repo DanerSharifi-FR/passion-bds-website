@@ -32,7 +32,7 @@
             <table class="w-full text-left text-sm text-slate-400">
                 <thead class="bg-slate-900/50 text-slate-200 uppercase text-xs font-semibold">
                 <tr>
-                    <th class="px-6 py-3">Admin</th>
+                    <th class="px-6 py-3">User</th>
                     <th class="px-6 py-3">Action</th>
                     <th class="px-6 py-3">Cible</th>
                     <th class="px-6 py-3">IP</th>
