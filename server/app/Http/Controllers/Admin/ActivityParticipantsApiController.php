@@ -186,11 +186,11 @@ class ActivityParticipantsApiController extends Controller
         $teamId = isset($validated['team_id']) && $validated['team_id'] !== null ? (int) $validated['team_id'] : null;
 
         // Students only
-        if ($this->userHasAnyAdminRole($userId)) {
+        /*if ($this->userHasAnyAdminRole($userId)) {
             return response()->json([
                 'message' => "Impossible d'ajouter un admin comme joueur (étudiants uniquement).",
             ], 422);
-        }
+        }*/
 
         $isTeamMode = ($activity->mode ?? 'INDIVIDUAL') === 'TEAM';
 
