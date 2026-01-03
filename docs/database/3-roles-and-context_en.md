@@ -6,12 +6,12 @@ This app is the **campaign hub** for a BDS list:
 
 - Students log in with their **university email + 4-digit code**.
 - They earn and spend **points** via:
-    - daily / bonus **challenges** (questions, QCM, photos, “go see X”),
     - **allos** (small services / favors bookable in time slots),
+    - **activities** (competitions, games, tournaments - individual or team-based),
     - manual points given by the staff during IRL activities.
 - The list runs content around that:
     - events + photo galleries,
-    - a fake “shop” (catalog only, no payment),
+    - a fake "shop" (catalog only, no payment),
     - team presentation by **pôle**,
     - admin tools and audit logs.
 
@@ -29,7 +29,7 @@ There are two levels:
 ### 2.1 Visitor (not logged in)
 
 - Can access public marketing pages (home, basic presentation, maybe static events / team teaser).
-- No points, no allos, no challenges, nothing tied to a user.
+- No points, no allos, no activities, nothing tied to a user.
 
 ### 2.2 Authenticated student (`ROLE_USER` by convention)
 
@@ -38,9 +38,10 @@ Once logged in with their uni email:
 - Sees **their current points total**.
 - Books **allos** in available time slots.
 - Cancels their own allo before the deadline.
-- Participates in **challenges**:
-    - answers questions (TEXT or QCM),
-    - declares a completed action (“I have the photo”, “I saw the treasurer”).
+- Participates in **activities**:
+    - joins individual or team-based activities,
+    - earns points specific to each activity (separate leaderboards),
+    - sees activity-specific points labels (wins, seconds, kills, etc.).
 - Browses:
     - events & galleries,
     - fake shop catalog,
@@ -56,12 +57,23 @@ All admin roles are **additive**: a user can have 0, 1 or many roles in `user_ro
 
 ### 3.1 `ROLE_GAMEMASTER`
 
-Owns **points logic, challenges and allos**.
+Owns **points logic, allos and activities**.
 
 - **Points**
     - Gives / removes points via **manual `point_transactions`**:
         - IRL mini games,
         - ambiance, participation, etc.
+    - Can link points to specific **activities** (for activity-specific leaderboards).
+- **Activities**
+    - Creates / edits **activities** (competitions, tournaments, games):
+        - sets title, slug, description,
+        - defines points label (what points are called: "wins", "seconds", "kills", etc.),
+        - chooses mode: `INDIVIDUAL` or `TEAM`,
+        - assigns activity admins (gamemasters for this specific activity),
+        - adds participants (users or teams).
+    - Manages activity participants and teams.
+    - Points earned in activities can be tracked separately (activity-specific leaderboards).
+    - **Note**: Activity admins (via `activity_admins`) can manage a specific activity even without `ROLE_GAMEMASTER`, allowing delegation to specialized gamemasters per activity.
 - **Allos**
     - Creates / edits / disables allos.
     - Sets:
@@ -73,13 +85,6 @@ Owns **points logic, challenges and allos**.
         - opens / closes,
         - sees the bookings,
         - handles each allo usage (accept, mark as done, cancel).
-- **Challenges**
-    - Creates daily / bonus challenges:
-        - `QUESTION_TEXT`, `QUESTION_MCQ`, `ACTION_PHOTO`, `ACTION_VISIT`.
-    - For text / QCM:
-        - defines correct answer(s) and points reward,
-        - chooses whether it’s “bonus” or not (label).
-    - Reviews attempts when needed (photos, visits, borderline cases).
 
 In short: this role controls **how students earn/spend points**.
 
@@ -160,8 +165,8 @@ Legend:
 |---------------------|-----------------------|----------------------------|---------------------|---------------------|------------|--------------------|
 | Auth / profile      | own profile (R)       | –                          | –                   | –                   | –          | full               |
 | Points balance      | own (R)               | C (manual grants)          | –                   | –                   | –          | full               |
+| Activities          | participate (R/★)     | C/U/D + manage participants| –                   | –                   | –          | full               |
 | Allos               | book/cancel own (R/★) | C/U/D + handle usages (★)  | –                   | –                   | –          | full               |
-| Challenges          | answer (C)            | C/U/D + review/auto rules  | –                   | –                   | –          | full               |
 | Events              | R                     | R                          | C/U/D               | –                   | –          | full               |
 | Galleries           | R                     | R                          | C/U/D media         | –                   | –          | full               |
 | Shop catalog        | R                     | R (optional C/U)           | –                   | –                   | C/U/D      | full               |
@@ -179,17 +184,22 @@ You can adjust this matrix to reality, but the idea is clear:
 ### 5.1 Student day
 
 1. Logs in with uni email + 4-digit code.
-2. Sees **“Défi du jour”**.
-3. Answers a question / QCM or clicks “I have the photo!”.
-4. If it’s auto-checkable → points are granted immediately.  
-   If not → attempt is **PENDING** until a gamemaster validates.
-5. Books an allo for later in the week if they have enough points.
+2. Participates in **activities**:
+    - joins individual activities or gets added to teams,
+    - earns activity-specific points (tracked separately from global points).
+3. Books an allo for later in the week if they have enough points.
+4. Browses events, galleries, shop catalog, and team pages.
 
 ### 5.2 Gamemaster day
 
-1. Checks **challenge attempts** list (photo proofs, visits, borderline answers).
-2. Accepts / rejects attempts → points flow through `point_transactions`.
-3. Creates a new **challenge** for the next day.
-4. For allos, monitors **slots** and marks usages as **DONE** or **CANCELLED**.
+1. Manages **activities**:
+    - creates new activities (tournaments, competitions),
+    - adds participants or teams,
+    - assigns activity-specific admins,
+    - awards points linked to activities (for activity leaderboards).
+2. Gives / removes points via **manual `point_transactions`**:
+    - IRL mini games,
+    - ambiance, participation, etc.
+3. For allos, monitors **slots** and marks usages as **DONE** or **CANCELLED**.
 
 This doc + the DB schema + the PlantUML is enough for someone technical to understand the whole system without ever talking to you.

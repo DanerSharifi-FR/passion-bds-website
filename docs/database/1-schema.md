@@ -7,28 +7,34 @@
     - [1.2 `roles`](#12-roles)
     - [1.3 `user_roles`](#13-user_roles)
     - [1.4 `login_codes`](#14-login_codes)
-- [2. Points & Allos](#2-points--allos)
-    - [2.1 `point_transactions`](#21-point_transactions)
-    - [2.2 `allos`](#22-allos)
-    - [2.3 `allo_admins`](#23-allo_admins)
-    - [2.4 `allo_slots`](#24-allo_slots)
-    - [2.5 `allo_usages`](#25-allo_usages)
-- [3. Events & Gallery](#3-events--gallery)
-    - [3.1 `event_categories`](#31-event_categories)
-    - [3.2 `events`](#32-events)
-    - [3.3 `media_items`](#33-media_items)
-- [4. Shop (Catalog)](#4-shop-catalog)
-    - [4.1 `shop_categories`](#41-shop_categories)
-    - [4.2 `products`](#42-products)
-- [5. Team](#5-team)
-    - [5.1 `poles`](#51-poles)
-    - [5.2 `team_members`](#52-team_members)
-- [6. Audit Logs](#6-audit-logs)
-    - [6.1 `audit_logs`](#61-audit_logs)
-- [7. Challenges & Daily Games](#7-challenges--daily-games)
-    - [7.1 `challenges`](#71-challenges)
-    - [7.2 `challenge_options`](#72-challenge_options)
-    - [7.3 `challenge_attempts`](#73-challenge_attempts)
+- [2. Activities](#2-activities)
+    - [2.1 `activities`](#21-activities)
+    - [2.2 `activity_admins`](#22-activity_admins)
+    - [2.3 `activity_participants`](#23-activity_participants)
+    - [2.4 `activity_teams`](#24-activity_teams)
+    - [2.5 `activity_team_members`](#25-activity_team_members)
+- [3. Points & Allos](#3-points--allos)
+    - [3.1 `point_transactions`](#31-point_transactions)
+    - [3.2 `allos`](#32-allos)
+    - [3.3 `allo_admins`](#33-allo_admins)
+    - [3.4 `allo_slots`](#34-allo_slots)
+    - [3.5 `allo_usages`](#35-allo_usages)
+- [4. Events & Gallery](#4-events--gallery)
+    - [4.1 `event_categories`](#41-event_categories)
+    - [4.2 `events`](#42-events)
+    - [4.3 `media_items`](#43-media_items)
+- [5. Shop (Catalog)](#5-shop-catalog)
+    - [5.1 `shop_categories`](#51-shop_categories)
+    - [5.2 `products`](#52-products)
+- [6. Team](#6-team)
+    - [6.1 `poles`](#61-poles)
+    - [6.2 `team_members`](#62-team_members)
+- [7. Audit Logs](#7-audit-logs)
+    - [7.1 `audit_logs`](#71-audit_logs)
+- [8. Challenges & Daily Games](#8-challenges--daily-games)
+    - [8.1 `challenges`](#81-challenges)
+    - [8.2 `challenge_options`](#82-challenge_options)
+    - [8.3 `challenge_attempts`](#83-challenge_attempts)
 
 ---
 
@@ -46,6 +52,7 @@
 | avatar_url       | VARCHAR   |     | NULL        | 500    |
 | is_active        | BOOLEAN   |     | NOT NULL    | -      |
 | last_login_at    | TIMESTAMP |     | NULL        | -      |
+| remember_token   | VARCHAR   |     | NULL        | 100    |
 | created_at       | TIMESTAMP |     | NOT NULL    | -      |
 | updated_at       | TIMESTAMP |     | NOT NULL    | -      |
 
@@ -60,23 +67,30 @@
 
 - [`user_roles.user_id`](#13-user_roles)
 - [`login_codes.user_id`](#14-login_codes)
-- [`point_transactions.user_id`](#21-point_transactions)
-- [`point_transactions.created_by_id`](#21-point_transactions)
-- [`allos.created_by_id`](#22-allos)
-- [`allos.updated_by_id`](#22-allos)
-- [`allo_admins.admin_id`](#23-allo_admins)
-- [`allo_usages.user_id`](#25-allo_usages)
-- [`allo_usages.handled_by_id`](#25-allo_usages)
-- [`allo_usages.done_by_id`](#25-allo_usages)
-- [`events.created_by_id`](#32-events)
-- [`events.updated_by_id`](#32-events)
-- [`media_items.uploader_id`](#33-media_items)
-- [`team_members.user_id`](#52-team_members)
-- [`audit_logs.actor_id`](#61-audit_logs)
-- [`challenges.created_by_id`](#71-challenges)
-- [`challenges.updated_by_id`](#71-challenges)
-- [`challenge_attempts.user_id`](#73-challenge_attempts)
-- [`challenge_attempts.reviewed_by_id`](#73-challenge_attempts)
+- [`activities.created_by_id`](#21-activities)
+- [`activity_admins.admin_id`](#22-activity_admins)
+- [`activity_participants.user_id`](#23-activity_participants)
+- [`activity_participants.created_by_id`](#23-activity_participants)
+- [`activity_teams.created_by_id`](#24-activity_teams)
+- [`activity_team_members.user_id`](#25-activity_team_members)
+- [`activity_team_members.created_by_id`](#25-activity_team_members)
+- [`point_transactions.user_id`](#31-point_transactions)
+- [`point_transactions.created_by_id`](#31-point_transactions)
+- [`allos.created_by_id`](#32-allos)
+- [`allos.updated_by_id`](#32-allos)
+- [`allo_admins.admin_id`](#33-allo_admins)
+- [`allo_usages.user_id`](#35-allo_usages)
+- [`allo_usages.handled_by_id`](#35-allo_usages)
+- [`allo_usages.done_by_id`](#35-allo_usages)
+- [`events.created_by_id`](#42-events)
+- [`events.updated_by_id`](#42-events)
+- [`media_items.uploader_id`](#43-media_items)
+- [`team_members.user_id`](#62-team_members)
+- [`audit_logs.actor_id`](#71-audit_logs)
+- [`challenges.created_by_id`](#81-challenges)
+- [`challenges.updated_by_id`](#81-challenges)
+- [`challenge_attempts.user_id`](#83-challenge_attempts)
+- [`challenge_attempts.reviewed_by_id`](#83-challenge_attempts)
 
 ---
 
@@ -151,9 +165,145 @@
 
 ---
 
-# 2. Points & Allos
+# 2. Activities
 
-## 2.1 `point_transactions`
+## 2.1 `activities`
+
+#### Columns
+
+| Column         | Type      | PK  | Nullability | Length |
+|----------------|-----------|-----|-------------|--------|
+| id             | BIGINT    | PK  | NOT NULL    | -      |
+| title          | VARCHAR   |     | NOT NULL    | 255    |
+| slug           | VARCHAR   |     | NOT NULL    | 255    |
+| points_label   | VARCHAR   |     | NOT NULL    | 50     |
+| description    | TEXT      |     | NULL        | -      |
+| mode           | VARCHAR   |     | NOT NULL    | 20     |
+| is_active      | BOOLEAN   |     | NOT NULL    | -      |
+| created_by_id  | BIGINT    |     | NULL        | -      |
+| created_at     | TIMESTAMP |     | NOT NULL    | -      |
+| updated_at     | TIMESTAMP |     | NOT NULL    | -      |
+
+#### Constraints
+
+| Name                      | Type   | Definition                                                              |
+|---------------------------|--------|-------------------------------------------------------------------------|
+| pk_activities             | PK     | PRIMARY KEY (id)                                                        |
+| uq_activities_title       | UNIQUE | UNIQUE (title)                                                          |
+| uq_activities_slug         | UNIQUE | UNIQUE (slug)                                                           |
+| fk_activities_created_by_id_users | FK     | FOREIGN KEY (created_by_id) REFERENCES [users](#11-users)(id)           |
+| chk_activities_mode_valid  | CHECK  | mode IN ('INDIVIDUAL','TEAM')                                           |
+
+#### Referenced by
+
+- [`activity_admins.activity_id`](#22-activity_admins)
+- [`activity_participants.activity_id`](#23-activity_participants)
+- [`activity_teams.activity_id`](#24-activity_teams)
+- [`point_transactions.activity_id`](#31-point_transactions)
+
+---
+
+## 2.2 `activity_admins`
+
+#### Columns
+
+| Column      | Type      | PK  | Nullability | Length |
+|-------------|-----------|-----|-------------|--------|
+| id          | BIGINT    | PK  | NOT NULL    | -      |
+| activity_id | BIGINT    |     | NOT NULL    | -      |
+| admin_id    | BIGINT    |     | NOT NULL    | -      |
+| created_at  | TIMESTAMP |     | NOT NULL    | -      |
+
+#### Constraints
+
+| Name                              | Type   | Definition                                                              |
+|-----------------------------------|--------|-------------------------------------------------------------------------|
+| pk_activity_admins                 | PK     | PRIMARY KEY (id)                                                        |
+| fk_activity_admins_activity_id_activities | FK     | FOREIGN KEY (activity_id) REFERENCES [activities](#21-activities)(id)   |
+| fk_activity_admins_admin_id_users | FK     | FOREIGN KEY (admin_id) REFERENCES [users](#11-users)(id)                |
+| uq_activity_admins_activity_admin  | UNIQUE | UNIQUE (activity_id, admin_id)                                         |
+
+---
+
+## 2.3 `activity_participants`
+
+#### Columns
+
+| Column        | Type      | PK  | Nullability | Length |
+|---------------|-----------|-----|-------------|--------|
+| id            | BIGINT    | PK  | NOT NULL    | -      |
+| activity_id   | BIGINT    |     | NOT NULL    | -      |
+| user_id       | BIGINT    |     | NOT NULL    | -      |
+| created_by_id | BIGINT    |     | NULL        | -      |
+| created_at    | TIMESTAMP |     | NOT NULL    | -      |
+
+#### Constraints
+
+| Name                                    | Type   | Definition                                                              |
+|-----------------------------------------|--------|-------------------------------------------------------------------------|
+| pk_activity_participants                 | PK     | PRIMARY KEY (id)                                                        |
+| fk_activity_participants_activity_id_activities | FK     | FOREIGN KEY (activity_id) REFERENCES [activities](#21-activities)(id)   |
+| fk_activity_participants_user_id_users | FK     | FOREIGN KEY (user_id) REFERENCES [users](#11-users)(id)                  |
+| fk_activity_participants_created_by_id_users | FK     | FOREIGN KEY (created_by_id) REFERENCES [users](#11-users)(id)            |
+| uq_activity_participants_activity_user  | UNIQUE | UNIQUE (activity_id, user_id)                                           |
+
+---
+
+## 2.4 `activity_teams`
+
+#### Columns
+
+| Column        | Type      | PK  | Nullability | Length |
+|---------------|-----------|-----|-------------|--------|
+| id            | BIGINT    | PK  | NOT NULL    | -      |
+| activity_id   | BIGINT    |     | NOT NULL    | -      |
+| title         | VARCHAR   |     | NOT NULL    | 150    |
+| created_by_id | BIGINT    |     | NULL        | -      |
+| created_at    | TIMESTAMP |     | NOT NULL    | -      |
+| updated_at    | TIMESTAMP |     | NOT NULL    | -      |
+
+#### Constraints
+
+| Name                              | Type   | Definition                                                              |
+|-----------------------------------|--------|-------------------------------------------------------------------------|
+| pk_activity_teams                  | PK     | PRIMARY KEY (id)                                                        |
+| fk_activity_teams_activity_id_activities | FK     | FOREIGN KEY (activity_id) REFERENCES [activities](#21-activities)(id)   |
+| fk_activity_teams_created_by_id_users | FK     | FOREIGN KEY (created_by_id) REFERENCES [users](#11-users)(id)            |
+| uq_activity_teams_activity_title  | UNIQUE | UNIQUE (activity_id, title)                                             |
+
+#### Referenced by
+
+- [`activity_team_members.team_id`](#25-activity_team_members)
+
+---
+
+## 2.5 `activity_team_members`
+
+#### Columns
+
+| Column        | Type      | PK  | Nullability | Length |
+|---------------|-----------|-----|-------------|--------|
+| id            | BIGINT    | PK  | NOT NULL    | -      |
+| team_id       | BIGINT    |     | NOT NULL    | -      |
+| user_id       | BIGINT    |     | NOT NULL    | -      |
+| created_by_id | BIGINT    |     | NULL        | -      |
+| created_at    | TIMESTAMP |     | NOT NULL    | -      |
+
+#### Constraints
+
+| Name                                    | Type   | Definition                                                              |
+|-----------------------------------------|--------|-------------------------------------------------------------------------|
+| pk_activity_team_members                 | PK     | PRIMARY KEY (id)                                                        |
+| fk_activity_team_members_team_id_activity_teams | FK     | FOREIGN KEY (team_id) REFERENCES [activity_teams](#24-activity_teams)(id) |
+| fk_activity_team_members_user_id_users | FK     | FOREIGN KEY (user_id) REFERENCES [users](#11-users)(id)                  |
+| fk_activity_team_members_created_by_id_users | FK     | FOREIGN KEY (created_by_id) REFERENCES [users](#11-users)(id)            |
+| uq_activity_team_members_team_user     | UNIQUE | UNIQUE (team_id, user_id)                                               |
+
+---
+
+# 3. Points & Allos
+
+## 3.1 `point_transactions`
 
 #### Columns
 
@@ -165,6 +315,7 @@
 | reason        | VARCHAR   |     | NOT NULL    | 255    |
 | context_type  | VARCHAR   |     | NULL        | 50     |
 | context_id    | BIGINT    |     | NULL        | -      |
+| activity_id   | BIGINT    |     | NULL        | -      |
 | created_by_id | BIGINT    |     | NULL        | -      |
 | created_at    | TIMESTAMP |     | NOT NULL    | -      |
 
@@ -174,12 +325,13 @@
 |---------------------------|-------|---------------------------------------------------------|
 | pk_point_transactions     | PK    | PRIMARY KEY (id)                                        |
 | fk_pt_user_id_users       | FK    | FOREIGN KEY (user_id) REFERENCES [users](#11-users)(id) |
+| fk_pt_activity_id_activities | FK    | FOREIGN KEY (activity_id) REFERENCES [activities](#21-activities)(id) |
 | fk_pt_created_by_id_users | FK    | FOREIGN KEY (created_by_id) REFERENCES [users](#11-users)(id) |
 | chk_pt_amount_not_zero    | CHECK | amount <> 0                                             |
 
 ---
 
-## 2.2 `allos`
+## 3.2 `allos`
 
 #### Columns
 
@@ -214,13 +366,13 @@
 
 #### Referenced by
 
-- [`allo_admins.allo_id`](#23-allo_admins)
-- [`allo_slots.allo_id`](#24-allo_slots)
-- [`allo_usages.allo_id`](#25-allo_usages)
+- [`allo_admins.allo_id`](#33-allo_admins)
+- [`allo_slots.allo_id`](#34-allo_slots)
+- [`allo_usages.allo_id`](#35-allo_usages)
 
 ---
 
-## 2.3 `allo_admins`
+## 3.3 `allo_admins`
 
 #### Columns
 
@@ -242,7 +394,7 @@
 
 ---
 
-## 2.4 `allo_slots`
+## 3.4 `allo_slots`
 
 #### Columns
 
@@ -260,18 +412,17 @@
 | Name                         | Type   | Definition                                                      |
 |------------------------------|--------|-----------------------------------------------------------------|
 | pk_allo_slots                | PK     | PRIMARY KEY (id)                                                |
-| fk_allo_slots_allo_id_allos  | FK     | FOREIGN KEY (allo_id) REFERENCES [allos](#22-allos)(id)         |
+| fk_allo_slots_allo_id_allos  | FK     | FOREIGN KEY (allo_id) REFERENCES [allos](#32-allos)(id)         |
 | uq_allo_slots_allo_start     | UNIQUE | UNIQUE (allo_id, slot_start_at)                                 |
-| chk_allo_slots_end_after_start | CHECK | slot_end_at > slot_start_at                                     |
-| chk_allo_slots_status_valid  | CHECK  | status IN ('OPEN','CLOSED','DISABLED')                          |
+| chk_allo_slots_status_valid  | CHECK  | status IN ('available', 'booked', 'blocked')                    |
 
 #### Referenced by
 
-- [`allo_usages.allo_slot_id`](#25-allo_usages)
+- [`allo_usages.allo_slot_id`](#35-allo_usages)
 
 ---
 
-## 2.5 `allo_usages`
+## 3.5 `allo_usages`
 
 #### Columns
 
@@ -296,24 +447,20 @@
 | Name                                   | Type   | Definition                                                                                     |
 |----------------------------------------|--------|------------------------------------------------------------------------------------------------|
 | pk_allo_usages                         | PK     | PRIMARY KEY (id)                                                                               |
-| fk_au_allo_id_allos                    | FK     | FOREIGN KEY (allo_id) REFERENCES [allos](#22-allos)(id)                                       |
-| fk_au_allo_slot_id_allo_slots          | FK     | FOREIGN KEY (allo_slot_id) REFERENCES [allo_slots](#24-allo_slots)(id)                        |
+| fk_au_allo_id_allos                    | FK     | FOREIGN KEY (allo_id) REFERENCES [allos](#32-allos)(id)                                       |
+| fk_au_allo_slot_id_allo_slots          | FK     | FOREIGN KEY (allo_slot_id) REFERENCES [allo_slots](#34-allo_slots)(id)                        |
 | fk_au_user_id_users                    | FK     | FOREIGN KEY (user_id) REFERENCES [users](#11-users)(id)                                       |
 | fk_au_handled_by_id_users              | FK     | FOREIGN KEY (handled_by_id) REFERENCES [users](#11-users)(id)                                 |
 | fk_au_done_by_id_users                 | FK     | FOREIGN KEY (done_by_id) REFERENCES [users](#11-users)(id)                                    |
 | uq_au_user_slotstart                   | UNIQUE | UNIQUE (user_id, slot_start_at)                                                                |
 | chk_au_points_spent_min0               | CHECK  | points_spent >= 0                                                                              |
 | chk_au_status_valid                    | CHECK  | status IN ('PENDING','ACCEPTED','DONE','CANCELLED')                                            |
-| chk_au_non_pending_requires_handler    | CHECK  | (status = 'PENDING') OR (handled_by_id IS NOT NULL)                                           |
-| chk_au_accepted_requires_accepted_at   | CHECK  | (status <> 'ACCEPTED') OR (accepted_at IS NOT NULL)                                           |
-| chk_au_done_requires_done_fields       | CHECK  | (status <> 'DONE') OR (done_by_id IS NOT NULL AND done_at IS NOT NULL)                        |
-| chk_au_cancelled_requires_cancelled_at | CHECK  | (status <> 'CANCELLED') OR (cancelled_at IS NOT NULL)                                         |
 
 ---
 
-# 3. Events & Gallery
+# 4. Events & Gallery
 
-## 3.1 `event_categories`
+## 4.1 `event_categories`
 
 #### Columns
 
@@ -336,11 +483,11 @@
 
 #### Referenced by
 
-- [`events.category_id`](#32-events)
+- [`events.category_id`](#42-events)
 
 ---
 
-## 3.2 `events`
+## 4.2 `events`
 
 #### Columns
 
@@ -374,11 +521,11 @@
 
 #### Referenced by
 
-- [`media_items.event_id`](#33-media_items)
+- [`media_items.event_id`](#43-media_items)
 
 ---
 
-## 3.3 `media_items`
+## 4.3 `media_items`
 
 #### Columns
 
@@ -409,9 +556,9 @@
 
 ---
 
-# 4. Shop (Catalog)
+# 5. Shop (Catalog)
 
-## 4.1 `shop_categories`
+## 5.1 `shop_categories`
 
 #### Columns
 
@@ -437,11 +584,11 @@
 
 #### Referenced by
 
-- [`products.category_id`](#42-products)
+- [`products.category_id`](#52-products)
 
 ---
 
-## 4.2 `products`
+## 5.2 `products`
 
 #### Columns
 
@@ -472,9 +619,9 @@
 
 ---
 
-# 5. Team
+# 6. Team
 
-## 5.1 `poles`
+## 6.1 `poles`
 
 #### Columns
 
@@ -501,11 +648,11 @@
 
 #### Referenced by
 
-- [`team_members.pole_id`](#52-team_members)
+- [`team_members.pole_id`](#62-team_members)
 
 ---
 
-## 5.2 `team_members`
+## 6.2 `team_members`
 
 #### Columns
 
@@ -516,11 +663,9 @@
 | user_id       | BIGINT    |     | NULL        | -      |
 | full_name     | VARCHAR   |     | NOT NULL    | 255    |
 | nickname      | VARCHAR   |     | NULL        | 100    |
-| role_title    | VARCHAR   |     | NULL        | 255    |
 | bio           | TEXT      |     | NULL        | -      |
 | photo_url     | VARCHAR   |     | NULL        | 500    |
 | instagram_url | VARCHAR   |     | NULL        | 255    |
-| x_url         | VARCHAR   |     | NULL        | 255    |
 | position      | INT       |     | NOT NULL    | -      |
 | is_visible    | BOOLEAN   |     | NOT NULL    | -      |
 | created_at    | TIMESTAMP |     | NOT NULL    | -      |
@@ -537,16 +682,16 @@
 
 ---
 
-# 6. Audit Logs
+# 7. Audit Logs
 
-## 6.1 `audit_logs`
+## 7.1 `audit_logs`
 
 #### Columns
 
 | Column        | Type      | PK  | Nullability | Length |
 |---------------|-----------|-----|-------------|--------|
 | id            | BIGINT    | PK  | NOT NULL    | -      |
-| actor_id      | BIGINT    |     | NOT NULL    | -      |
+| actor_id      | BIGINT    |     | NULL        | -      |
 | action        | VARCHAR   |     | NOT NULL    | 100    |
 | entity_type   | VARCHAR   |     | NOT NULL    | 100    |
 | entity_id     | BIGINT    |     | NULL        | -      |
@@ -567,9 +712,9 @@
 
 ---
 
-# 7. Challenges & Daily Games
+# 8. Challenges & Daily Games
 
-## 7.1 `challenges`
+## 8.1 `challenges`
 
 #### Columns
 
@@ -611,12 +756,12 @@
 
 #### Referenced by
 
-- [`challenge_options.challenge_id`](#72-challenge_options)
-- [`challenge_attempts.challenge_id`](#73-challenge_attempts)
+- [`challenge_options.challenge_id`](#82-challenge_options)
+- [`challenge_attempts.challenge_id`](#83-challenge_attempts)
 
 ---
 
-## 7.2 `challenge_options`
+## 8.2 `challenge_options`
 
 #### Columns
 
@@ -640,11 +785,11 @@
 
 #### Referenced by
 
-- [`challenge_attempts.selected_option_id`](#73-challenge_attempts)
+- [`challenge_attempts.selected_option_id`](#83-challenge_attempts)
 
 ---
 
-## 7.3 `challenge_attempts`
+## 8.3 `challenge_attempts`
 
 #### Columns
 
