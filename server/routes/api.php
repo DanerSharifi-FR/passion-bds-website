@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AlloApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,4 +23,11 @@ Route::get('/ping', function (Request $request) {
     return response()->json([
         'message' => 'pong',
     ]);
+});
+
+Route::middleware('web')->group(function () {
+    Route::get('/allos', [AlloApiController::class, 'index'])->name('allos.api.index');
+    Route::post('/allos/bookings', [AlloApiController::class, 'storeBooking'])
+        ->middleware('auth')
+        ->name('allos.api.bookings.store');
 });
