@@ -10,10 +10,10 @@ use Illuminate\Support\Carbon;
 
 class AlloUsageService
 {
-    public const STATUS_PENDING   = 'pending';
-    public const STATUS_ACCEPTED  = 'accepted';
-    public const STATUS_DONE      = 'done';
-    public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_PENDING   = 'PENDING';
+    public const STATUS_ACCEPTED  = 'ACCEPTED';
+    public const STATUS_DONE      = 'DONE';
+    public const STATUS_CANCELLED = 'CANCELLED';
 
     /**
      * Accepte une demande d'allo.

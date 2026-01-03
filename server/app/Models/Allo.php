@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property string $title
  * @property string|null $slug
  * @property string|null $description
+ * @property string|null $admin_note
  * @property int $points_cost
  * @property string $status
  * @property Carbon $window_start_at
@@ -53,6 +54,7 @@ class Allo extends Model
         'title',
         'slug',
         'description',
+        'admin_note',
         'points_cost',
         'status',
         'window_start_at',
@@ -74,6 +76,7 @@ class Allo extends Model
         'updated_by_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'admin_note' => 'string',
     ];
 
     /**
