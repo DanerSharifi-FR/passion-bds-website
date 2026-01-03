@@ -18,6 +18,7 @@ entity users {
     avatar_url : VARCHAR(500)
   * is_active : BOOLEAN
     last_login_at : TIMESTAMP
+    remember_token : VARCHAR(100)
   --
   * created_at : TIMESTAMP
   * updated_at : TIMESTAMP
@@ -61,7 +62,96 @@ users ||--o{ login_codes : user_id
 
 
 ' ============================================
-' 2) Points & Allos
+' 2) Activities
+' ============================================
+@startuml Activities
+skinparam classAttributeIconSize 0
+hide circle
+left to right direction
+title Activities
+
+entity users {
+  * id : BIGINT <<PK>>
+  --
+  * university_email : VARCHAR(255)
+  --
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity activities {
+  * id : BIGINT <<PK>>
+  --
+  * title : VARCHAR(255)
+  * slug : VARCHAR(255)
+  * points_label : VARCHAR(50)
+    description : TEXT
+  * mode : VARCHAR(20)
+  * is_active : BOOLEAN
+    created_by_id : BIGINT <<FK>>
+  --
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity activity_admins {
+  * id : BIGINT <<PK>>
+  --
+  * activity_id : BIGINT <<FK>>
+  * admin_id : BIGINT <<FK>>
+  --
+  * created_at : TIMESTAMP
+}
+
+entity activity_participants {
+  * id : BIGINT <<PK>>
+  --
+  * activity_id : BIGINT <<FK>>
+  * user_id : BIGINT <<FK>>
+    created_by_id : BIGINT <<FK>>
+  --
+  * created_at : TIMESTAMP
+}
+
+entity activity_teams {
+  * id : BIGINT <<PK>>
+  --
+  * activity_id : BIGINT <<FK>>
+  * title : VARCHAR(150)
+    created_by_id : BIGINT <<FK>>
+  --
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity activity_team_members {
+  * id : BIGINT <<PK>>
+  --
+  * team_id : BIGINT <<FK>>
+  * user_id : BIGINT <<FK>>
+    created_by_id : BIGINT <<FK>>
+  --
+  * created_at : TIMESTAMP
+}
+
+' relations
+users ||--o{ activities : created_by_id
+activities ||--o{ activity_admins : activity_id
+users ||--o{ activity_admins : admin_id
+activities ||--o{ activity_participants : activity_id
+users ||--o{ activity_participants : user_id
+users ||--o{ activity_participants : created_by_id
+activities ||--o{ activity_teams : activity_id
+users ||--o{ activity_teams : created_by_id
+activity_teams ||--o{ activity_team_members : team_id
+users ||--o{ activity_team_members : user_id
+users ||--o{ activity_team_members : created_by_id
+
+@enduml
+
+
+' ============================================
+' 3) Points & Allos
 ' ============================================
 @startuml Points_Allos
 skinparam classAttributeIconSize 0
@@ -78,6 +168,15 @@ entity users {
   * updated_at : TIMESTAMP
 }
 
+entity activities {
+  * id : BIGINT <<PK>>
+  --
+  * title : VARCHAR(255)
+  --
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
 entity point_transactions {
   * id : BIGINT <<PK>>
   --
@@ -86,6 +185,7 @@ entity point_transactions {
   * reason : VARCHAR(255)
     context_type : VARCHAR(50)
     context_id : BIGINT
+    activity_id : BIGINT <<FK>>
     created_by_id : BIGINT <<FK>>
   --
   * created_at : TIMESTAMP
@@ -150,6 +250,7 @@ entity allo_usages {
 ' relations
 users ||--o{ point_transactions : user_id
 users ||--o{ point_transactions : created_by_id
+activities ||--o{ point_transactions : activity_id
 
 users ||--o{ allos : created_by_id
 users ||--o{ allos : updated_by_id
@@ -169,7 +270,7 @@ users ||--o{ allo_usages : done_by_id
 
 
 ' ============================================
-' 3) Events & Gallery
+' 4) Events & Gallery
 ' ============================================
 @startuml Events_Gallery
 skinparam classAttributeIconSize 0
@@ -244,7 +345,7 @@ users ||--o{ media_items : uploader_id
 
 
 ' ============================================
-' 4) Shop
+' 5) Shop
 ' ============================================
 @startuml Shop
 skinparam classAttributeIconSize 0
@@ -288,7 +389,7 @@ shop_categories ||--o{ products : category_id
 
 
 ' ============================================
-' 5) Team
+' 6) Team
 ' ============================================
 @startuml Team
 skinparam classAttributeIconSize 0
@@ -326,11 +427,9 @@ entity team_members {
     user_id : BIGINT <<FK>>
   * full_name : VARCHAR(255)
     nickname : VARCHAR(100)
-    role_title : VARCHAR(255)
     bio : TEXT
     photo_url : VARCHAR(500)
     instagram_url : VARCHAR(255)
-    x_url : VARCHAR(255)
   * position : INT
   * is_visible : BOOLEAN
   --
@@ -345,7 +444,7 @@ users ||--o{ team_members : user_id
 
 
 ' ============================================
-' 6) Audit
+' 7) Audit
 ' ============================================
 @startuml Audit
 skinparam classAttributeIconSize 0
@@ -383,7 +482,7 @@ users ||--o{ audit_logs : actor_id
 
 
 ' ============================================
-' 7) Challenges
+' 8) Challenges
 ' ============================================
 @startuml Challenges
 skinparam classAttributeIconSize 0
