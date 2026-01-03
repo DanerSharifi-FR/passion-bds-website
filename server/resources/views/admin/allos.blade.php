@@ -193,7 +193,7 @@
 
         async function loadAllos() {
             try {
-                const response = await fetch(API.allos);
+                const response = await fetch(API.allos, { credentials: 'same-origin' });
                 const payload = await response.json();
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger les allos.');
                 allos = payload.data || [];
@@ -206,7 +206,7 @@
 
         async function loadRequests() {
             try {
-                const response = await fetch(`${API.usages}?status=ALL`);
+                const response = await fetch(`${API.usages}?status=ALL`, { credentials: 'same-origin' });
                 const payload = await response.json();
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger les demandes.');
                 requests = payload.data || [];
@@ -218,7 +218,7 @@
 
         async function loadAdmins() {
             try {
-                const response = await fetch(API.admins);
+                const response = await fetch(API.admins, { credentials: 'same-origin' });
                 const payload = await response.json();
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger la liste des admins.');
                 admins = payload.data || [];
@@ -376,6 +376,7 @@
                 const response = await fetch(`${API.allos}/${id}`, {
                     method: 'DELETE',
                     headers: { 'X-CSRF-TOKEN': csrf() },
+                    credentials: 'same-origin',
                 });
                 const payload = await response.json();
                 if (!response.ok) throw new Error(payload.message || 'Suppression impossible.');
@@ -449,6 +450,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrf(),
                     },
+                    credentials: 'same-origin',
                     body: JSON.stringify(data),
                 });
                 const payload = await response.json();
@@ -470,6 +472,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrf(),
                     },
+                    credentials: 'same-origin',
                     body: JSON.stringify(payload),
                 });
                 const result = await response.json();
