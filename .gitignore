@@ -433,6 +433,8 @@ compose.override.yaml
 server/vendor/
 server/node_modules/
 server/.env
+server/storage/
+server/storage/**/.gitignore
 server/storage/*.key
 server/storage/logs/*.log
 
@@ -461,6 +463,8 @@ client/.editorconfig
 /server/public/build
 /server/public/hot
 /server/public/storage
+/server/storage/
+/server/storage/**/.gitignore
 /server/storage/*.key
 /server/storage/pail
 /server/vendor
