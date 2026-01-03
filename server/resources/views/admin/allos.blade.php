@@ -79,6 +79,15 @@
                                 <input type="number" id="alloDuration" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="15" value="15" required>
                             </div>
                         </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Statut</label>
+                            <select id="alloStatus" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5">
+                                <option value="DRAFT">Brouillon</option>
+                                <option value="OPEN">Ouvert</option>
+                                <option value="CLOSED">Fermé</option>
+                                <option value="DISABLED">Désactivé</option>
+                            </select>
+                        </div>
                         <div class="p-3 bg-slate-700/30 rounded border border-slate-600">
                             <label class="block text-sm font-medium text-slate-300 mb-2">Fenêtre d'ouverture (Obligatoire)</label>
                             <div class="grid grid-cols-2 gap-2">
@@ -101,6 +110,10 @@
                             <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
                             <textarea id="alloDesc" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Détails du service..."></textarea>
                         </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Note admin (visible côté étudiants)</label>
+                            <textarea id="alloAdminNote" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Note importante (ex: matériel requis)"></textarea>
+                        </div>
                     </form>
                 </div>
                 <div class="bg-slate-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-slate-700">
@@ -112,21 +125,45 @@
     </div>
 
     <script>
-        // --- DATA ---
-        const mockAdmins = [ { id: 1, name: "Moi (Current)" }, { id: 2, name: "Paul V." }, { id: 3, name: "Marie C." }, { id: 4, name: "Tom R." } ];
+        const API = {
+            allos: '/admin/api/allos',
+            admins: '/admin/api/allo-admins',
+            usages: '/admin/api/allo-usages',
+        };
 
-        let allos = [
-            { id: 1, title: "P'tit Dej au lit", cost: 150, duration: 15, active: true, start: "2023-10-12T08:00", end: "2023-10-12T11:00", desc: "Un croissant et un jus d'orange livrés en chambre.", admins: ["Moi (Current)", "Tom R."] },
-            { id: 2, title: "Réveil Fanfare", cost: 300, duration: 10, active: false, start: "2023-10-13T07:00", end: "2023-10-13T09:00", desc: "On vient te réveiller avec des trompettes.", admins: ["Paul V."] }
-        ];
+        let allos = [];
+        let requests = [];
+        let admins = [];
 
-        let requests = [
-            { id: 101, alloId: 1, alloTitle: "P'tit Dej au lit", user: "Jean Dupont", slot: "08:15", status: "PENDING", handler: null },
-            { id: 102, alloId: 1, alloTitle: "P'tit Dej au lit", user: "Marie Curie", slot: "08:30", status: "ACCEPTED", handler: "Moi" },
-            { id: 103, alloId: 1, alloTitle: "P'tit Dej au lit", user: "Albert E.", slot: "09:00", status: "DONE", handler: "Tom" },
-            { id: 104, alloId: 2, alloTitle: "Réveil Fanfare", user: "Isaac N.", slot: "07:00", status: "PENDING", handler: null },
-            { id: 105, alloId: 1, alloTitle: "P'tit Dej au lit", user: "Ada Lovelace", slot: "09:15", status: "CANCELLED", handler: null },
-        ];
+        function csrf() {
+            return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        }
+
+        function formatDateTime(iso) {
+            if (!iso) return '-';
+            const date = new Date(iso);
+            return date.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+        }
+
+        function toInputDateTime(iso) {
+            if (!iso) return '';
+            const date = new Date(iso);
+            const pad = (value) => String(value).padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        function statusLabel(status) {
+            switch (status) {
+                case 'OPEN':
+                    return 'Ouvert';
+                case 'CLOSED':
+                    return 'Fermé';
+                case 'DISABLED':
+                    return 'Désactivé';
+                default:
+                    return 'Brouillon';
+            }
+        }
 
         // --- CORE FUNCTIONS ---
         function switchView(view) {
@@ -154,6 +191,42 @@
             else sb.classList.add('-translate-x-full');
         }
 
+        async function loadAllos() {
+            try {
+                const response = await fetch(API.allos, { credentials: 'same-origin' });
+                const payload = await response.json();
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger les allos.');
+                allos = payload.data || [];
+                populateFilters();
+                renderCatalog();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors du chargement des allos.', 'error');
+            }
+        }
+
+        async function loadRequests() {
+            try {
+                const response = await fetch(`${API.usages}?status=ALL`, { credentials: 'same-origin' });
+                const payload = await response.json();
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger les demandes.');
+                requests = payload.data || [];
+                renderRequests();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors du chargement des demandes.', 'error');
+            }
+        }
+
+        async function loadAdmins() {
+            try {
+                const response = await fetch(API.admins, { credentials: 'same-origin' });
+                const payload = await response.json();
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger la liste des admins.');
+                admins = payload.data || [];
+            } catch (error) {
+                showToast(error.message || 'Erreur lors du chargement des admins.', 'error');
+            }
+        }
+
         function populateFilters() {
             const alloSelect = document.getElementById('filterAllo');
             alloSelect.innerHTML = '<option value="">Tous les services</option>';
@@ -168,11 +241,16 @@
         function populateAdminList(selectedAdmins = []) {
             const container = document.getElementById('adminList');
             container.innerHTML = '';
-            mockAdmins.forEach(admin => {
-                const isChecked = selectedAdmins.includes(admin.name);
+            if (admins.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500">Aucun admin disponible.</p>';
+                return;
+            }
+
+            admins.forEach(admin => {
+                const isChecked = selectedAdmins.includes(admin.id);
                 const div = document.createElement('div');
                 div.className = "flex items-center mb-2 last:mb-0";
-                div.innerHTML = `<input type="checkbox" id="admin_${admin.id}" name="alloAdmins" value="${admin.name}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600 bg-slate-800 border-slate-600 rounded focus:ring-indigo-500"><label for="admin_${admin.id}" class="ml-2 text-sm text-slate-300 cursor-pointer select-none">${admin.name}</label>`;
+                div.innerHTML = `<input type="checkbox" id="admin_${admin.id}" name="alloAdmins" value="${admin.id}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600 bg-slate-800 border-slate-600 rounded focus:ring-indigo-500"><label for="admin_${admin.id}" class="ml-2 text-sm text-slate-300 cursor-pointer select-none">${admin.name}</label>`;
                 container.appendChild(div);
             });
         }
@@ -190,9 +268,9 @@
                 if (statusFilter === 'ACTIVE') statusMatch = (r.status === 'PENDING' || r.status === 'ACCEPTED');
                 else if (statusFilter !== 'ALL') statusMatch = (r.status === statusFilter);
                 let alloMatch = true;
-                if (alloFilter) alloMatch = (r.alloId == alloFilter);
+                if (alloFilter) alloMatch = (r.allo_id == alloFilter);
                 let userMatch = true;
-                if (userFilter) userMatch = r.user.toLowerCase().includes(userFilter);
+                if (userFilter) userMatch = `${r.user_name} ${r.user_email}`.toLowerCase().includes(userFilter);
                 return statusMatch && alloMatch && userMatch;
             });
 
@@ -210,12 +288,14 @@
                     actions = `<button onclick="updateStatus(${r.id}, 'CANCELLED')" class="text-slate-400 hover:text-red-400 text-sm px-3">Annuler</button><button onclick="updateStatus(${r.id}, 'ACCEPTED')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-1.5 rounded font-medium shadow">Prendre en charge</button>`;
                     cardBorder = 'border-yellow-500/30';
                 } else if (r.status === 'ACCEPTED') {
-                    statusBadge = `<span class="px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold">EN COURS (${r.handler})</span>`;
+                    const handlerName = r.handled_by_name || 'Admin';
+                    statusBadge = `<span class="px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold">EN COURS (${handlerName})</span>`;
                     actions = `<button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3">Relâcher</button><button onclick="updateStatus(${r.id}, 'DONE')" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded font-medium shadow">Terminer</button>`;
                     cardBorder = 'border-blue-500/30';
                 } else if (r.status === 'DONE') {
                     statusBadge = `<span class="px-2 py-1 rounded bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-bold">TERMINÉ</span>`;
-                    actions = `<span class="text-xs text-slate-500 mr-3 hidden sm:inline">Géré par ${r.handler}</span><button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3 flex items-center border-l border-slate-700 ml-2 pl-4"><i class="fa-solid fa-rotate-left mr-1"></i> Rouvrir</button>`;
+                    const doneBy = r.done_by_name || r.handled_by_name || 'Admin';
+                    actions = `<span class="text-xs text-slate-500 mr-3 hidden sm:inline">Géré par ${doneBy}</span><button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3 flex items-center border-l border-slate-700 ml-2 pl-4"><i class="fa-solid fa-rotate-left mr-1"></i> Rouvrir</button>`;
                     cardBorder = 'border-green-500/30';
                 } else {
                     statusBadge = `<span class="px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold">ANNULÉ</span>`;
@@ -223,31 +303,41 @@
                     cardBorder = 'border-red-500/30';
                 }
                 container.innerHTML += `
-                    <div class="bg-slate-800 rounded-lg p-4 border ${cardBorder} flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all">
-                        <div class="flex items-center gap-4">
-                            <div class="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center text-indigo-400 font-bold">${r.user.substring(0,2)}</div>
+                    <div class="bg-slate-800 rounded-lg p-4 border ${cardBorder} flex flex-col gap-4 transition-all">
+                        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center text-indigo-400 font-bold">${r.user_name.substring(0,2)}</div>
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2 mb-1"><h3 class="font-bold text-white">${r.allo_title}</h3>${statusBadge}</div>
+                                    <p class="text-sm text-slate-400">
+                                        <i class="fa-solid fa-user mr-1"></i> ${r.user_name}
+                                        <span class="mx-2">•</span>
+                                        <i class="fa-regular fa-clock mr-1"></i> Créneau : <span class="text-white font-mono">${formatDateTime(r.slot_start_at)}</span>
+                                        <span class="mx-2">•</span>
+                                        <span class="text-yellow-400 font-mono">${r.points_spent} pts</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 w-full md:w-auto justify-end border-t md:border-t-0 border-slate-700 pt-3 md:pt-0">${actions}</div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-400">
                             <div>
-                                <div class="flex items-center gap-2 mb-1"><h3 class="font-bold text-white">${r.alloTitle}</h3>${statusBadge}</div>
-                                <p class="text-sm text-slate-400"><i class="fa-solid fa-user mr-1"></i> ${r.user} <span class="mx-2">•</span> <i class="fa-regular fa-clock mr-1"></i> Créneau : <span class="text-white font-mono">${r.slot}</span></p>
+                                <p class="uppercase tracking-wide text-[10px] text-slate-500 mb-1">Note étudiant</p>
+                                <p class="text-sm text-slate-300">${r.user_note || 'Aucune note.'}</p>
+                            </div>
+                            <div>
+                                <p class="uppercase tracking-wide text-[10px] text-slate-500 mb-1">Note admin</p>
+                                <textarea id="admin_note_${r.id}" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-xs rounded p-2" placeholder="Note interne...">${r.admin_note || ''}</textarea>
+                                <button onclick="saveAdminNote(${r.id})" class="mt-2 text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded">Enregistrer note</button>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 w-full md:w-auto justify-end border-t md:border-t-0 border-slate-700 pt-3 md:pt-0">${actions}</div>
                     </div>`;
             });
         }
 
         async function updateStatus(id, status) {
-            const req = requests.find(r => r.id === id);
-            if(req) {
-                req.status = status;
-                req.handler = status === 'ACCEPTED' ? 'Moi' : (status === 'PENDING' ? null : req.handler);
-                let msg = "Statut mis à jour";
-                if(status === 'ACCEPTED') msg = "Vous avez pris en charge la demande";
-                if(status === 'DONE') msg = "Allo terminé !";
-                if(status === 'PENDING') msg = "Demande remise en attente";
-                showToast(msg, 'success');
-                renderRequests();
-            }
+            const payload = { status };
+            await updateUsage(id, payload);
         }
 
         // --- CATALOG ---
@@ -255,18 +345,22 @@
             const grid = document.getElementById('catalogGrid');
             const html = allos.map(a => {
                 let statusInfo = '<span class="text-slate-500 text-xs">Non planifié</span>';
-                if (a.start && a.end) {
-                    const s = new Date(a.start);
-                    const e = new Date(a.end);
-                    statusInfo = `<span class="text-indigo-400 text-xs font-mono">${s.toLocaleDateString()} ${s.getHours()}h-${e.getHours()}h</span>`;
+                if (a.window_start_at && a.window_end_at) {
+                    statusInfo = `<span class="text-indigo-400 text-xs font-mono">${formatDateTime(a.window_start_at)} → ${formatDateTime(a.window_end_at)}</span>`;
                 }
-                const adminsStr = a.admins && a.admins.length > 0 ? a.admins.join(', ') : "Tous";
+                const adminsStr = a.admins && a.admins.length > 0 ? a.admins.map(admin => admin.name).join(', ') : "Tous";
                 return `
                     <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow flex flex-col">
-                        <div class="flex justify-between items-start mb-2"><h3 class="text-lg font-bold text-white">${a.title}</h3><span class="text-yellow-400 font-mono font-bold">${a.cost} pts</span></div>
-                        <p class="text-sm text-slate-400 mb-2 flex-1">${a.desc}</p>
+                        <div class="flex justify-between items-start mb-2 gap-2">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">${a.title}</h3>
+                                <span class="text-[10px] uppercase tracking-wide text-slate-400">${statusLabel(a.status)}</span>
+                            </div>
+                            <span class="text-yellow-400 font-mono font-bold">${a.points_cost} pts</span>
+                        </div>
+                        <p class="text-sm text-slate-400 mb-2 flex-1">${a.description || 'Pas de description.'}</p>
                         <div class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-user-shield mr-1"></i> Géré par: <span class="text-white">${adminsStr}</span></div>
-                        <div class="flex items-center gap-2 mb-4 bg-slate-700/30 p-2 rounded"><i class="fa-regular fa-calendar text-slate-400"></i> ${statusInfo}<span class="ml-auto text-xs bg-slate-700 px-2 py-1 rounded">${a.duration} min/slot</span></div>
+                        <div class="flex items-center gap-2 mb-4 bg-slate-700/30 p-2 rounded"><i class="fa-regular fa-calendar text-slate-400"></i> ${statusInfo}<span class="ml-auto text-xs bg-slate-700 px-2 py-1 rounded">${a.slot_duration_minutes} min/slot</span></div>
                         <div class="flex gap-2 mt-auto">
                             <button onclick="window.openEditAllo(${a.id})" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"><i class="fa-solid fa-pen mr-2"></i> Modifier</button>
                             <button type="button" onclick="window.deleteAllo(${a.id})" class="px-3 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded text-sm transition-colors" title="Supprimer"><i class="fa-solid fa-trash"></i></button>
@@ -277,12 +371,21 @@
         }
 
         async function deleteAllo(id) {
-            console.log("Deleting Allo", id);
             if(!confirm("Êtes-vous sûr de vouloir supprimer cet Allo ?")) return;
-            allos = allos.filter(a => a.id != id);
-            showToast("Allo supprimé", "success");
-            renderCatalog();
-            populateFilters();
+            try {
+                const response = await fetch(`${API.allos}/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': csrf() },
+                    credentials: 'same-origin',
+                });
+                const payload = await response.json();
+                if (!response.ok) throw new Error(payload.message || 'Suppression impossible.');
+                showToast("Allo supprimé", "success");
+                await loadAllos();
+                await loadRequests();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors de la suppression.', 'error');
+            }
         }
 
         // --- MODALS ---
@@ -295,6 +398,8 @@
             document.getElementById('alloStart').value = "";
             document.getElementById('alloEnd').value = "";
             document.getElementById('alloDesc').value = "";
+            document.getElementById('alloAdminNote').value = "";
+            document.getElementById('alloStatus').value = "DRAFT";
             populateAdminList([]);
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
@@ -306,45 +411,82 @@
             document.getElementById('alloModalTitle').innerText = "Modifier Allo";
             document.getElementById('editAlloId').value = a.id;
             document.getElementById('alloTitle').value = a.title;
-            document.getElementById('alloCost').value = a.cost;
-            document.getElementById('alloDuration').value = a.duration;
-            document.getElementById('alloStart').value = a.start || "";
-            document.getElementById('alloEnd').value = a.end || "";
-            document.getElementById('alloDesc').value = a.desc;
-            populateAdminList(a.admins || []);
+            document.getElementById('alloCost').value = a.points_cost;
+            document.getElementById('alloDuration').value = a.slot_duration_minutes;
+            document.getElementById('alloStart').value = toInputDateTime(a.window_start_at);
+            document.getElementById('alloEnd').value = toInputDateTime(a.window_end_at);
+            document.getElementById('alloDesc').value = a.description || "";
+            document.getElementById('alloAdminNote').value = a.admin_note || "";
+            document.getElementById('alloStatus').value = a.status || "DRAFT";
+            populateAdminList(a.admin_ids || []);
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
 
         function closeAlloModal() { document.getElementById('alloModal').classList.add('hidden'); document.body.classList.remove('modal-active'); }
 
-        function submitAllo() {
+        async function submitAllo() {
             const id = document.getElementById('editAlloId').value;
             const selectedAdmins = [];
             document.querySelectorAll('input[name="alloAdmins"]:checked').forEach(cb => selectedAdmins.push(cb.value));
             const data = {
                 title: document.getElementById('alloTitle').value,
-                cost: parseInt(document.getElementById('alloCost').value),
-                duration: parseInt(document.getElementById('alloDuration').value),
-                start: document.getElementById('alloStart').value,
-                end: document.getElementById('alloEnd').value,
-                desc: document.getElementById('alloDesc').value,
-                admins: selectedAdmins,
-                active: true
+                points_cost: parseInt(document.getElementById('alloCost').value),
+                slot_duration_minutes: parseInt(document.getElementById('alloDuration').value),
+                window_start_at: document.getElementById('alloStart').value,
+                window_end_at: document.getElementById('alloEnd').value,
+                description: document.getElementById('alloDesc').value,
+                admin_note: document.getElementById('alloAdminNote').value,
+                status: document.getElementById('alloStatus').value,
+                admin_ids: selectedAdmins.map(id => parseInt(id)),
             };
             if(!data.title) { showToast("Titre requis", 'error'); return; }
-            if(!data.start || !data.end) { showToast("Dates d'ouverture/fermeture requises", 'error'); return; }
-            if(id) {
-                const idx = allos.findIndex(a => a.id == id);
-                if(idx > -1) allos[idx] = { ...allos[idx], ...data };
-                showToast("Allo mis à jour", 'success');
-            } else {
-                allos.push({ id: Date.now(), ...data });
-                showToast("Allo créé", 'success');
+            if(!data.window_start_at || !data.window_end_at) { showToast("Dates d'ouverture/fermeture requises", 'error'); return; }
+
+            try {
+                const response = await fetch(id ? `${API.allos}/${id}` : API.allos, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf(),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data),
+                });
+                const payload = await response.json();
+                if (!response.ok) throw new Error(payload.message || 'Sauvegarde impossible.');
+                showToast(id ? "Allo mis à jour" : "Allo créé", 'success');
+                closeAlloModal();
+                await loadAllos();
+                await loadRequests();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors de la sauvegarde.', 'error');
             }
-            renderCatalog();
-            populateFilters();
-            closeAlloModal();
+        }
+
+        async function updateUsage(id, payload) {
+            try {
+                const response = await fetch(`${API.usages}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf(),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'Mise à jour impossible.');
+                showToast('Demande mise à jour.', 'success');
+                await loadRequests();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors de la mise à jour.', 'error');
+            }
+        }
+
+        async function saveAdminNote(id) {
+            const note = document.getElementById(`admin_note_${id}`).value;
+            await updateUsage(id, { admin_note: note });
         }
 
         // --- FILTER HELPERS ---
@@ -363,7 +505,7 @@
             }
             document.getElementById('clearUserFilter').classList.remove('hidden');
 
-            const uniqueUsers = [...new Set(requests.map(r => r.user))];
+            const uniqueUsers = [...new Set(requests.map(r => r.user_name))];
             const matches = uniqueUsers.filter(u => u.toLowerCase().includes(val));
 
             if (matches.length > 0) {
@@ -417,8 +559,9 @@
         // Init
         window.deleteAllo = deleteAllo;
         window.openEditAllo = openEditAllo;
-        populateFilters();
-        renderRequests();
+        loadAdmins().then(populateAdminList);
+        loadAllos();
+        loadRequests();
 
     </script>
 @endpush
