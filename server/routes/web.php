@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AdminUsersApiController;
 use App\Http\Controllers\Admin\AdminUsersController;
+use App\Http\Controllers\Admin\AlloApiController;
 use App\Http\Controllers\Admin\AlloController;
 use App\Http\Controllers\Admin\ChallengeController;
 use App\Http\Controllers\Admin\TransactionApiController;
@@ -147,6 +148,15 @@ Route::prefix('admin')->as('admin.')->group(function () {
                 Route::put('/activities/{activity}/participants/{userId}/points', [ActivityParticipantsApiController::class, 'setPoints']);
 
                 Route::get('/audit-logs', [AdminAuditLogsApiController::class, 'index']);
+
+                // Allos management
+                Route::get('/allos', [AlloApiController::class, 'index'])->name('allos.index');
+                Route::post('/allos', [AlloApiController::class, 'store'])->name('allos.store');
+                Route::put('/allos/{allo}', [AlloApiController::class, 'update'])->name('allos.update');
+                Route::delete('/allos/{allo}', [AlloApiController::class, 'destroy'])->name('allos.delete');
+                Route::get('/allo-admins', [AlloApiController::class, 'listAdmins'])->name('allos.admins.index');
+                Route::get('/allo-usages', [AlloApiController::class, 'usages'])->name('allos.usages.index');
+                Route::put('/allo-usages/{usage}', [AlloApiController::class, 'updateUsage'])->name('allos.usages.update');
             });
 
         // Users page + API (keep as-is)
