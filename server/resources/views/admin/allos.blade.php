@@ -440,7 +440,10 @@
                 admin_ids: selectedAdmins.map(id => parseInt(id)),
             };
             if(!data.title) { showToast("Titre requis", 'error'); return; }
-            if(!data.window_start_at || !data.window_end_at) { showToast("Dates d'ouverture/fermeture requises", 'error'); return; }
+            if (data.status !== 'DRAFT' && (!data.window_start_at || !data.window_end_at)) {
+                showToast("Dates d'ouverture/fermeture requises", 'error');
+                return;
+            }
 
             try {
                 const response = await fetch(id ? `${API.allos}/${id}` : API.allos, {
