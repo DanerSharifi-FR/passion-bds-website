@@ -138,9 +138,12 @@
         async function parseJsonResponse(response) {
             const contentType = response.headers.get('content-type') || '';
             if (!contentType.includes('application/json')) {
-                const message = response.redirected || response.status === 302
+                const isLoginRedirect = response.redirected
+                    && response.url
+                    && (response.url.includes('/login') || response.url.includes('/admin/login'));
+                const message = isLoginRedirect
                     ? 'Session expirée. Merci de te reconnecter.'
-                    : 'Réponse inattendue du serveur.';
+                    : `Réponse inattendue du serveur. (HTTP ${response.status})`;
                 throw new Error(message);
             }
             return response.json();
