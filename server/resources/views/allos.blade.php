@@ -77,6 +77,56 @@
             }).format(date);
         }
 
+        function formatDateLabel(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+            }).format(date);
+        }
+
+        function formatTime(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(date);
+        }
+
+        function formatWindowLabel(startAt, endAt) {
+            if (!startAt || !endAt) return '<span>Dates à venir</span>';
+            const start = new Date(startAt);
+            const end = new Date(endAt);
+            const sameDay = start.toDateString() === end.toDateString();
+            const startDate = formatDateLabel(start);
+            const endDate = formatDateLabel(end);
+            const startTime = formatTime(start);
+            const endTime = formatTime(end);
+
+            if (sameDay) {
+                return `
+                    <div class="flex items-center gap-2">
+                        <span aria-hidden="true">📅</span>
+                        <span>${startDate}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span aria-hidden="true">🕒</span>
+                        <span>${startTime} → ${endTime}</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="flex items-center gap-2">
+                    <span aria-hidden="true">📅</span>
+                    <span>${startDate} · ${startTime}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span aria-hidden="true">📅</span>
+                    <span>${endDate} · ${endTime}</span>
+                </div>
+            `;
+        }
+
         function setFilterButtons() {
             filterButtons.forEach((btn) => {
                 const isActive = btn.dataset.filter === activeFilter;
@@ -155,8 +205,8 @@
                             ${allo.points_cost} pts
                         </span>
                     </div>
-                    <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red">
-                        Fenêtre: ${formatDate(allo.window_start_at)} → ${formatDate(allo.window_end_at)}
+                    <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red flex flex-col gap-1">
+                        ${formatWindowLabel(allo.window_start_at, allo.window_end_at)}
                     </div>
                     ${isEnded ? `
                         <div class="bg-slate-100 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
