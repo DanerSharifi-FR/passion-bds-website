@@ -98,7 +98,6 @@ class AlloApiController extends Controller
                 'au.done_at',
                 'au.cancelled_at',
                 'au.user_note',
-                'au.admin_note',
                 'u.id as user_id',
                 'u.university_email as user_email',
                 DB::raw('COALESCE(u.display_name, u.university_email) as user_name'),
@@ -140,10 +139,9 @@ class AlloApiController extends Controller
                 AlloUsageService::STATUS_DONE,
                 AlloUsageService::STATUS_CANCELLED,
             ])],
-            'admin_note' => ['nullable', 'string'],
         ]);
 
-        if (!array_key_exists('status', $validated) && !array_key_exists('admin_note', $validated)) {
+        if (!array_key_exists('status', $validated)) {
             return response()->json(['message' => 'Aucune modification demandée.'], 422);
         }
 
@@ -161,11 +159,6 @@ class AlloApiController extends Controller
             }
         }
 
-        if (array_key_exists('admin_note', $validated)) {
-            $usage->admin_note = $validated['admin_note'];
-            $usage->save();
-        }
-
         $usage->load(['allo', 'user', 'handledBy', 'doneBy']);
 
         return response()->json(['data' => $this->formatUsage($usage)]);
@@ -176,7 +169,6 @@ class AlloApiController extends Controller
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'admin_note' => ['nullable', 'string'],
             'points_cost' => ['required', 'integer', 'min:0'],
             'status' => ['required', Rule::in(['DRAFT', 'OPEN', 'CLOSED', 'DISABLED'])],
             'window_start_at' => ['required', 'date'],
@@ -208,7 +200,6 @@ class AlloApiController extends Controller
             'id' => $allo->id,
             'title' => $allo->title,
             'description' => $allo->description,
-            'admin_note' => $allo->admin_note,
             'points_cost' => $allo->points_cost,
             'status' => $allo->status,
             'window_start_at' => $allo->window_start_at?->toIso8601String(),
@@ -241,7 +232,6 @@ class AlloApiController extends Controller
             'done_at' => $this->formatDate($row->done_at),
             'cancelled_at' => $this->formatDate($row->cancelled_at),
             'user_note' => $row->user_note,
-            'admin_note' => $row->admin_note,
             'user_id' => (int) $row->user_id,
             'user_name' => $row->user_name,
             'user_email' => $row->user_email,
@@ -267,7 +257,6 @@ class AlloApiController extends Controller
             'done_at' => $usage->done_at?->toIso8601String(),
             'cancelled_at' => $usage->cancelled_at?->toIso8601String(),
             'user_note' => $usage->user_note,
-            'admin_note' => $usage->admin_note,
             'user_id' => $usage->user_id,
             'user_name' => $usage->user?->display_name ?? $usage->user?->university_email,
             'user_email' => $usage->user?->university_email,

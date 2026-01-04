@@ -141,12 +141,6 @@
                     <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red">
                         Fenêtre: ${formatDate(allo.window_start_at)} → ${formatDate(allo.window_end_at)}
                     </div>
-                    ${allo.admin_note ? `
-                        <div class="bg-white border-2 border-passion-fire-orange px-4 py-3 text-sm text-passion-red">
-                            <p class="font-bold uppercase text-xs text-passion-fire-orange mb-1">Note des admins</p>
-                            <p>${allo.admin_note}</p>
-                        </div>
-                    ` : ''}
                     ${isEnded ? `
                         <div class="bg-slate-100 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
                             Victime de son succès : créneaux clôturés.
@@ -176,7 +170,6 @@
                                 ${userBookings.map((booking) => `
                                     <div class="space-y-1">
                                         <div class="font-semibold text-slate-700">Statut: ${booking.status}</div>
-                                        ${booking.admin_note ? `<div class="text-passion-red">Note admin: ${booking.admin_note}</div>` : ''}
                                     </div>
                                 `).join('')}
                             </div>
