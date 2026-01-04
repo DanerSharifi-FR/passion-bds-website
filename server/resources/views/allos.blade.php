@@ -87,9 +87,24 @@
             });
         }
 
+        function isWindowOpen(allo) {
+            if (!allo.window_start_at || !allo.window_end_at) return false;
+            const now = new Date();
+            const start = new Date(allo.window_start_at);
+            const end = new Date(allo.window_end_at);
+            return now >= start && now <= end;
+        }
+
+        function isWindowEnded(allo) {
+            if (!allo.window_end_at) return false;
+            const now = new Date();
+            const end = new Date(allo.window_end_at);
+            return now > end;
+        }
+
         function getVisibleAllos() {
             if (activeFilter === 'all') return allosData;
-            return allosData.filter((allo) => allo.is_window_open && allo.status === 'OPEN');
+            return allosData.filter((allo) => isWindowOpen(allo) && allo.status === 'OPEN');
         }
 
         function buildSlotOptions(allo) {
@@ -120,7 +135,9 @@
             catalogElement.innerHTML = '';
 
             visibleAllos.forEach((allo) => {
-                const isEnded = allo.is_window_ended || !allo.is_window_open || allo.status !== 'OPEN';
+                const windowOpen = isWindowOpen(allo);
+                const windowEnded = isWindowEnded(allo);
+                const isEnded = windowEnded || !windowOpen || allo.status !== 'OPEN';
                 const userBookings = allo.slots
                     .map((slot) => slot.user_booking)
                     .filter((booking) => booking !== null);
