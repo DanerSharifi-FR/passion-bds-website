@@ -48,7 +48,6 @@ class AlloApiController extends Controller
                 'id' => $allo->id,
                 'title' => $allo->title,
                 'description' => $allo->description,
-                'admin_note' => $allo->admin_note,
                 'points_cost' => $allo->points_cost,
                 'status' => $allo->status,
                 'window_start_at' => optional($allo->window_start_at)->toIso8601String(),
@@ -71,7 +70,6 @@ class AlloApiController extends Controller
                             'id' => $booking->id,
                             'status' => $booking->status,
                             'user_note' => $booking->user_note,
-                            'admin_note' => $booking->admin_note,
                             'slot_start_at' => $booking->slot_start_at?->toIso8601String(),
                         ] : null,
                     ];
@@ -179,7 +177,6 @@ class AlloApiController extends Controller
                 'id' => $booking->id,
                 'status' => $booking->status,
                 'user_note' => $booking->user_note,
-                'admin_note' => $booking->admin_note,
             ],
         ], 201);
     }
