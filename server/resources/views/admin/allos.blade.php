@@ -110,10 +110,6 @@
                             <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
                             <textarea id="alloDesc" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Détails du service..."></textarea>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-300 mb-1">Note admin (visible côté étudiants)</label>
-                            <textarea id="alloAdminNote" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Note importante (ex: matériel requis)"></textarea>
-                        </div>
                     </form>
                 </div>
                 <div class="bg-slate-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-slate-700">
@@ -325,11 +321,6 @@
                                 <p class="uppercase tracking-wide text-[10px] text-slate-500 mb-1">Note étudiant</p>
                                 <p class="text-sm text-slate-300">${r.user_note || 'Aucune note.'}</p>
                             </div>
-                            <div>
-                                <p class="uppercase tracking-wide text-[10px] text-slate-500 mb-1">Note admin</p>
-                                <textarea id="admin_note_${r.id}" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-xs rounded p-2" placeholder="Note interne...">${r.admin_note || ''}</textarea>
-                                <button onclick="saveAdminNote(${r.id})" class="mt-2 text-xs bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded">Enregistrer note</button>
-                            </div>
                         </div>
                     </div>`;
             });
@@ -398,7 +389,6 @@
             document.getElementById('alloStart').value = "";
             document.getElementById('alloEnd').value = "";
             document.getElementById('alloDesc').value = "";
-            document.getElementById('alloAdminNote').value = "";
             document.getElementById('alloStatus').value = "DRAFT";
             populateAdminList([]);
             document.getElementById('alloModal').classList.remove('hidden');
@@ -416,7 +406,6 @@
             document.getElementById('alloStart').value = toInputDateTime(a.window_start_at);
             document.getElementById('alloEnd').value = toInputDateTime(a.window_end_at);
             document.getElementById('alloDesc').value = a.description || "";
-            document.getElementById('alloAdminNote').value = a.admin_note || "";
             document.getElementById('alloStatus').value = a.status || "DRAFT";
             populateAdminList(a.admin_ids || []);
             document.getElementById('alloModal').classList.remove('hidden');
@@ -436,7 +425,6 @@
                 window_start_at: document.getElementById('alloStart').value,
                 window_end_at: document.getElementById('alloEnd').value,
                 description: document.getElementById('alloDesc').value,
-                admin_note: document.getElementById('alloAdminNote').value,
                 status: document.getElementById('alloStatus').value,
                 admin_ids: selectedAdmins.map(id => parseInt(id)),
             };
@@ -482,11 +470,6 @@
             } catch (error) {
                 showToast(error.message || 'Erreur lors de la mise à jour.', 'error');
             }
-        }
-
-        async function saveAdminNote(id) {
-            const note = document.getElementById(`admin_note_${id}`).value;
-            await updateUsage(id, { admin_note: note });
         }
 
         // --- FILTER HELPERS ---

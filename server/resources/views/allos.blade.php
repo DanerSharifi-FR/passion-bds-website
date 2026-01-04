@@ -87,9 +87,24 @@
             });
         }
 
+        function isWindowOpen(allo) {
+            if (!allo.window_start_at || !allo.window_end_at) return false;
+            const now = new Date();
+            const start = new Date(allo.window_start_at);
+            const end = new Date(allo.window_end_at);
+            return now >= start && now <= end;
+        }
+
+        function isWindowEnded(allo) {
+            if (!allo.window_end_at) return false;
+            const now = new Date();
+            const end = new Date(allo.window_end_at);
+            return now > end;
+        }
+
         function getVisibleAllos() {
             if (activeFilter === 'all') return allosData;
-            return allosData.filter((allo) => allo.is_window_open && allo.status === 'OPEN');
+            return allosData.filter((allo) => isWindowOpen(allo) && allo.status === 'OPEN');
         }
 
         function buildSlotOptions(allo) {
@@ -120,7 +135,9 @@
             catalogElement.innerHTML = '';
 
             visibleAllos.forEach((allo) => {
-                const isEnded = allo.is_window_ended || !allo.is_window_open || allo.status !== 'OPEN';
+                const windowOpen = isWindowOpen(allo);
+                const windowEnded = isWindowEnded(allo);
+                const isEnded = windowEnded || !windowOpen || allo.status !== 'OPEN';
                 const userBookings = allo.slots
                     .map((slot) => slot.user_booking)
                     .filter((booking) => booking !== null);
@@ -141,12 +158,6 @@
                     <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red">
                         Fenêtre: ${formatDate(allo.window_start_at)} → ${formatDate(allo.window_end_at)}
                     </div>
-                    ${allo.admin_note ? `
-                        <div class="bg-white border-2 border-passion-fire-orange px-4 py-3 text-sm text-passion-red">
-                            <p class="font-bold uppercase text-xs text-passion-fire-orange mb-1">Note des admins</p>
-                            <p>${allo.admin_note}</p>
-                        </div>
-                    ` : ''}
                     ${isEnded ? `
                         <div class="bg-slate-100 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
                             Victime de son succès : créneaux clôturés.
@@ -176,7 +187,6 @@
                                 ${userBookings.map((booking) => `
                                     <div class="space-y-1">
                                         <div class="font-semibold text-slate-700">Statut: ${booking.status}</div>
-                                        ${booking.admin_note ? `<div class="text-passion-red">Note admin: ${booking.admin_note}</div>` : ''}
                                     </div>
                                 `).join('')}
                             </div>
