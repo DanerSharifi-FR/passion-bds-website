@@ -186,6 +186,58 @@
             return date.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
         }
 
+        function formatDateLabel(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+            }).format(date);
+        }
+
+        function formatTimeLabel(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(date);
+        }
+
+        function formatWindowInfo(startAt, endAt) {
+            if (!startAt || !endAt) {
+                return `<span class="text-slate-500 text-xs">Non planifié</span>`;
+            }
+
+            const start = new Date(startAt);
+            const end = new Date(endAt);
+            const sameDay = start.toDateString() === end.toDateString();
+            const dateLabel = formatDateLabel(start);
+            const startTime = formatTimeLabel(start);
+            const endTime = formatTimeLabel(end);
+
+            if (sameDay) {
+                return `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs">${dateLabel}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-clock text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs font-mono">${startTime} → ${endTime}</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="flex items-center gap-2">
+                    <i class="fa-regular fa-calendar text-slate-400"></i>
+                    <span class="text-indigo-200 text-xs font-mono">${formatDateTime(startAt)}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-regular fa-calendar text-slate-400"></i>
+                    <span class="text-indigo-200 text-xs font-mono">${formatDateTime(endAt)}</span>
+                </div>
+            `;
+        }
+
         function toInputDateTime(iso) {
             if (!iso) return '';
             const date = new Date(iso);
@@ -413,10 +465,7 @@
             }
 
             const html = filteredAllos.map(a => {
-                let statusInfo = '<span class="text-slate-500 text-xs">Non planifié</span>';
-                if (a.window_start_at && a.window_end_at) {
-                    statusInfo = `<span class="text-indigo-400 text-xs font-mono">${formatDateTime(a.window_start_at)} → ${formatDateTime(a.window_end_at)}</span>`;
-                }
+                const windowInfo = formatWindowInfo(a.window_start_at, a.window_end_at);
                 const adminsStr = a.admins && a.admins.length > 0 ? a.admins.map(admin => admin.name).join(', ') : "Tous";
                 return `
                     <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow flex flex-col">
@@ -429,7 +478,12 @@
                         </div>
                         <p class="text-sm text-slate-400 mb-2 flex-1">${a.description || 'Pas de description.'}</p>
                         <div class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-user-shield mr-1"></i> Géré par: <span class="text-white">${adminsStr}</span></div>
-                        <div class="flex items-center gap-2 mb-4 bg-slate-700/30 p-2 rounded"><i class="fa-regular fa-calendar text-slate-400"></i> ${statusInfo}<span class="ml-auto text-xs bg-slate-700 px-2 py-1 rounded">${a.slot_duration_minutes} min/slot</span></div>
+                        <div class="flex items-start justify-between gap-3 mb-4 bg-slate-700/30 p-3 rounded">
+                            <div class="flex flex-col gap-1">
+                                ${windowInfo}
+                            </div>
+                            <span class="text-xs bg-slate-700 px-2 py-1 rounded">${a.slot_duration_minutes} min/slot</span>
+                        </div>
                         <div class="flex gap-2 mt-auto">
                             <button onclick="window.openEditAllo(${a.id})" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"><i class="fa-solid fa-pen mr-2"></i> Modifier</button>
                             <button type="button" onclick="window.deleteAllo(${a.id})" class="px-3 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded text-sm transition-colors" title="Supprimer"><i class="fa-solid fa-trash"></i></button>
