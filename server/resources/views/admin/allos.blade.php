@@ -135,6 +135,10 @@
             return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         }
 
+        function jsonHeaders() {
+            return { 'Accept': 'application/json' };
+        }
+
         async function parseJsonResponse(response) {
             const contentType = response.headers.get('content-type') || '';
             if (!contentType.includes('application/json')) {
@@ -203,7 +207,10 @@
 
         async function loadAllos() {
             try {
-                const response = await fetch(API.allos, { credentials: 'same-origin' });
+                const response = await fetch(API.allos, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
                 const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger les allos.');
                 allos = payload.data || [];
@@ -216,7 +223,10 @@
 
         async function loadRequests() {
             try {
-                const response = await fetch(`${API.usages}?status=ALL`, { credentials: 'same-origin' });
+                const response = await fetch(`${API.usages}?status=ALL`, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
                 const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger les demandes.');
                 requests = payload.data || [];
@@ -228,7 +238,10 @@
 
         async function loadAdmins() {
             try {
-                const response = await fetch(API.admins, { credentials: 'same-origin' });
+                const response = await fetch(API.admins, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
                 const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger la liste des admins.');
                 admins = payload.data || [];
@@ -380,7 +393,10 @@
             try {
                 const response = await fetch(`${API.allos}/${id}`, {
                     method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': csrf() },
+                    headers: {
+                        ...jsonHeaders(),
+                        'X-CSRF-TOKEN': csrf(),
+                    },
                     credentials: 'same-origin',
                 });
                 const payload = await parseJsonResponse(response);
@@ -452,6 +468,7 @@
                 const response = await fetch(id ? `${API.allos}/${id}` : API.allos, {
                     method: id ? 'PUT' : 'POST',
                     headers: {
+                        ...jsonHeaders(),
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrf(),
                     },
@@ -474,6 +491,7 @@
                 const response = await fetch(`${API.usages}/${id}`, {
                     method: 'PUT',
                     headers: {
+                        ...jsonHeaders(),
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrf(),
                     },
