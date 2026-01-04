@@ -44,11 +44,34 @@
 
     <!-- VIEW: CATALOG -->
     <div id="viewCatalog" class="hidden">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold text-white">Catalogue des Services</h2>
-            <button onclick="openAlloModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow">
-                <i class="fa-solid fa-plus mr-2"></i> Nouvel Allo
-            </button>
+        <div class="flex flex-col gap-4 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 class="text-xl font-bold text-white">Catalogue des Services</h2>
+                <button onclick="openAlloModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow">
+                    <i class="fa-solid fa-plus mr-2"></i> Nouvel Allo
+                </button>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogTitleFilter">Filtrer par titre</label>
+                    <input id="catalogTitleFilter" type="text" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500" placeholder="Ex: petit dej, massage...">
+                </div>
+                <div class="sm:w-56">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogStatusFilter">Statut</label>
+                    <select id="catalogStatusFilter" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                        <option value="ALL">Tous les statuts</option>
+                        <option value="DRAFT">Brouillon</option>
+                        <option value="OPEN">Ouvert</option>
+                        <option value="CLOSED">Fermé</option>
+                        <option value="DISABLED">Désactivé</option>
+                    </select>
+                </div>
+                <div class="sm:w-40 sm:flex sm:items-end">
+                    <button id="catalogResetFilters" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg px-3 py-2 transition-colors">
+                        Réinitialiser
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="catalogGrid"></div>
     </div>
@@ -130,6 +153,10 @@
         let allos = [];
         let requests = [];
         let admins = [];
+        let catalogFilters = {
+            title: '',
+            status: 'ALL',
+        };
 
         function csrf() {
             return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -359,9 +386,33 @@
         }
 
         // --- CATALOG ---
+        function getFilteredAllos() {
+            const titleFilter = catalogFilters.title.trim().toLowerCase();
+            const statusFilter = catalogFilters.status;
+
+            return allos.filter((allo) => {
+                const matchesTitle = !titleFilter
+                    || allo.title.toLowerCase().includes(titleFilter);
+                const matchesStatus = statusFilter === 'ALL'
+                    || allo.status === statusFilter;
+                return matchesTitle && matchesStatus;
+            });
+        }
+
         function renderCatalog() {
             const grid = document.getElementById('catalogGrid');
-            const html = allos.map(a => {
+            const filteredAllos = getFilteredAllos();
+            if (filteredAllos.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-500">
+                        <i class="fa-solid fa-filter text-3xl mb-3 opacity-30"></i>
+                        <p>Aucun allo ne correspond à ces filtres.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = filteredAllos.map(a => {
                 let statusInfo = '<span class="text-slate-500 text-xs">Non planifié</span>';
                 if (a.window_start_at && a.window_end_at) {
                     statusInfo = `<span class="text-indigo-400 text-xs font-mono">${formatDateTime(a.window_start_at)} → ${formatDateTime(a.window_end_at)}</span>`;
@@ -443,6 +494,28 @@
         }
 
         function closeAlloModal() { document.getElementById('alloModal').classList.add('hidden'); document.body.classList.remove('modal-active'); }
+
+        function bindCatalogFilters() {
+            const titleFilter = document.getElementById('catalogTitleFilter');
+            const statusFilter = document.getElementById('catalogStatusFilter');
+            const resetButton = document.getElementById('catalogResetFilters');
+
+            const applyFilters = () => {
+                catalogFilters = {
+                    title: titleFilter.value,
+                    status: statusFilter.value,
+                };
+                renderCatalog();
+            };
+
+            titleFilter.addEventListener('input', applyFilters);
+            statusFilter.addEventListener('change', applyFilters);
+            resetButton.addEventListener('click', () => {
+                titleFilter.value = '';
+                statusFilter.value = 'ALL';
+                applyFilters();
+            });
+        }
 
         async function submitAllo() {
             const id = document.getElementById('editAlloId').value;
@@ -578,6 +651,7 @@
         window.deleteAllo = deleteAllo;
         window.openEditAllo = openEditAllo;
         loadAdmins().then(populateAdminList);
+        bindCatalogFilters();
         loadAllos();
         loadRequests();
 
