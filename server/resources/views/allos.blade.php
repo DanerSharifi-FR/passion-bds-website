@@ -77,6 +77,33 @@
             }).format(date);
         }
 
+        function formatDateLabel(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+            }).format(date);
+        }
+
+        function formatTime(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(date);
+        }
+
+        function formatWindow(startAt, endAt) {
+            if (!startAt || !endAt) return 'Dates à venir';
+            const start = new Date(startAt);
+            const end = new Date(endAt);
+            const sameDay = start.toDateString() === end.toDateString();
+            const startLabel = `${formatDateLabel(start)} · ${formatTime(start)}`;
+            const endLabel = sameDay
+                ? formatTime(end)
+                : `${formatDateLabel(end)} · ${formatTime(end)}`;
+            return `${startLabel} → ${endLabel}`;
+        }
+
         function setFilterButtons() {
             filterButtons.forEach((btn) => {
                 const isActive = btn.dataset.filter === activeFilter;
@@ -156,7 +183,7 @@
                         </span>
                     </div>
                     <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red">
-                        Fenêtre: ${formatDate(allo.window_start_at)} → ${formatDate(allo.window_end_at)}
+                        Fenêtre: ${formatWindow(allo.window_start_at, allo.window_end_at)}
                     </div>
                     ${isEnded ? `
                         <div class="bg-slate-100 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
