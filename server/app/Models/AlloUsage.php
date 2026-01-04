@@ -21,7 +21,6 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property int $points_spent
  * @property string|null $user_note
- * @property string|null $admin_note
  * @property string $status
  * @property int|null $handled_by_id
  * @property int|null $done_by_id
@@ -63,7 +62,6 @@ class AlloUsage extends Model
         'user_id',
         'points_spent',
         'user_note',
-        'admin_note',
         'status',
         'handled_by_id',
         'done_by_id',
@@ -82,7 +80,6 @@ class AlloUsage extends Model
         'user_id' => 'integer',
         'points_spent' => 'integer',
         'user_note' => 'string',
-        'admin_note' => 'string',
         'handled_by_id' => 'integer',
         'done_by_id' => 'integer',
         'slot_start_at' => 'datetime',
