@@ -221,7 +221,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <i class="fa-regular fa-clock text-slate-400"></i>
-                        <span class="text-indigo-200 text-xs font-mono">${startTime} → ${endTime}</span>
+                        <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
                     </div>
                 `;
             }
@@ -229,11 +229,11 @@
             return `
                 <div class="flex items-center gap-2">
                     <i class="fa-regular fa-calendar text-slate-400"></i>
-                    <span class="text-indigo-200 text-xs font-mono">${formatDateTime(startAt)}</span>
+                    <span class="text-indigo-200 text-xs font-mono">de ${formatDateTime(startAt)}</span>
                 </div>
                 <div class="flex items-center gap-2">
                     <i class="fa-regular fa-calendar text-slate-400"></i>
-                    <span class="text-indigo-200 text-xs font-mono">${formatDateTime(endAt)}</span>
+                    <span class="text-indigo-200 text-xs font-mono">à ${formatDateTime(endAt)}</span>
                 </div>
             `;
         }
