@@ -166,13 +166,15 @@ class AlloApiController extends Controller
 
     private function validateAllo(Request $request): array
     {
+        $requiresWindow = $request->input('status') !== 'DRAFT';
+
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'points_cost' => ['required', 'integer', 'min:0'],
             'status' => ['required', Rule::in(['DRAFT', 'OPEN', 'CLOSED', 'DISABLED'])],
-            'window_start_at' => ['required', 'date'],
-            'window_end_at' => ['required', 'date', 'after:window_start_at'],
+            'window_start_at' => [Rule::requiredIf($requiresWindow), 'nullable', 'date'],
+            'window_end_at' => [Rule::requiredIf($requiresWindow), 'nullable', 'date', 'after:window_start_at'],
             'slot_duration_minutes' => ['required', 'integer', 'min:1'],
             'admin_ids' => ['nullable', 'array'],
             'admin_ids.*' => ['integer', 'exists:users,id'],
