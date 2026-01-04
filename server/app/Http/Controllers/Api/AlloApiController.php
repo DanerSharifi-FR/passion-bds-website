@@ -43,7 +43,7 @@ class AlloApiController extends Controller
                 ->keyBy('allo_slot_id');
         }
 
-        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId): array {
+        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $now): array {
             return [
                 'id' => $allo->id,
                 'title' => $allo->title,
