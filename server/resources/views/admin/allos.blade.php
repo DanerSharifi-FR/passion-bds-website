@@ -135,6 +135,20 @@
             return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         }
 
+        async function parseJsonResponse(response) {
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const isLoginRedirect = response.redirected
+                    && response.url
+                    && (response.url.includes('/login') || response.url.includes('/admin/login'));
+                const message = isLoginRedirect
+                    ? 'Session expirée. Merci de te reconnecter.'
+                    : `Réponse inattendue du serveur. (HTTP ${response.status})`;
+                throw new Error(message);
+            }
+            return response.json();
+        }
+
         function formatDateTime(iso) {
             if (!iso) return '-';
             const date = new Date(iso);
@@ -190,7 +204,7 @@
         async function loadAllos() {
             try {
                 const response = await fetch(API.allos, { credentials: 'same-origin' });
-                const payload = await response.json();
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger les allos.');
                 allos = payload.data || [];
                 populateFilters();
@@ -203,7 +217,7 @@
         async function loadRequests() {
             try {
                 const response = await fetch(`${API.usages}?status=ALL`, { credentials: 'same-origin' });
-                const payload = await response.json();
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger les demandes.');
                 requests = payload.data || [];
                 renderRequests();
@@ -215,7 +229,7 @@
         async function loadAdmins() {
             try {
                 const response = await fetch(API.admins, { credentials: 'same-origin' });
-                const payload = await response.json();
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger la liste des admins.');
                 admins = payload.data || [];
             } catch (error) {
@@ -369,7 +383,7 @@
                     headers: { 'X-CSRF-TOKEN': csrf() },
                     credentials: 'same-origin',
                 });
-                const payload = await response.json();
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Suppression impossible.');
                 showToast("Allo supprimé", "success");
                 await loadAllos();
@@ -429,7 +443,10 @@
                 admin_ids: selectedAdmins.map(id => parseInt(id)),
             };
             if(!data.title) { showToast("Titre requis", 'error'); return; }
-            if(!data.window_start_at || !data.window_end_at) { showToast("Dates d'ouverture/fermeture requises", 'error'); return; }
+            if (data.status !== 'DRAFT' && (!data.window_start_at || !data.window_end_at)) {
+                showToast("Dates d'ouverture/fermeture requises", 'error');
+                return;
+            }
 
             try {
                 const response = await fetch(id ? `${API.allos}/${id}` : API.allos, {
@@ -441,7 +458,7 @@
                     credentials: 'same-origin',
                     body: JSON.stringify(data),
                 });
-                const payload = await response.json();
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Sauvegarde impossible.');
                 showToast(id ? "Allo mis à jour" : "Allo créé", 'success');
                 closeAlloModal();
@@ -463,7 +480,7 @@
                     credentials: 'same-origin',
                     body: JSON.stringify(payload),
                 });
-                const result = await response.json();
+                const result = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(result.message || 'Mise à jour impossible.');
                 showToast('Demande mise à jour.', 'success');
                 await loadRequests();
