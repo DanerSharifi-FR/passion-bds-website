@@ -297,10 +297,15 @@
 
                 const list = card.querySelector('[data-date]');
                 daySlots.forEach((slot) => {
+                    const slotStart = new Date(slot.slot_start_at);
+                    const slotEnd = new Date(slot.slot_end_at);
                     const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
                     const remainingLabel = formatRemainingLabel(remaining);
-                    const isSelectable = windowOpen && alloData.status === 'OPEN';
-                    const timeLabel = `${formatTime(new Date(slot.slot_start_at))} → ${formatTime(new Date(slot.slot_end_at))}`;
+                    const isSelectable = ['available', 'partial'].includes(slot.status)
+                        && (remaining === null || remaining > 0)
+                        && alloData.status === 'OPEN'
+                        && slotStart >= now;
+                    const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
 
                     const label = document.createElement('label');
                     label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
@@ -317,7 +322,7 @@
                 timetableElement.appendChild(card);
             });
 
-            bookingButton.disabled = !isAuthenticated || isEnded;
+            bookingButton.disabled = !isAuthenticated || isEnded || !windowOpen;
         }
 
         function updateSelectedSlot() {
