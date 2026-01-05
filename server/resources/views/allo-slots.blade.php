@@ -326,7 +326,7 @@
                 timetableElement.appendChild(card);
             });
 
-            bookingButton.disabled = !isAuthenticated || isEnded;
+            bookingButton.disabled = !isAuthenticated || isEnded || !windowOpen;
         }
 
         function updateSelectedSlot() {
