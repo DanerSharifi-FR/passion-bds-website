@@ -198,12 +198,24 @@ class AlloApiController extends Controller
      */
     private function formatAllo(Allo $allo): array
     {
+        $capacity = (int) $allo->slots()->sum('capacity');
+        $bookedCount = (int) $allo->usages()
+            ->whereIn('status', [
+                AlloUsageService::STATUS_PENDING,
+                AlloUsageService::STATUS_ACCEPTED,
+                AlloUsageService::STATUS_DONE,
+            ])
+            ->count();
+
         return [
             'id' => $allo->id,
             'title' => $allo->title,
             'description' => $allo->description,
             'points_cost' => $allo->points_cost,
             'status' => $allo->status,
+            'capacity' => $capacity,
+            'booked_count' => $bookedCount,
+            'remaining' => max($capacity - $bookedCount, 0),
             'window_start_at' => $allo->window_start_at?->toIso8601String(),
             'window_end_at' => $allo->window_end_at?->toIso8601String(),
             'slot_duration_minutes' => $allo->slot_duration_minutes,
