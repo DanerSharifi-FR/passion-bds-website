@@ -196,6 +196,10 @@
             }
 
             const slotDate = toDateKey(slotStart);
+            const slotEndDate = toDateKey(slotEnd);
+            if (slotEndDate !== slotDate) {
+                return false;
+            }
             const slotStartMinutes = (slotStart.getHours() * 60) + slotStart.getMinutes();
             const slotEndMinutes = (slotEnd.getHours() * 60) + slotEnd.getMinutes();
 
