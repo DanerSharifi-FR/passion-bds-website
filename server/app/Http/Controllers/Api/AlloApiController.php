@@ -53,12 +53,20 @@ class AlloApiController extends Controller
         }
 
         $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $now): array {
+            $totalCapacity = (int) $allo->slots->sum('capacity');
+            $bookedCount = (int) $allo->slots->sum(function (AlloSlot $slot): int {
+                return (int) ($slot->bookings_count ?? 0);
+            });
+
             return [
                 'id' => $allo->id,
                 'title' => $allo->title,
                 'description' => $allo->description,
                 'points_cost' => $allo->points_cost,
                 'status' => $allo->status,
+                'capacity' => $totalCapacity,
+                'booked_count' => $bookedCount,
+                'remaining' => max($totalCapacity - $bookedCount, 0),
                 'window_start_at' => optional($allo->window_start_at)->toIso8601String(),
                 'window_end_at' => optional($allo->window_end_at)->toIso8601String(),
                 'slot_duration_minutes' => $allo->slot_duration_minutes,
@@ -70,16 +78,20 @@ class AlloApiController extends Controller
                 'slots' => $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo): array {
                     /** @var AlloUsage|null $booking */
                     $booking = $bookingsBySlotId->get($slot->id);
-                    $capacity = (int) $allo->admins_count;
+                    $capacity = (int) ($slot->capacity ?? $allo->admins_count);
                     $bookingsCount = (int) ($slot->bookings_count ?? 0);
+                    $remaining = max($capacity - $bookingsCount, 0);
 
                     return [
                         'id' => $slot->id,
                         'slot_start_at' => $slot->slot_start_at?->toIso8601String(),
                         'slot_end_at' => $slot->slot_end_at?->toIso8601String(),
                         'status' => $slot->status,
+                        'capacity' => $capacity,
+                        'booked_count' => $bookingsCount,
+                        'remaining' => $remaining,
                         'bookings_count' => $bookingsCount,
-                        'remaining_capacity' => max($capacity - $bookingsCount, 0),
+                        'remaining_capacity' => $remaining,
                         'user_booking' => $booking ? [
                             'id' => $booking->id,
                             'status' => $booking->status,

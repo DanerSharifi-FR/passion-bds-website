@@ -160,13 +160,32 @@
         function buildSlotOptions(allo) {
             const now = new Date();
             const slots = allo.slots.filter((slot) => {
-                if (slot.status !== 'available') return false;
                 if (!slot.slot_start_at) return true;
                 return new Date(slot.slot_start_at) >= now;
             });
 
+            const formatRemainingLabel = (remaining) => {
+                if (remaining === null || Number.isNaN(remaining)) {
+                    return '';
+                }
+
+                if (remaining <= 0) {
+                    return 'Complet';
+                }
+
+                const suffix = remaining > 1 ? 's' : '';
+                return `${remaining} place${suffix} restante${suffix}`;
+            };
+
             return slots.length
-                ? slots.map((slot) => `<option value="${slot.id}">${formatDate(slot.slot_start_at)} → ${formatDate(slot.slot_end_at)}</option>`).join('')
+                ? slots.map((slot) => {
+                    const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
+                    const remainingLabel = formatRemainingLabel(remaining);
+                    const isSelectable = ['available', 'partial'].includes(slot.status) && (remaining === null || remaining > 0);
+                    const statusLabel = remainingLabel ? ` · ${remainingLabel}` : '';
+                    const label = `${formatDate(slot.slot_start_at)} → ${formatDate(slot.slot_end_at)}${statusLabel}`;
+                    return `<option value="${slot.id}" ${isSelectable ? '' : 'disabled'}>${label}</option>`;
+                }).join('')
                 : `<option value="">Plus de créneaux disponibles</option>`;
         }
 
