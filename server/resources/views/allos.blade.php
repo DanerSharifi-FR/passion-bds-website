@@ -188,7 +188,10 @@
 
         function getVisibleAllos() {
             if (activeFilter === 'all') return allosData;
-            return allosData.filter((allo) => isWindowOpen(allo) && allo.status === 'OPEN');
+            return allosData.filter((allo) => {
+                const windowEnded = allo.is_window_ended ?? isWindowEnded(allo);
+                return allo.status === 'OPEN' && !windowEnded;
+            });
         }
 
         function renderAllos() {
