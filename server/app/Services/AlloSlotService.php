@@ -41,6 +41,8 @@ class AlloSlotService
             return 0;
         }
 
+        $capacity = $allo->admins()->count();
+
         // On récupère les start_at existants pour cet allo afin d’éviter les doublons.
         /** @var Collection<int, string> $existingStartTimes */
         $existingStartTimes = AlloSlot::query()
@@ -50,6 +52,10 @@ class AlloSlotService
 
         /** @var array<int, string> $existingStartTimesArray */
         $existingStartTimesArray = $existingStartTimes->all();
+
+        AlloSlot::query()
+            ->where('allo_id', $allo->id)
+            ->update(['capacity' => $capacity]);
 
         $createdCount = 0;
 
@@ -79,6 +85,7 @@ class AlloSlotService
                 'slot_start_at' => $currentStart,
                 'slot_end_at' => $currentEnd,
                 'status' => 'available',
+                'capacity' => $capacity,
             ]);
 
             $createdCount++;

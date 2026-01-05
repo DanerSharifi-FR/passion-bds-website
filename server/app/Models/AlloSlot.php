@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $slot_start_at
  * @property Carbon $slot_end_at
  * @property string $status
+ * @property int $capacity
  * @property Carbon|null $created_at
  *
  * Relations chargées dynamiquement :
@@ -57,6 +58,7 @@ class AlloSlot extends Model
         'slot_start_at',
         'slot_end_at',
         'status',
+        'capacity',
     ];
 
     /**
@@ -68,6 +70,7 @@ class AlloSlot extends Model
         'allo_id' => 'integer',
         'slot_start_at' => 'datetime',
         'slot_end_at' => 'datetime',
+        'capacity' => 'integer',
         'created_at' => 'datetime',
     ];
 
