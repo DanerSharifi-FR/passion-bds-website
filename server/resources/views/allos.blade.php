@@ -89,37 +89,74 @@
             }).format(date);
         }
 
-        function formatWindowLabel(startAt, endAt) {
+        function formatTimeLabel(time) {
+            return time.replace(':', 'h');
+        }
+
+        function formatDateRangeLabel(startDate, endDate) {
+            if (startDate.toDateString() === endDate.toDateString()) {
+                return `Le ${formatDateLabel(startDate)}`;
+            }
+
+            return `Du ${formatDateLabel(startDate)} au ${formatDateLabel(endDate)}`;
+        }
+
+        function formatWindowLabel(startAt, endAt, timeSlots = []) {
+            if (Array.isArray(timeSlots) && timeSlots.length) {
+                const ranges = new Map();
+
+                timeSlots.forEach((slot) => {
+                    if (!slot?.start_date || !slot?.end_date || !slot?.start_time || !slot?.end_time) return;
+                    const key = `${slot.start_date}|${slot.end_date}`;
+                    if (!ranges.has(key)) {
+                        ranges.set(key, []);
+                    }
+                    ranges.get(key).push({
+                        start_time: slot.start_time,
+                        end_time: slot.end_time,
+                    });
+                });
+
+                return Array.from(ranges.entries()).map(([key, windows]) => {
+                    const [startDate, endDate] = key.split('|');
+                    const dateLabel = formatDateRangeLabel(
+                        new Date(`${startDate}T00:00:00`),
+                        new Date(`${endDate}T00:00:00`)
+                    );
+                    const windowLabels = windows.map((window) => `
+                        <div class="flex items-center gap-2">
+                            <span aria-hidden="true">🕒</span>
+                            <span>de ${formatTimeLabel(window.start_time)} à ${formatTimeLabel(window.end_time)}</span>
+                        </div>
+                    `).join('');
+
+                    return `
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-2">
+                                <span aria-hidden="true">📅</span>
+                                <span>${dateLabel}</span>
+                            </div>
+                            ${windowLabels}
+                        </div>
+                    `;
+                }).join('');
+            }
+
             if (!startAt || !endAt) return '<span>Dates à venir</span>';
             const start = new Date(startAt);
             const end = new Date(endAt);
-            const sameDay = start.toDateString() === end.toDateString();
-            const startDate = formatDateLabel(start);
-            const endDate = formatDateLabel(end);
-            const startTime = formatTime(start);
-            const endTime = formatTime(end);
-
-            if (sameDay) {
-                return `
-                    <div class="flex items-center gap-2">
-                        <span aria-hidden="true">📅</span>
-                        <span>${startDate}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span aria-hidden="true">🕒</span>
-                        <span>${startTime} → ${endTime}</span>
-                    </div>
-                `;
-            }
+            const dateLabel = formatDateRangeLabel(start, end);
+            const startTime = formatTimeLabel(formatTime(start));
+            const endTime = formatTimeLabel(formatTime(end));
 
             return `
                 <div class="flex items-center gap-2">
                     <span aria-hidden="true">📅</span>
-                    <span>${startDate} · ${startTime}</span>
+                    <span>${dateLabel}</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span aria-hidden="true">📅</span>
-                    <span>${endDate} · ${endTime}</span>
+                    <span aria-hidden="true">🕒</span>
+                    <span>de ${startTime} à ${endTime}</span>
                 </div>
             `;
         }
@@ -186,7 +223,7 @@
                         </span>
                     </div>
                     <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red flex flex-col gap-1">
-                        ${formatWindowLabel(allo.window_start_at, allo.window_end_at)}
+                        ${formatWindowLabel(allo.window_start_at, allo.window_end_at, allo.time_slots)}
                     </div>
                     ${isEnded ? `
                         <div class="bg-slate-100 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
