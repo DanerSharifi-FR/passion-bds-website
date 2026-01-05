@@ -202,11 +202,10 @@
             const slots = alloData.slots.filter((slot) => {
                 if (!slot.slot_start_at || !slot.slot_end_at) return false;
                 const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
-                const isSelectable = ['available', 'partial'].includes(slot.status)
+                const isReservable = ['available', 'partial'].includes(slot.status)
                     && (remaining === null || remaining > 0)
-                    && windowOpen
                     && alloData.status === 'OPEN';
-                return isSelectable && new Date(slot.slot_start_at) >= now;
+                return isReservable && new Date(slot.slot_start_at) >= now;
             });
 
             if (!slots.length) {
@@ -251,7 +250,7 @@
                 daySlots.forEach((slot) => {
                     const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
                     const remainingLabel = formatRemainingLabel(remaining);
-                    const isSelectable = true;
+                    const isSelectable = windowOpen && alloData.status === 'OPEN';
                     const timeLabel = `${formatTime(new Date(slot.slot_start_at))} → ${formatTime(new Date(slot.slot_end_at))}`;
 
                     const label = document.createElement('label');
