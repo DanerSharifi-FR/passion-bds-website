@@ -175,6 +175,50 @@
             `;
         }
 
+        function toMinutes(time) {
+            const [hours, minutes] = String(time).split(':').map((part) => Number(part));
+            if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+                return null;
+            }
+            return (hours * 60) + minutes;
+        }
+
+        function toDateKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function isSlotWithinTimeSlots(slotStart, slotEnd, timeSlots = []) {
+            if (!Array.isArray(timeSlots) || timeSlots.length === 0) {
+                return true;
+            }
+
+            const slotDate = toDateKey(slotStart);
+            const slotStartMinutes = (slotStart.getHours() * 60) + slotStart.getMinutes();
+            const slotEndMinutes = (slotEnd.getHours() * 60) + slotEnd.getMinutes();
+
+            return timeSlots.some((window) => {
+                if (!window?.start_date || !window?.end_date || !window?.start_time || !window?.end_time) {
+                    return false;
+                }
+
+                if (slotDate < window.start_date || slotDate > window.end_date) {
+                    return false;
+                }
+
+                const windowStart = toMinutes(window.start_time);
+                const windowEnd = toMinutes(window.end_time);
+
+                if (windowStart === null || windowEnd === null) {
+                    return false;
+                }
+
+                return slotStartMinutes >= windowStart && slotEndMinutes <= windowEnd;
+            });
+        }
+
         function formatRemainingLabel(remaining) {
             if (remaining === null || Number.isNaN(remaining)) {
                 return '';
@@ -201,11 +245,16 @@
             const isEnded = windowEnded || alloData.status !== 'OPEN';
             const slots = alloData.slots.filter((slot) => {
                 if (!slot.slot_start_at || !slot.slot_end_at) return false;
+                const slotStart = new Date(slot.slot_start_at);
+                const slotEnd = new Date(slot.slot_end_at);
+                if (!isSlotWithinTimeSlots(slotStart, slotEnd, alloData.time_slots)) {
+                    return false;
+                }
                 const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
                 const isReservable = ['available', 'partial'].includes(slot.status)
                     && (remaining === null || remaining > 0)
                     && alloData.status === 'OPEN';
-                return isReservable && new Date(slot.slot_start_at) >= now;
+                return isReservable && slotStart >= now;
             });
 
             if (!slots.length) {
