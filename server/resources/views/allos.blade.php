@@ -55,9 +55,6 @@
 
 @push('end_scripts')
     <script>
-        const isAuthenticated = @json(auth()->check());
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-
         const catalogElement = document.getElementById('allos-catalog');
         const statusElement = document.getElementById('allos-status');
         const filterButtons = document.querySelectorAll('.allo-filter-btn');
@@ -157,38 +154,6 @@
             return allosData.filter((allo) => isWindowOpen(allo) && allo.status === 'OPEN');
         }
 
-        function buildSlotOptions(allo) {
-            const now = new Date();
-            const slots = allo.slots.filter((slot) => {
-                if (!slot.slot_start_at) return true;
-                return new Date(slot.slot_start_at) >= now;
-            });
-
-            const formatRemainingLabel = (remaining) => {
-                if (remaining === null || Number.isNaN(remaining)) {
-                    return '';
-                }
-
-                if (remaining <= 0) {
-                    return 'Complet';
-                }
-
-                const suffix = remaining > 1 ? 's' : '';
-                return `${remaining} place${suffix} restante${suffix}`;
-            };
-
-            return slots.length
-                ? slots.map((slot) => {
-                    const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
-                    const remainingLabel = formatRemainingLabel(remaining);
-                    const isSelectable = ['available', 'partial'].includes(slot.status) && (remaining === null || remaining > 0);
-                    const statusLabel = remainingLabel ? ` · ${remainingLabel}` : '';
-                    const label = `${formatDate(slot.slot_start_at)} → ${formatDate(slot.slot_end_at)}${statusLabel}`;
-                    return `<option value="${slot.id}" ${isSelectable ? '' : 'disabled'}>${label}</option>`;
-                }).join('')
-                : `<option value="">Plus de créneaux disponibles</option>`;
-        }
-
         function renderAllos() {
             const visibleAllos = getVisibleAllos();
 
@@ -207,10 +172,6 @@
                 const windowOpen = isWindowOpen(allo);
                 const windowEnded = isWindowEnded(allo);
                 const isEnded = windowEnded || !windowOpen || allo.status !== 'OPEN';
-                const userBookings = allo.slots
-                    .map((slot) => slot.user_booking)
-                    .filter((booking) => booking !== null);
-
                 const card = document.createElement('div');
                 card.className = 'bg-white border-2 border-passion-red shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4';
 
@@ -232,94 +193,11 @@
                             Victime de son succès : créneaux clôturés.
                         </div>
                     ` : ''}
-                    <button class="allo-toggle-btn bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
+                    <a href="/allos/${allo.id}/creneaux"
+                       class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                         Voir les créneaux
-                    </button>
-                    <div class="allo-form hidden space-y-4 border-t border-passion-red/30 pt-4">
-                        <div class="space-y-3">
-                            <label class="text-xs font-bold uppercase text-passion-red">Choisis un créneau</label>
-                            <select class="allo-slot-select w-full border-2 border-passion-red px-3 py-2 text-sm" ${isEnded ? 'disabled' : ''}>
-                                ${buildSlotOptions(allo)}
-                            </select>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-xs font-bold uppercase text-passion-red">Ton note pour nous</label>
-                            <textarea class="allo-note w-full border-2 border-passion-red px-3 py-2 text-sm" rows="2" ${isEnded ? 'disabled' : ''} placeholder="Ex: sieste après 15h, merci !"></textarea>
-                        </div>
-                        <button class="allo-book-btn bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            ${isEnded ? 'Créneaux clôturés' : 'Réserver cet allo'}
-                        </button>
-                        <div class="allo-feedback text-sm font-semibold text-passion-red"></div>
-                        ${userBookings.length ? `
-                            <div class="bg-slate-100 border border-slate-300 px-4 py-3 text-sm space-y-2">
-                                <p class="font-semibold text-slate-700 uppercase text-xs">Tes réservations</p>
-                                ${userBookings.map((booking) => `
-                                    <div class="space-y-1">
-                                        <div class="font-semibold text-slate-700">Statut: ${booking.status}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                    </div>
+                    </a>
                 `;
-
-                const toggleButton = card.querySelector('.allo-toggle-btn');
-                const formElement = card.querySelector('.allo-form');
-                const button = card.querySelector('.allo-book-btn');
-                const select = card.querySelector('.allo-slot-select');
-                const noteInput = card.querySelector('.allo-note');
-                const feedback = card.querySelector('.allo-feedback');
-
-                toggleButton.addEventListener('click', () => {
-                    formElement.classList.toggle('hidden');
-                    toggleButton.textContent = formElement.classList.contains('hidden')
-                        ? 'Voir les créneaux'
-                        : 'Masquer le formulaire';
-                });
-
-                if (!isAuthenticated || isEnded) {
-                    button.disabled = true;
-                }
-
-                button.addEventListener('click', async () => {
-                    if (!select.value) {
-                        feedback.textContent = 'Choisis un créneau disponible.';
-                        return;
-                    }
-
-                    button.disabled = true;
-                    feedback.textContent = 'Réservation en cours...';
-
-                    try {
-                        const response = await fetch('/api/allos/bookings', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': csrfToken,
-                            },
-                            body: JSON.stringify({
-                                allo_id: allo.id,
-                                allo_slot_id: Number(select.value),
-                                user_note: noteInput.value.trim() || null,
-                            }),
-                        });
-
-                        const data = await response.json();
-
-                        if (!response.ok) {
-                            feedback.textContent = data.message || 'Erreur lors de la réservation.';
-                        } else {
-                            feedback.textContent = 'Réservation confirmée !';
-                            await loadAllos();
-                        }
-                    } catch (error) {
-                        feedback.textContent = 'Impossible de réserver pour le moment.';
-                    } finally {
-                        if (isAuthenticated && !isEnded) {
-                            button.disabled = false;
-                        }
-                    }
-                });
 
                 catalogElement.appendChild(card);
             });

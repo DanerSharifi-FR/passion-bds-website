@@ -32,6 +32,7 @@ Route::controller(PageController::class)->group(function () {
     Route::get('/activities', 'activities')->name('activities');
 
     Route::get('/allos', 'allos')->name('allos');
+    Route::get('/allos/{alloId}/creneaux', 'alloSlots')->name('allos.slots');
     Route::get('/connexion', 'login')->middleware('guest')->name('login');
 });
 

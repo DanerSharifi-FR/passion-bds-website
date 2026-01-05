@@ -24,6 +24,13 @@ class PageController extends Controller
         return view('allos');
     }
 
+    public function alloSlots(int $alloId): Factory|View
+    {
+        return view('allo-slots', [
+            'alloId' => $alloId,
+        ]);
+    }
+
     public function activities(): Factory|View
     {
         return view('activities');
