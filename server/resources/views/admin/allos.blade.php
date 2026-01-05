@@ -111,17 +111,58 @@
                                 <option value="DISABLED">Désactivé</option>
                             </select>
                         </div>
-                        <div class="p-3 bg-slate-700/30 rounded border border-slate-600">
-                            <label class="block text-sm font-medium text-slate-300 mb-2">Fenêtre d'ouverture (Obligatoire)</label>
-                            <div class="grid grid-cols-2 gap-2">
+                        <div class="p-3 bg-slate-700/30 rounded border border-slate-600 space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300">Planification</label>
+                                <p class="text-xs text-slate-500">Choisis le mode de création des créneaux (fenêtre unique ou créneaux multiples).</p>
+                            </div>
+                            <div class="flex flex-col gap-2 text-xs text-slate-300">
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="scheduleMode" value="window" checked class="text-indigo-500 focus:ring-indigo-500">
+                                    Fenêtre unique
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="scheduleMode" value="date" class="text-indigo-500 focus:ring-indigo-500">
+                                    Créneaux datés (plusieurs dates)
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="scheduleMode" value="range" class="text-indigo-500 focus:ring-indigo-500">
+                                    Plage globale + fenêtres horaires
+                                </label>
+                            </div>
+                            <div id="scheduleWindowFields" class="grid grid-cols-2 gap-2">
                                 <div>
                                     <label class="text-xs text-slate-500 mb-1 block">Ouverture</label>
-                                    <input type="datetime-local" id="alloStart" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" required>
+                                    <input type="datetime-local" id="alloStart" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
                                 </div>
                                 <div>
                                     <label class="text-xs text-slate-500 mb-1 block">Fermeture</label>
-                                    <input type="datetime-local" id="alloEnd" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" required>
+                                    <input type="datetime-local" id="alloEnd" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
                                 </div>
+                            </div>
+                            <div id="scheduleDateFields" class="hidden space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs text-slate-400">Ajoute un créneau par date (date + heure de début/fin).</p>
+                                    <button type="button" id="addDateSlot" class="text-xs text-indigo-300 hover:text-indigo-200">+ Ajouter un créneau</button>
+                                </div>
+                                <div id="dateSlotsContainer" class="space-y-2"></div>
+                            </div>
+                            <div id="scheduleRangeFields" class="hidden space-y-2">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-xs text-slate-500 mb-1 block">Début de période</label>
+                                        <input type="date" id="rangeStartDate" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-slate-500 mb-1 block">Fin de période</label>
+                                        <input type="date" id="rangeEndDate" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs text-slate-400">Ajoute plusieurs fenêtres horaires pour cette plage.</p>
+                                    <button type="button" id="addRangeSlot" class="text-xs text-indigo-300 hover:text-indigo-200">+ Ajouter une fenêtre</button>
+                                </div>
+                                <div id="rangeSlotsContainer" class="space-y-2"></div>
                             </div>
                         </div>
                         <div>
@@ -157,6 +198,11 @@
             title: '',
             status: 'ALL',
         };
+        let scheduleMode = 'window';
+        let dateSpecificSlots = [];
+        let rangeTimeSlots = [];
+        let rangeDateStart = '';
+        let rangeDateEnd = '';
 
         function csrf() {
             return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -357,6 +403,108 @@
             });
         }
 
+        function setScheduleMode(mode) {
+            scheduleMode = mode;
+            updateScheduleVisibility();
+        }
+
+        function updateScheduleVisibility() {
+            const windowFields = document.getElementById('scheduleWindowFields');
+            const dateFields = document.getElementById('scheduleDateFields');
+            const rangeFields = document.getElementById('scheduleRangeFields');
+
+            windowFields.classList.toggle('hidden', scheduleMode !== 'window');
+            dateFields.classList.toggle('hidden', scheduleMode !== 'date');
+            rangeFields.classList.toggle('hidden', scheduleMode !== 'range');
+        }
+
+        function renderDateSlots() {
+            const container = document.getElementById('dateSlotsContainer');
+            container.innerHTML = '';
+
+            if (dateSpecificSlots.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500">Aucun créneau ajouté.</p>';
+                return;
+            }
+
+            dateSpecificSlots.forEach((slot, index) => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr_0.9fr_auto] gap-2 items-center';
+                row.innerHTML = `
+                    <input type="date" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.date || ''}" data-field="date" data-index="${index}">
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.start_time || ''}" data-field="start_time" data-index="${index}">
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.end_time || ''}" data-field="end_time" data-index="${index}">
+                    <button type="button" class="text-xs text-red-300 hover:text-red-200" data-action="remove" data-index="${index}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+                row.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('change', (event) => {
+                        const idx = Number(event.target.dataset.index);
+                        const field = event.target.dataset.field;
+                        dateSpecificSlots[idx][field] = event.target.value;
+                    });
+                });
+                row.querySelector('[data-action="remove"]').addEventListener('click', (event) => {
+                    const idx = Number(event.currentTarget.dataset.index);
+                    dateSpecificSlots.splice(idx, 1);
+                    renderDateSlots();
+                });
+                container.appendChild(row);
+            });
+        }
+
+        function renderRangeSlots() {
+            const container = document.getElementById('rangeSlotsContainer');
+            container.innerHTML = '';
+
+            if (rangeTimeSlots.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500">Aucune fenêtre horaire ajoutée.</p>';
+                return;
+            }
+
+            rangeTimeSlots.forEach((slot, index) => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-center';
+                row.innerHTML = `
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.start_time || ''}" data-field="start_time" data-index="${index}">
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.end_time || ''}" data-field="end_time" data-index="${index}">
+                    <button type="button" class="text-xs text-red-300 hover:text-red-200" data-action="remove" data-index="${index}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+                row.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('change', (event) => {
+                        const idx = Number(event.target.dataset.index);
+                        const field = event.target.dataset.field;
+                        rangeTimeSlots[idx][field] = event.target.value;
+                    });
+                });
+                row.querySelector('[data-action="remove"]').addEventListener('click', (event) => {
+                    const idx = Number(event.currentTarget.dataset.index);
+                    rangeTimeSlots.splice(idx, 1);
+                    renderRangeSlots();
+                });
+                container.appendChild(row);
+            });
+        }
+
+        function resetScheduleState() {
+            scheduleMode = 'window';
+            dateSpecificSlots = [];
+            rangeTimeSlots = [];
+            rangeDateStart = '';
+            rangeDateEnd = '';
+            document.querySelectorAll('input[name="scheduleMode"]').forEach((input) => {
+                input.checked = input.value === scheduleMode;
+            });
+            document.getElementById('rangeStartDate').value = '';
+            document.getElementById('rangeEndDate').value = '';
+            updateScheduleVisibility();
+            renderDateSlots();
+            renderRangeSlots();
+        }
+
         // --- REQUESTS ---
         function renderRequests() {
             const container = document.getElementById('requestsContainer');
@@ -526,6 +674,7 @@
             document.getElementById('alloDesc').value = "";
             document.getElementById('alloStatus').value = "DRAFT";
             populateAdminList([]);
+            resetScheduleState();
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
@@ -543,6 +692,36 @@
             document.getElementById('alloDesc').value = a.description || "";
             document.getElementById('alloStatus').value = a.status || "DRAFT";
             populateAdminList(a.admin_ids || []);
+            resetScheduleState();
+
+            if (Array.isArray(a.time_slots) && a.time_slots.length > 0) {
+                const first = a.time_slots[0];
+                const sameRange = a.time_slots.every(slot => slot.start_date === first.start_date && slot.end_date === first.end_date);
+                if (sameRange) {
+                    scheduleMode = 'range';
+                    rangeDateStart = first.start_date || '';
+                    rangeDateEnd = first.end_date || '';
+                    rangeTimeSlots = a.time_slots.map(slot => ({
+                        start_time: slot.start_time || '',
+                        end_time: slot.end_time || '',
+                    }));
+                    document.getElementById('rangeStartDate').value = rangeDateStart;
+                    document.getElementById('rangeEndDate').value = rangeDateEnd;
+                    renderRangeSlots();
+                } else {
+                    scheduleMode = 'date';
+                    dateSpecificSlots = a.time_slots.map(slot => ({
+                        date: slot.start_date || '',
+                        start_time: slot.start_time || '',
+                        end_time: slot.end_time || '',
+                    }));
+                    renderDateSlots();
+                }
+                document.querySelectorAll('input[name="scheduleMode"]').forEach((input) => {
+                    input.checked = input.value === scheduleMode;
+                });
+                updateScheduleVisibility();
+            }
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
@@ -575,6 +754,8 @@
             const id = document.getElementById('editAlloId').value;
             const selectedAdmins = [];
             document.querySelectorAll('input[name="alloAdmins"]:checked').forEach(cb => selectedAdmins.push(cb.value));
+            const selectedMode = document.querySelector('input[name="scheduleMode"]:checked')?.value || 'window';
+            let timeSlots = null;
             const data = {
                 title: document.getElementById('alloTitle').value,
                 points_cost: parseInt(document.getElementById('alloCost').value),
@@ -586,9 +767,70 @@
                 admin_ids: selectedAdmins.map(id => parseInt(id)),
             };
             if(!data.title) { showToast("Titre requis", 'error'); return; }
-            if (data.status !== 'DRAFT' && (!data.window_start_at || !data.window_end_at)) {
-                showToast("Dates d'ouverture/fermeture requises", 'error');
-                return;
+            if (selectedMode === 'window') {
+                data.time_slots = null;
+            }
+            if (selectedMode === 'date') {
+                const normalizedSlots = dateSpecificSlots.map(slot => ({
+                    start_date: slot.date,
+                    end_date: slot.date,
+                    start_time: slot.start_time,
+                    end_time: slot.end_time,
+                })).filter(slot => slot.start_date || slot.start_time || slot.end_time);
+                if (normalizedSlots.length === 0) {
+                    showToast("Ajoute au moins un créneau daté.", 'error');
+                    return;
+                }
+                const hasIncomplete = normalizedSlots.some(slot => !slot.start_date || !slot.start_time || !slot.end_time);
+                if (hasIncomplete) {
+                    showToast("Tous les créneaux datés doivent être complets.", 'error');
+                    return;
+                }
+                timeSlots = normalizedSlots;
+                data.window_start_at = null;
+                data.window_end_at = null;
+            }
+
+            if (selectedMode === 'range') {
+                rangeDateStart = document.getElementById('rangeStartDate').value;
+                rangeDateEnd = document.getElementById('rangeEndDate').value;
+                if (!rangeDateStart || !rangeDateEnd) {
+                    showToast("Dates de période requises.", 'error');
+                    return;
+                }
+                const normalizedSlots = rangeTimeSlots.map(slot => ({
+                    start_date: rangeDateStart,
+                    end_date: rangeDateEnd,
+                    start_time: slot.start_time,
+                    end_time: slot.end_time,
+                })).filter(slot => slot.start_time || slot.end_time);
+                if (normalizedSlots.length === 0) {
+                    showToast("Ajoute au moins une fenêtre horaire.", 'error');
+                    return;
+                }
+                const hasIncomplete = normalizedSlots.some(slot => !slot.start_time || !slot.end_time);
+                if (hasIncomplete) {
+                    showToast("Toutes les fenêtres horaires doivent être complètes.", 'error');
+                    return;
+                }
+                timeSlots = normalizedSlots;
+                data.window_start_at = null;
+                data.window_end_at = null;
+            }
+
+            if (data.status !== 'DRAFT') {
+                if (selectedMode === 'window' && (!data.window_start_at || !data.window_end_at)) {
+                    showToast("Dates d'ouverture/fermeture requises", 'error');
+                    return;
+                }
+                if ((selectedMode === 'date' || selectedMode === 'range') && (!timeSlots || timeSlots.length === 0)) {
+                    showToast("Créneaux requis", 'error');
+                    return;
+                }
+            }
+
+            if (timeSlots !== null) {
+                data.time_slots = timeSlots;
             }
 
             try {
@@ -704,6 +946,26 @@
         // Init
         window.deleteAllo = deleteAllo;
         window.openEditAllo = openEditAllo;
+        document.querySelectorAll('input[name="scheduleMode"]').forEach(input => {
+            input.addEventListener('change', (event) => setScheduleMode(event.target.value));
+        });
+        document.getElementById('addDateSlot').addEventListener('click', () => {
+            dateSpecificSlots.push({ date: '', start_time: '', end_time: '' });
+            renderDateSlots();
+        });
+        document.getElementById('addRangeSlot').addEventListener('click', () => {
+            rangeTimeSlots.push({ start_time: '', end_time: '' });
+            renderRangeSlots();
+        });
+        document.getElementById('rangeStartDate').addEventListener('change', (event) => {
+            rangeDateStart = event.target.value;
+        });
+        document.getElementById('rangeEndDate').addEventListener('change', (event) => {
+            rangeDateEnd = event.target.value;
+        });
+        updateScheduleVisibility();
+        renderDateSlots();
+        renderRangeSlots();
         loadAdmins().then(populateAdminList);
         bindCatalogFilters();
         loadAllos();
