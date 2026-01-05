@@ -196,10 +196,17 @@
                 && alloData.window_end_at
                 && now >= new Date(alloData.window_start_at)
                 && now <= new Date(alloData.window_end_at);
-            const isEnded = !windowOpen || alloData.status !== 'OPEN';
+            const windowEnded = alloData.window_end_at
+                && now > new Date(alloData.window_end_at);
+            const isEnded = windowEnded || alloData.status !== 'OPEN';
             const slots = alloData.slots.filter((slot) => {
-                if (!slot.slot_start_at) return true;
-                return new Date(slot.slot_start_at) >= now;
+                if (!slot.slot_start_at || !slot.slot_end_at) return false;
+                const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
+                const isSelectable = ['available', 'partial'].includes(slot.status)
+                    && (remaining === null || remaining > 0)
+                    && windowOpen
+                    && alloData.status === 'OPEN';
+                return isSelectable && new Date(slot.slot_start_at) >= now;
             });
 
             if (!slots.length) {
@@ -223,16 +230,20 @@
                 return acc;
             }, {});
 
-            Object.entries(slotsByDate).forEach(([dateKey, daySlots]) => {
+            Object.entries(slotsByDate).forEach(([dateKey, daySlots], index) => {
                 daySlots.sort((a, b) => new Date(a.slot_start_at) - new Date(b.slot_start_at));
-                const card = document.createElement('div');
+                const card = document.createElement('details');
                 card.className = 'bg-white border-2 border-passion-red shadow-[4px_4px_0_#000] p-4 space-y-3';
+                if (index === 0) {
+                    card.open = true;
+                }
 
                 const dayDate = new Date(`${dateKey}T00:00:00`);
                 card.innerHTML = `
-                    <div class="font-display font-black uppercase text-passion-red text-lg">
-                        ${formatDateLabel(dayDate)}
-                    </div>
+                    <summary class="font-display font-black uppercase text-passion-red text-lg cursor-pointer list-none flex items-center justify-between">
+                        <span>${formatDateLabel(dayDate)}</span>
+                        <span aria-hidden="true" class="text-xs">▼</span>
+                    </summary>
                     <div class="space-y-2" data-date="${dateKey}"></div>
                 `;
 
@@ -240,10 +251,7 @@
                 daySlots.forEach((slot) => {
                     const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
                     const remainingLabel = formatRemainingLabel(remaining);
-                    const isSelectable = ['available', 'partial'].includes(slot.status)
-                        && (remaining === null || remaining > 0)
-                        && windowOpen
-                        && alloData.status === 'OPEN';
+                    const isSelectable = true;
                     const timeLabel = `${formatTime(new Date(slot.slot_start_at))} → ${formatTime(new Date(slot.slot_end_at))}`;
 
                     const label = document.createElement('label');
