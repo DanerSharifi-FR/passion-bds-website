@@ -175,6 +175,50 @@
             `;
         }
 
+        function toMinutes(time) {
+            const [hours, minutes] = String(time).split(':').map((part) => Number(part));
+            if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+                return null;
+            }
+            return (hours * 60) + minutes;
+        }
+
+        function toDateKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function isSlotWithinTimeSlots(slotStart, slotEnd, timeSlots = []) {
+            if (!Array.isArray(timeSlots) || timeSlots.length === 0) {
+                return true;
+            }
+
+            const slotDate = toDateKey(slotStart);
+            const slotStartMinutes = (slotStart.getHours() * 60) + slotStart.getMinutes();
+            const slotEndMinutes = (slotEnd.getHours() * 60) + slotEnd.getMinutes();
+
+            return timeSlots.some((window) => {
+                if (!window?.start_date || !window?.end_date || !window?.start_time || !window?.end_time) {
+                    return false;
+                }
+
+                if (slotDate < window.start_date || slotDate > window.end_date) {
+                    return false;
+                }
+
+                const windowStart = toMinutes(window.start_time);
+                const windowEnd = toMinutes(window.end_time);
+
+                if (windowStart === null || windowEnd === null) {
+                    return false;
+                }
+
+                return slotStartMinutes >= windowStart && slotEndMinutes <= windowEnd;
+            });
+        }
+
         function formatRemainingLabel(remaining) {
             if (remaining === null || Number.isNaN(remaining)) {
                 return '';
@@ -196,10 +240,21 @@
                 && alloData.window_end_at
                 && now >= new Date(alloData.window_start_at)
                 && now <= new Date(alloData.window_end_at);
-            const isEnded = !windowOpen || alloData.status !== 'OPEN';
+            const windowEnded = alloData.window_end_at
+                && now > new Date(alloData.window_end_at);
+            const isEnded = windowEnded || alloData.status !== 'OPEN';
             const slots = alloData.slots.filter((slot) => {
-                if (!slot.slot_start_at) return true;
-                return new Date(slot.slot_start_at) >= now;
+                if (!slot.slot_start_at || !slot.slot_end_at) return false;
+                const slotStart = new Date(slot.slot_start_at);
+                const slotEnd = new Date(slot.slot_end_at);
+                if (!isSlotWithinTimeSlots(slotStart, slotEnd, alloData.time_slots)) {
+                    return false;
+                }
+                const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
+                const isReservable = ['available', 'partial'].includes(slot.status)
+                    && (remaining === null || remaining > 0)
+                    && alloData.status === 'OPEN';
+                return isReservable && slotStart >= now;
             });
 
             if (!slots.length) {
@@ -223,28 +278,34 @@
                 return acc;
             }, {});
 
-            Object.entries(slotsByDate).forEach(([dateKey, daySlots]) => {
+            Object.entries(slotsByDate).forEach(([dateKey, daySlots], index) => {
                 daySlots.sort((a, b) => new Date(a.slot_start_at) - new Date(b.slot_start_at));
-                const card = document.createElement('div');
+                const card = document.createElement('details');
                 card.className = 'bg-white border-2 border-passion-red shadow-[4px_4px_0_#000] p-4 space-y-3';
+                if (index === 0) {
+                    card.open = true;
+                }
 
                 const dayDate = new Date(`${dateKey}T00:00:00`);
                 card.innerHTML = `
-                    <div class="font-display font-black uppercase text-passion-red text-lg">
-                        ${formatDateLabel(dayDate)}
-                    </div>
+                    <summary class="font-display font-black uppercase text-passion-red text-lg cursor-pointer list-none flex items-center justify-between">
+                        <span>${formatDateLabel(dayDate)}</span>
+                        <span aria-hidden="true" class="text-xs">▼</span>
+                    </summary>
                     <div class="space-y-2" data-date="${dateKey}"></div>
                 `;
 
                 const list = card.querySelector('[data-date]');
                 daySlots.forEach((slot) => {
+                    const slotStart = new Date(slot.slot_start_at);
+                    const slotEnd = new Date(slot.slot_end_at);
                     const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
                     const remainingLabel = formatRemainingLabel(remaining);
                     const isSelectable = ['available', 'partial'].includes(slot.status)
                         && (remaining === null || remaining > 0)
-                        && windowOpen
-                        && alloData.status === 'OPEN';
-                    const timeLabel = `${formatTime(new Date(slot.slot_start_at))} → ${formatTime(new Date(slot.slot_end_at))}`;
+                        && alloData.status === 'OPEN'
+                        && slotStart >= now;
+                    const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
 
                     const label = document.createElement('label');
                     label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
