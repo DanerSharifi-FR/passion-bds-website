@@ -206,9 +206,10 @@
             catalogElement.innerHTML = '';
 
             visibleAllos.forEach((allo) => {
-                const windowOpen = isWindowOpen(allo);
-                const windowEnded = isWindowEnded(allo);
-                const isEnded = windowEnded || !windowOpen || allo.status !== 'OPEN';
+                const windowEnded = allo.is_window_ended ?? isWindowEnded(allo);
+                const isClosed = allo.status !== 'OPEN';
+                const isSoldOut = (allo.remaining ?? 0) === 0;
+                const showClosedMessage = windowEnded || isClosed || isSoldOut;
                 const card = document.createElement('div');
                 card.className = 'bg-white border-2 border-passion-red shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4';
 
@@ -225,7 +226,7 @@
                     <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red flex flex-col gap-1">
                         ${formatWindowLabel(allo.window_start_at, allo.window_end_at, allo.time_slots)}
                     </div>
-                    ${isEnded ? `
+                    ${showClosedMessage ? `
                         <div class="bg-slate-100 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
                             Victime de son succès : créneaux clôturés.
                         </div>
