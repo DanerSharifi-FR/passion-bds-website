@@ -12,6 +12,7 @@ use App\Services\AlloUsageService;
 use App\Services\PointTransactionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -57,6 +58,9 @@ class AlloApiController extends Controller
             $bookedCount = (int) $allo->slots->sum(function (AlloSlot $slot): int {
                 return (int) ($slot->bookings_count ?? 0);
             });
+            $windowBounds = $this->resolveWindowBounds($allo);
+            $windowStart = $windowBounds[0] ?? null;
+            $windowEnd = $windowBounds[1] ?? null;
 
             return [
                 'id' => $allo->id,
@@ -67,14 +71,15 @@ class AlloApiController extends Controller
                 'capacity' => $totalCapacity,
                 'booked_count' => $bookedCount,
                 'remaining' => max($totalCapacity - $bookedCount, 0),
-                'window_start_at' => optional($allo->window_start_at)->toIso8601String(),
-                'window_end_at' => optional($allo->window_end_at)->toIso8601String(),
+                'window_start_at' => $windowStart?->toIso8601String(),
+                'window_end_at' => $windowEnd?->toIso8601String(),
                 'slot_duration_minutes' => $allo->slot_duration_minutes,
                 'slot_capacity' => (int) $allo->admins_count,
-                'is_window_open' => $allo->window_start_at !== null
-                    && $allo->window_end_at !== null
-                    && $now->between($allo->window_start_at, $allo->window_end_at),
-                'is_window_ended' => $allo->window_end_at !== null && $now->greaterThan($allo->window_end_at),
+                'time_slots' => $allo->time_slots ?? [],
+                'is_window_open' => $windowStart !== null
+                    && $windowEnd !== null
+                    && $now->between($windowStart, $windowEnd),
+                'is_window_ended' => $windowEnd !== null && $now->greaterThan($windowEnd),
                 'slots' => $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo): array {
                     /** @var AlloUsage|null $booking */
                     $booking = $bookingsBySlotId->get($slot->id);
@@ -134,11 +139,15 @@ class AlloApiController extends Controller
             ->where('status', 'OPEN')
             ->findOrFail((int) $validated['allo_id']);
 
-        if ($allo->window_start_at === null || $allo->window_end_at === null) {
+        $windowBounds = $this->resolveWindowBounds($allo);
+        $windowStart = $windowBounds[0] ?? null;
+        $windowEnd = $windowBounds[1] ?? null;
+
+        if ($windowStart === null || $windowEnd === null) {
             return response()->json(['message' => 'Cet allo est indisponible.'], 422);
         }
 
-        if (! $now->between($allo->window_start_at, $allo->window_end_at)) {
+        if (! $now->between($windowStart, $windowEnd)) {
             return response()->json(['message' => 'Les réservations pour cet allo sont fermées.'], 422);
         }
 
@@ -237,5 +246,55 @@ class AlloApiController extends Controller
                 'user_note' => $booking->user_note,
             ],
         ], 201);
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}|null
+     */
+    private function resolveWindowBounds(Allo $allo): ?array
+    {
+        if ($allo->window_start_at !== null && $allo->window_end_at !== null) {
+            return [$allo->window_start_at, $allo->window_end_at];
+        }
+
+        $timeSlots = $allo->time_slots;
+
+        if (!is_array($timeSlots) || count($timeSlots) === 0) {
+            return null;
+        }
+
+        $minStart = null;
+        $maxEnd = null;
+
+        foreach ($timeSlots as $slot) {
+            if (!is_array($slot)) {
+                continue;
+            }
+
+            $startDate = $slot['start_date'] ?? null;
+            $endDate = $slot['end_date'] ?? null;
+            $startTime = $slot['start_time'] ?? null;
+            $endTime = $slot['end_time'] ?? null;
+
+            if (!is_string($startDate) || !is_string($endDate) || !is_string($startTime) || !is_string($endTime)) {
+                continue;
+            }
+
+            $start = Carbon::createFromFormat('Y-m-d H:i', "{$startDate} {$startTime}");
+            $end = Carbon::createFromFormat('Y-m-d H:i', "{$endDate} {$endTime}");
+
+            if (! $start instanceof Carbon || ! $end instanceof Carbon) {
+                continue;
+            }
+
+            $minStart = $minStart === null || $start->lessThan($minStart) ? $start : $minStart;
+            $maxEnd = $maxEnd === null || $end->greaterThan($maxEnd) ? $end : $maxEnd;
+        }
+
+        if ($minStart === null || $maxEnd === null) {
+            return null;
+        }
+
+        return [$minStart, $maxEnd];
     }
 }
