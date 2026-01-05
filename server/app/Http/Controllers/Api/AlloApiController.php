@@ -27,8 +27,17 @@ class AlloApiController extends Controller
 
         $allos = Allo::query()
             ->whereIn('status', ['OPEN', 'CLOSED'])
+            ->withCount('admins')
             ->with(['slots' => function ($query): void {
-                $query->orderBy('slot_start_at');
+                $query
+                    ->orderBy('slot_start_at')
+                    ->withCount(['usages as bookings_count' => function ($usageQuery): void {
+                        $usageQuery->whereIn('status', [
+                            AlloUsageService::STATUS_PENDING,
+                            AlloUsageService::STATUS_ACCEPTED,
+                            AlloUsageService::STATUS_DONE,
+                        ]);
+                    }]);
             }])
             ->orderBy('window_start_at')
             ->get();
@@ -53,19 +62,24 @@ class AlloApiController extends Controller
                 'window_start_at' => optional($allo->window_start_at)->toIso8601String(),
                 'window_end_at' => optional($allo->window_end_at)->toIso8601String(),
                 'slot_duration_minutes' => $allo->slot_duration_minutes,
+                'slot_capacity' => (int) $allo->admins_count,
                 'is_window_open' => $allo->window_start_at !== null
                     && $allo->window_end_at !== null
                     && $now->between($allo->window_start_at, $allo->window_end_at),
                 'is_window_ended' => $allo->window_end_at !== null && $now->greaterThan($allo->window_end_at),
-                'slots' => $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId): array {
+                'slots' => $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo): array {
                     /** @var AlloUsage|null $booking */
                     $booking = $bookingsBySlotId->get($slot->id);
+                    $capacity = (int) $allo->admins_count;
+                    $bookingsCount = (int) ($slot->bookings_count ?? 0);
 
                     return [
                         'id' => $slot->id,
                         'slot_start_at' => $slot->slot_start_at?->toIso8601String(),
                         'slot_end_at' => $slot->slot_end_at?->toIso8601String(),
                         'status' => $slot->status,
+                        'bookings_count' => $bookingsCount,
+                        'remaining_capacity' => max($capacity - $bookingsCount, 0),
                         'user_booking' => $booking ? [
                             'id' => $booking->id,
                             'status' => $booking->status,
@@ -126,8 +140,8 @@ class AlloApiController extends Controller
             return response()->json(['message' => 'Ce créneau est déjà passé.'], 422);
         }
 
-        if ($slot->status !== 'available') {
-            return response()->json(['message' => 'Ce créneau est déjà réservé.'], 422);
+        if ($slot->status === 'blocked') {
+            return response()->json(['message' => 'Ce créneau est bloqué.'], 422);
         }
 
         $balance = $pointTransactionService->getUserBalance($user);
@@ -138,7 +152,7 @@ class AlloApiController extends Controller
 
         $existingBooking = AlloUsage::query()
             ->where('user_id', $user->id)
-            ->where('allo_slot_id', $slot->id)
+            ->where('slot_start_at', $slot->slot_start_at)
             ->exists();
 
         if ($existingBooking) {
@@ -146,6 +160,37 @@ class AlloApiController extends Controller
         }
 
         $booking = DB::transaction(function () use ($user, $allo, $slot, $validated, $pointTransactionService): AlloUsage {
+            $slot = AlloSlot::query()
+                ->where('id', $slot->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($slot->status === 'blocked') {
+                abort(422, 'Ce créneau est bloqué.');
+            }
+
+            $slotCapacity = $allo->admins()->count();
+
+            if ($slotCapacity <= 0) {
+                abort(422, 'Ce créneau est indisponible.');
+            }
+
+            $currentBookings = AlloUsage::query()
+                ->where('allo_slot_id', $slot->id)
+                ->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ])
+                ->count();
+
+            if ($currentBookings >= $slotCapacity) {
+                $slot->status = 'booked';
+                $slot->save();
+
+                abort(422, 'Ce créneau est déjà réservé.');
+            }
+
             $usage = AlloUsage::query()->create([
                 'allo_id' => $allo->id,
                 'allo_slot_id' => $slot->id,
@@ -156,7 +201,8 @@ class AlloApiController extends Controller
                 'status' => AlloUsageService::STATUS_PENDING,
             ]);
 
-            $slot->status = 'booked';
+            $newCount = $currentBookings + 1;
+            $slot->status = $newCount >= $slotCapacity ? 'booked' : 'available';
             $slot->save();
 
             $pointTransactionService->createManualTransaction(
