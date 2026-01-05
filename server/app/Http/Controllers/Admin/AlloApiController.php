@@ -168,8 +168,14 @@ class AlloApiController extends Controller
     private function validateAllo(Request $request): array
     {
         $requiresWindow = $request->input('status') !== 'DRAFT';
+        $normalizedTimeSlots = $this->normalizeTimeSlots($request->input('time_slots'));
+        $payload = $request->all();
 
-        $validator = Validator::make($request->all(), [
+        if ($normalizedTimeSlots !== null) {
+            $payload['time_slots'] = $normalizedTimeSlots;
+        }
+
+        $validator = Validator::make($payload, [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'points_cost' => ['required', 'integer', 'min:0'],
@@ -186,10 +192,14 @@ class AlloApiController extends Controller
             'admin_ids.*' => ['integer', 'exists:users,id'],
         ]);
 
-        $validator->after(function ($validator) use ($request, $requiresWindow): void {
-            $timeSlots = $request->input('time_slots', []);
+        $validator->after(function ($validator) use ($payload, $requiresWindow): void {
+            $timeSlots = $payload['time_slots'] ?? [];
             $hasTimeSlots = is_array($timeSlots) && count($timeSlots) > 0;
-            $hasWindow = $request->filled('window_start_at') && $request->filled('window_end_at');
+            $hasWindow = !empty($payload['window_start_at']) && !empty($payload['window_end_at']);
+
+            if (is_array($timeSlots) && count($timeSlots) === 0 && array_key_exists('time_slots', $payload)) {
+                $validator->errors()->add('time_slots', 'Au moins un créneau est requis.');
+            }
 
             if ($requiresWindow && ! $hasTimeSlots && ! $hasWindow) {
                 $validator->errors()->add('time_slots', 'Un créneau horaire ou une fenêtre globale est requis.');
@@ -203,6 +213,12 @@ class AlloApiController extends Controller
 
                     $startTime = $slot['start_time'] ?? null;
                     $endTime = $slot['end_time'] ?? null;
+                    $startDate = $slot['start_date'] ?? null;
+                    $endDate = $slot['end_date'] ?? null;
+
+                    if ($startDate !== null && $endDate !== null && $startDate > $endDate) {
+                        $validator->errors()->add("time_slots.{$index}.end_date", 'La date de fin doit être après la date de début.');
+                    }
 
                     if ($startTime !== null && $endTime !== null && $startTime >= $endTime) {
                         $validator->errors()->add("time_slots.{$index}.end_time", 'L’heure de fin doit être après l’heure de début.');
@@ -212,6 +228,39 @@ class AlloApiController extends Controller
         });
 
         return $validator->validate();
+    }
+
+    /**
+     * @return array<int, mixed>|null
+     */
+    private function normalizeTimeSlots(mixed $timeSlots): ?array
+    {
+        if ($timeSlots === null) {
+            return null;
+        }
+
+        if (is_string($timeSlots)) {
+            $decoded = json_decode($timeSlots, true);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $timeSlots = $decoded;
+            }
+        }
+
+        if (!is_array($timeSlots)) {
+            return null;
+        }
+
+        $hasSlotKeys = array_key_exists('start_date', $timeSlots)
+            || array_key_exists('end_date', $timeSlots)
+            || array_key_exists('start_time', $timeSlots)
+            || array_key_exists('end_time', $timeSlots);
+
+        if ($hasSlotKeys) {
+            return [$timeSlots];
+        }
+
+        return $timeSlots;
     }
 
     private function resetUsageToPending(AlloUsage $usage): void
