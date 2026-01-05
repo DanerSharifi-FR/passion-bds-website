@@ -24,20 +24,7 @@ class AlloSlotService
      */
     public function generateSlotsForAllo(Allo $allo): int
     {
-        if ($allo->window_start_at === null || $allo->window_end_at === null) {
-            return 0;
-        }
-
         if ($allo->slot_duration_minutes <= 0) {
-            return 0;
-        }
-
-        /** @var Carbon $windowStart */
-        $windowStart = Carbon::parse($allo->window_start_at);
-        /** @var Carbon $windowEnd */
-        $windowEnd = Carbon::parse($allo->window_end_at);
-
-        if ($windowStart->greaterThanOrEqualTo($windowEnd)) {
             return 0;
         }
 
@@ -59,39 +46,103 @@ class AlloSlotService
 
         $createdCount = 0;
 
-        /** @var Carbon $currentStart */
-        $currentStart = $windowStart->copy();
-
-        while ($currentStart->lessThan($windowEnd)) {
-            /** @var Carbon $currentEnd */
-            $currentEnd = $currentStart->copy()->addMinutes($allo->slot_duration_minutes);
-
-            if ($currentEnd->greaterThan($windowEnd)) {
-                // On s’arrête si le dernier slot dépasserait la fenêtre
-                break;
-            }
-
-            $startString = $currentStart->toDateTimeString();
-
-            if (in_array($startString, $existingStartTimesArray, true)) {
-                // Slot déjà existant : on avance simplement.
-                $currentStart = $currentEnd;
-
+        foreach ($this->resolveSlotWindows($allo) as [$windowStart, $windowEnd]) {
+            if ($windowStart->greaterThanOrEqualTo($windowEnd)) {
                 continue;
             }
 
-            AlloSlot::query()->create([
-                'allo_id' => $allo->id,
-                'slot_start_at' => $currentStart,
-                'slot_end_at' => $currentEnd,
-                'status' => 'available',
-                'capacity' => $capacity,
-            ]);
+            /** @var Carbon $currentStart */
+            $currentStart = $windowStart->copy();
 
-            $createdCount++;
-            $currentStart = $currentEnd;
+            while ($currentStart->lessThan($windowEnd)) {
+                /** @var Carbon $currentEnd */
+                $currentEnd = $currentStart->copy()->addMinutes($allo->slot_duration_minutes);
+
+                if ($currentEnd->greaterThan($windowEnd)) {
+                    // On s’arrête si le dernier slot dépasserait la fenêtre
+                    break;
+                }
+
+                $startString = $currentStart->toDateTimeString();
+
+                if (in_array($startString, $existingStartTimesArray, true)) {
+                    // Slot déjà existant : on avance simplement.
+                    $currentStart = $currentEnd;
+
+                    continue;
+                }
+
+                AlloSlot::query()->create([
+                    'allo_id' => $allo->id,
+                    'slot_start_at' => $currentStart,
+                    'slot_end_at' => $currentEnd,
+                    'status' => 'available',
+                    'capacity' => $capacity,
+                ]);
+
+                $createdCount++;
+                $currentStart = $currentEnd;
+            }
         }
 
         return $createdCount;
+    }
+
+    /**
+     * @return array<int, array{0: Carbon, 1: Carbon}>
+     */
+    private function resolveSlotWindows(Allo $allo): array
+    {
+        $timeSlots = $allo->time_slots;
+
+        if (is_array($timeSlots) && count($timeSlots) > 0) {
+            $windows = [];
+
+            foreach ($timeSlots as $slot) {
+                if (!is_array($slot)) {
+                    continue;
+                }
+
+                $startDate = $slot['start_date'] ?? null;
+                $endDate = $slot['end_date'] ?? null;
+                $startTime = $slot['start_time'] ?? null;
+                $endTime = $slot['end_time'] ?? null;
+
+                if (!is_string($startDate) || !is_string($endDate) || !is_string($startTime) || !is_string($endTime)) {
+                    continue;
+                }
+
+                $currentDate = Carbon::createFromFormat('Y-m-d', $startDate);
+                $endDateCarbon = Carbon::createFromFormat('Y-m-d', $endDate);
+
+                if (! $currentDate instanceof Carbon || ! $endDateCarbon instanceof Carbon) {
+                    continue;
+                }
+
+                $currentDate = $currentDate->startOfDay();
+                $endDateCarbon = $endDateCarbon->startOfDay();
+
+                while ($currentDate->lessThanOrEqualTo($endDateCarbon)) {
+                    $windowStart = $currentDate->copy()->setTimeFromTimeString($startTime);
+                    $windowEnd = $currentDate->copy()->setTimeFromTimeString($endTime);
+
+                    $windows[] = [$windowStart, $windowEnd];
+                    $currentDate->addDay();
+                }
+            }
+
+            return $windows;
+        }
+
+        if ($allo->window_start_at === null || $allo->window_end_at === null) {
+            return [];
+        }
+
+        /** @var Carbon $windowStart */
+        $windowStart = Carbon::parse($allo->window_start_at);
+        /** @var Carbon $windowEnd */
+        $windowEnd = Carbon::parse($allo->window_end_at);
+
+        return [[$windowStart, $windowEnd]];
     }
 }

@@ -13,6 +13,7 @@ use App\Services\AlloUsageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class AlloApiController extends Controller
@@ -168,17 +169,49 @@ class AlloApiController extends Controller
     {
         $requiresWindow = $request->input('status') !== 'DRAFT';
 
-        return $request->validate([
+        $validator = Validator::make($request->all(), [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'points_cost' => ['required', 'integer', 'min:0'],
             'status' => ['required', Rule::in(['DRAFT', 'OPEN', 'CLOSED', 'DISABLED'])],
-            'window_start_at' => [Rule::requiredIf($requiresWindow), 'nullable', 'date'],
-            'window_end_at' => [Rule::requiredIf($requiresWindow), 'nullable', 'date', 'after:window_start_at'],
+            'window_start_at' => ['nullable', 'date'],
+            'window_end_at' => ['nullable', 'date', 'after:window_start_at'],
             'slot_duration_minutes' => ['required', 'integer', 'min:1'],
+            'time_slots' => ['nullable', 'array'],
+            'time_slots.*.start_date' => ['required_with:time_slots', 'date_format:Y-m-d'],
+            'time_slots.*.end_date' => ['required_with:time_slots', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+            'time_slots.*.start_time' => ['required_with:time_slots', 'date_format:H:i'],
+            'time_slots.*.end_time' => ['required_with:time_slots', 'date_format:H:i'],
             'admin_ids' => ['nullable', 'array'],
             'admin_ids.*' => ['integer', 'exists:users,id'],
         ]);
+
+        $validator->after(function ($validator) use ($request, $requiresWindow): void {
+            $timeSlots = $request->input('time_slots', []);
+            $hasTimeSlots = is_array($timeSlots) && count($timeSlots) > 0;
+            $hasWindow = $request->filled('window_start_at') && $request->filled('window_end_at');
+
+            if ($requiresWindow && ! $hasTimeSlots && ! $hasWindow) {
+                $validator->errors()->add('time_slots', 'Un créneau horaire ou une fenêtre globale est requis.');
+            }
+
+            if ($hasTimeSlots) {
+                foreach ($timeSlots as $index => $slot) {
+                    if (!is_array($slot)) {
+                        continue;
+                    }
+
+                    $startTime = $slot['start_time'] ?? null;
+                    $endTime = $slot['end_time'] ?? null;
+
+                    if ($startTime !== null && $endTime !== null && $startTime >= $endTime) {
+                        $validator->errors()->add("time_slots.{$index}.end_time", 'L’heure de fin doit être après l’heure de début.');
+                    }
+                }
+            }
+        });
+
+        return $validator->validate();
     }
 
     private function resetUsageToPending(AlloUsage $usage): void
@@ -219,6 +252,7 @@ class AlloApiController extends Controller
             'window_start_at' => $allo->window_start_at?->toIso8601String(),
             'window_end_at' => $allo->window_end_at?->toIso8601String(),
             'slot_duration_minutes' => $allo->slot_duration_minutes,
+            'time_slots' => $allo->time_slots ?? [],
             'admins' => $allo->admins->map(fn ($admin): array => [
                 'id' => $admin->id,
                 'name' => $admin->display_name ?? $admin->university_email,
