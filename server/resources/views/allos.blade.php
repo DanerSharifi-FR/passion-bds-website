@@ -55,9 +55,6 @@
 
 @push('end_scripts')
     <script>
-        const isAuthenticated = @json(auth()->check());
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-
         const catalogElement = document.getElementById('allos-catalog');
         const statusElement = document.getElementById('allos-status');
         const filterButtons = document.querySelectorAll('.allo-filter-btn');
@@ -75,6 +72,93 @@
                 hour: '2-digit',
                 minute: '2-digit',
             }).format(date);
+        }
+
+        function formatDateLabel(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+            }).format(date);
+        }
+
+        function formatTime(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(date);
+        }
+
+        function formatTimeLabel(time) {
+            return time.replace(':', 'h');
+        }
+
+        function formatDateRangeLabel(startDate, endDate) {
+            if (startDate.toDateString() === endDate.toDateString()) {
+                return `Le ${formatDateLabel(startDate)}`;
+            }
+
+            return `Du ${formatDateLabel(startDate)} au ${formatDateLabel(endDate)}`;
+        }
+
+        function formatWindowLabel(startAt, endAt, timeSlots = []) {
+            if (Array.isArray(timeSlots) && timeSlots.length) {
+                const ranges = new Map();
+
+                timeSlots.forEach((slot) => {
+                    if (!slot?.start_date || !slot?.end_date || !slot?.start_time || !slot?.end_time) return;
+                    const key = `${slot.start_date}|${slot.end_date}`;
+                    if (!ranges.has(key)) {
+                        ranges.set(key, []);
+                    }
+                    ranges.get(key).push({
+                        start_time: slot.start_time,
+                        end_time: slot.end_time,
+                    });
+                });
+
+                return Array.from(ranges.entries()).map(([key, windows]) => {
+                    const [startDate, endDate] = key.split('|');
+                    const dateLabel = formatDateRangeLabel(
+                        new Date(`${startDate}T00:00:00`),
+                        new Date(`${endDate}T00:00:00`)
+                    );
+                    const windowLabels = windows.map((window) => `
+                        <div class="flex items-center gap-2">
+                            <span aria-hidden="true">🕒</span>
+                            <span>de ${formatTimeLabel(window.start_time)} à ${formatTimeLabel(window.end_time)}</span>
+                        </div>
+                    `).join('');
+
+                    return `
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-center gap-2">
+                                <span aria-hidden="true">📅</span>
+                                <span>${dateLabel}</span>
+                            </div>
+                            ${windowLabels}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            if (!startAt || !endAt) return '<span>Dates à venir</span>';
+            const start = new Date(startAt);
+            const end = new Date(endAt);
+            const dateLabel = formatDateRangeLabel(start, end);
+            const startTime = formatTimeLabel(formatTime(start));
+            const endTime = formatTimeLabel(formatTime(end));
+
+            return `
+                <div class="flex items-center gap-2">
+                    <span aria-hidden="true">📅</span>
+                    <span>${dateLabel}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span aria-hidden="true">🕒</span>
+                    <span>de ${startTime} à ${endTime}</span>
+                </div>
+            `;
         }
 
         function setFilterButtons() {
@@ -112,17 +196,19 @@
             });
         }
 
-        function buildSlotOptions(allo) {
+        function isWindowEnded(allo) {
+            if (!allo.window_end_at) return false;
             const now = new Date();
-            const slots = allo.slots.filter((slot) => {
-                if (slot.status !== 'available') return false;
-                if (!slot.slot_start_at) return true;
-                return new Date(slot.slot_start_at) >= now;
-            });
+            const end = new Date(allo.window_end_at);
+            return now > end;
+        }
 
-            return slots.length
-                ? slots.map((slot) => `<option value="${slot.id}">${formatDate(slot.slot_start_at)} → ${formatDate(slot.slot_end_at)}</option>`).join('')
-                : `<option value="">Plus de créneaux disponibles</option>`;
+        function getVisibleAllos() {
+            if (activeFilter === 'all') return allosData;
+            return allosData.filter((allo) => {
+                const windowEnded = allo.is_window_ended ?? isWindowEnded(allo);
+                return allo.status === 'OPEN' && !windowEnded;
+            });
         }
 
         function renderAllos() {
@@ -161,15 +247,16 @@
                             ${allo.points_cost} pts
                         </span>
                     </div>
-                    <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red">
-                        Fenêtre: ${formatDate(allo.window_start_at)} → ${formatDate(allo.window_end_at)}
+                    <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red flex flex-col gap-1">
+                        ${formatWindowLabel(allo.window_start_at, allo.window_end_at, allo.time_slots)}
                     </div>
                     ${isEnded ? `
                         <div class="bg-slate-100 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
                             Victime de son succès : créneaux clôturés.
                         </div>
                     ` : ''}
-                    <button class="allo-toggle-btn bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
+                    <a href="/allos/${allo.id}/creneaux"
+                       class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                         Voir les créneaux
                     </button>
                     <div class="allo-form hidden space-y-4 border-t border-passion-red/30 pt-4">
@@ -199,64 +286,6 @@
                         ` : ''}
                     </div>
                 `;
-
-                const toggleButton = card.querySelector('.allo-toggle-btn');
-                const formElement = card.querySelector('.allo-form');
-                const button = card.querySelector('.allo-book-btn');
-                const select = card.querySelector('.allo-slot-select');
-                const noteInput = card.querySelector('.allo-note');
-                const feedback = card.querySelector('.allo-feedback');
-
-                toggleButton.addEventListener('click', () => {
-                    formElement.classList.toggle('hidden');
-                    toggleButton.textContent = formElement.classList.contains('hidden')
-                        ? 'Voir les créneaux'
-                        : 'Masquer le formulaire';
-                });
-
-                if (!isAuthenticated || isEnded) {
-                    button.disabled = true;
-                }
-
-                button.addEventListener('click', async () => {
-                    if (!select.value) {
-                        feedback.textContent = 'Choisis un créneau disponible.';
-                        return;
-                    }
-
-                    button.disabled = true;
-                    feedback.textContent = 'Réservation en cours...';
-
-                    try {
-                        const response = await fetch('/api/allos/bookings', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': csrfToken,
-                            },
-                            body: JSON.stringify({
-                                allo_id: allo.id,
-                                allo_slot_id: Number(select.value),
-                                user_note: noteInput.value.trim() || null,
-                            }),
-                        });
-
-                        const data = await response.json();
-
-                        if (!response.ok) {
-                            feedback.textContent = data.message || 'Erreur lors de la réservation.';
-                        } else {
-                            feedback.textContent = 'Réservation confirmée !';
-                            await loadAllos();
-                        }
-                    } catch (error) {
-                        feedback.textContent = 'Impossible de réserver pour le moment.';
-                    } finally {
-                        if (isAuthenticated && !isEnded) {
-                            button.disabled = false;
-                        }
-                    }
-                });
 
                 catalogElement.appendChild(card);
             });

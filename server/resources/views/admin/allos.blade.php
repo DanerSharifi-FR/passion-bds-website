@@ -44,11 +44,34 @@
 
     <!-- VIEW: CATALOG -->
     <div id="viewCatalog" class="hidden">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold text-white">Catalogue des Services</h2>
-            <button onclick="openAlloModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow">
-                <i class="fa-solid fa-plus mr-2"></i> Nouvel Allo
-            </button>
+        <div class="flex flex-col gap-4 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 class="text-xl font-bold text-white">Catalogue des Services</h2>
+                <button onclick="openAlloModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow">
+                    <i class="fa-solid fa-plus mr-2"></i> Nouvel Allo
+                </button>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogTitleFilter">Filtrer par titre</label>
+                    <input id="catalogTitleFilter" type="text" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500" placeholder="Ex: petit dej, massage...">
+                </div>
+                <div class="sm:w-56">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogStatusFilter">Statut</label>
+                    <select id="catalogStatusFilter" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                        <option value="ALL">Tous les statuts</option>
+                        <option value="DRAFT">Brouillon</option>
+                        <option value="OPEN">Ouvert</option>
+                        <option value="CLOSED">Fermé</option>
+                        <option value="DISABLED">Désactivé</option>
+                    </select>
+                </div>
+                <div class="sm:w-40 sm:flex sm:items-end">
+                    <button id="catalogResetFilters" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg px-3 py-2 transition-colors">
+                        Réinitialiser
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="catalogGrid"></div>
     </div>
@@ -88,17 +111,58 @@
                                 <option value="DISABLED">Désactivé</option>
                             </select>
                         </div>
-                        <div class="p-3 bg-slate-700/30 rounded border border-slate-600">
-                            <label class="block text-sm font-medium text-slate-300 mb-2">Fenêtre d'ouverture (Obligatoire)</label>
-                            <div class="grid grid-cols-2 gap-2">
+                        <div class="p-3 bg-slate-700/30 rounded border border-slate-600 space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300">Planification</label>
+                                <p class="text-xs text-slate-500">Choisis le mode de création des créneaux (fenêtre unique ou créneaux multiples).</p>
+                            </div>
+                            <div class="flex flex-col gap-2 text-xs text-slate-300">
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="scheduleMode" value="window" checked class="text-indigo-500 focus:ring-indigo-500">
+                                    Fenêtre unique
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="scheduleMode" value="date" class="text-indigo-500 focus:ring-indigo-500">
+                                    Créneaux datés (plusieurs dates)
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="scheduleMode" value="range" class="text-indigo-500 focus:ring-indigo-500">
+                                    Plage globale + fenêtres horaires
+                                </label>
+                            </div>
+                            <div id="scheduleWindowFields" class="grid grid-cols-2 gap-2">
                                 <div>
                                     <label class="text-xs text-slate-500 mb-1 block">Ouverture</label>
-                                    <input type="datetime-local" id="alloStart" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" required>
+                                    <input type="datetime-local" id="alloStart" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
                                 </div>
                                 <div>
                                     <label class="text-xs text-slate-500 mb-1 block">Fermeture</label>
-                                    <input type="datetime-local" id="alloEnd" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" required>
+                                    <input type="datetime-local" id="alloEnd" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
                                 </div>
+                            </div>
+                            <div id="scheduleDateFields" class="hidden space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs text-slate-400">Ajoute un créneau par date (date + heure de début/fin).</p>
+                                    <button type="button" id="addDateSlot" class="text-xs text-indigo-300 hover:text-indigo-200">+ Ajouter un créneau</button>
+                                </div>
+                                <div id="dateSlotsContainer" class="space-y-2"></div>
+                            </div>
+                            <div id="scheduleRangeFields" class="hidden space-y-2">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-xs text-slate-500 mb-1 block">Début de période</label>
+                                        <input type="date" id="rangeStartDate" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-slate-500 mb-1 block">Fin de période</label>
+                                        <input type="date" id="rangeEndDate" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs text-slate-400">Ajoute plusieurs fenêtres horaires pour cette plage.</p>
+                                    <button type="button" id="addRangeSlot" class="text-xs text-indigo-300 hover:text-indigo-200">+ Ajouter une fenêtre</button>
+                                </div>
+                                <div id="rangeSlotsContainer" class="space-y-2"></div>
                             </div>
                         </div>
                         <div>
@@ -130,15 +194,94 @@
         let allos = [];
         let requests = [];
         let admins = [];
+        let catalogFilters = {
+            title: '',
+            status: 'ALL',
+        };
+        let scheduleMode = 'window';
+        let dateSpecificSlots = [];
+        let rangeTimeSlots = [];
+        let rangeDateStart = '';
+        let rangeDateEnd = '';
 
         function csrf() {
             return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        }
+
+        function jsonHeaders() {
+            return { 'Accept': 'application/json' };
+        }
+
+        async function parseJsonResponse(response) {
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const isLoginRedirect = response.redirected
+                    && response.url
+                    && (response.url.includes('/login') || response.url.includes('/admin/login'));
+                const message = isLoginRedirect
+                    ? 'Session expirée. Merci de te reconnecter.'
+                    : `Réponse inattendue du serveur. (HTTP ${response.status})`;
+                throw new Error(message);
+            }
+            return response.json();
         }
 
         function formatDateTime(iso) {
             if (!iso) return '-';
             const date = new Date(iso);
             return date.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+        }
+
+        function formatDateLabel(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+            }).format(date);
+        }
+
+        function formatTimeLabel(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(date);
+        }
+
+        function formatWindowInfo(startAt, endAt) {
+            if (!startAt || !endAt) {
+                return `<span class="text-slate-500 text-xs">Non planifié</span>`;
+            }
+
+            const start = new Date(startAt);
+            const end = new Date(endAt);
+            const sameDay = start.toDateString() === end.toDateString();
+            const dateLabel = formatDateLabel(start);
+            const startTime = formatTimeLabel(start);
+            const endTime = formatTimeLabel(end);
+
+            if (sameDay) {
+                return `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs">${dateLabel}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-clock text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="flex items-center gap-2">
+                    <i class="fa-regular fa-calendar text-slate-400"></i>
+                    <span class="text-indigo-200 text-xs font-mono">de ${formatDateTime(startAt)}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-regular fa-calendar text-slate-400"></i>
+                    <span class="text-indigo-200 text-xs font-mono">à ${formatDateTime(endAt)}</span>
+                </div>
+            `;
         }
 
         function toInputDateTime(iso) {
@@ -189,8 +332,11 @@
 
         async function loadAllos() {
             try {
-                const response = await fetch(API.allos, { credentials: 'same-origin' });
-                const payload = await response.json();
+                const response = await fetch(API.allos, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger les allos.');
                 allos = payload.data || [];
                 populateFilters();
@@ -202,8 +348,11 @@
 
         async function loadRequests() {
             try {
-                const response = await fetch(`${API.usages}?status=ALL`, { credentials: 'same-origin' });
-                const payload = await response.json();
+                const response = await fetch(`${API.usages}?status=ALL`, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger les demandes.');
                 requests = payload.data || [];
                 renderRequests();
@@ -214,8 +363,11 @@
 
         async function loadAdmins() {
             try {
-                const response = await fetch(API.admins, { credentials: 'same-origin' });
-                const payload = await response.json();
+                const response = await fetch(API.admins, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger la liste des admins.');
                 admins = payload.data || [];
             } catch (error) {
@@ -249,6 +401,108 @@
                 div.innerHTML = `<input type="checkbox" id="admin_${admin.id}" name="alloAdmins" value="${admin.id}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600 bg-slate-800 border-slate-600 rounded focus:ring-indigo-500"><label for="admin_${admin.id}" class="ml-2 text-sm text-slate-300 cursor-pointer select-none">${admin.name}</label>`;
                 container.appendChild(div);
             });
+        }
+
+        function setScheduleMode(mode) {
+            scheduleMode = mode;
+            updateScheduleVisibility();
+        }
+
+        function updateScheduleVisibility() {
+            const windowFields = document.getElementById('scheduleWindowFields');
+            const dateFields = document.getElementById('scheduleDateFields');
+            const rangeFields = document.getElementById('scheduleRangeFields');
+
+            windowFields.classList.toggle('hidden', scheduleMode !== 'window');
+            dateFields.classList.toggle('hidden', scheduleMode !== 'date');
+            rangeFields.classList.toggle('hidden', scheduleMode !== 'range');
+        }
+
+        function renderDateSlots() {
+            const container = document.getElementById('dateSlotsContainer');
+            container.innerHTML = '';
+
+            if (dateSpecificSlots.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500">Aucun créneau ajouté.</p>';
+                return;
+            }
+
+            dateSpecificSlots.forEach((slot, index) => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr_0.9fr_auto] gap-2 items-center';
+                row.innerHTML = `
+                    <input type="date" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.date || ''}" data-field="date" data-index="${index}">
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.start_time || ''}" data-field="start_time" data-index="${index}">
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.end_time || ''}" data-field="end_time" data-index="${index}">
+                    <button type="button" class="text-xs text-red-300 hover:text-red-200" data-action="remove" data-index="${index}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+                row.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('change', (event) => {
+                        const idx = Number(event.target.dataset.index);
+                        const field = event.target.dataset.field;
+                        dateSpecificSlots[idx][field] = event.target.value;
+                    });
+                });
+                row.querySelector('[data-action="remove"]').addEventListener('click', (event) => {
+                    const idx = Number(event.currentTarget.dataset.index);
+                    dateSpecificSlots.splice(idx, 1);
+                    renderDateSlots();
+                });
+                container.appendChild(row);
+            });
+        }
+
+        function renderRangeSlots() {
+            const container = document.getElementById('rangeSlotsContainer');
+            container.innerHTML = '';
+
+            if (rangeTimeSlots.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500">Aucune fenêtre horaire ajoutée.</p>';
+                return;
+            }
+
+            rangeTimeSlots.forEach((slot, index) => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-center';
+                row.innerHTML = `
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.start_time || ''}" data-field="start_time" data-index="${index}">
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.end_time || ''}" data-field="end_time" data-index="${index}">
+                    <button type="button" class="text-xs text-red-300 hover:text-red-200" data-action="remove" data-index="${index}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+                row.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('change', (event) => {
+                        const idx = Number(event.target.dataset.index);
+                        const field = event.target.dataset.field;
+                        rangeTimeSlots[idx][field] = event.target.value;
+                    });
+                });
+                row.querySelector('[data-action="remove"]').addEventListener('click', (event) => {
+                    const idx = Number(event.currentTarget.dataset.index);
+                    rangeTimeSlots.splice(idx, 1);
+                    renderRangeSlots();
+                });
+                container.appendChild(row);
+            });
+        }
+
+        function resetScheduleState() {
+            scheduleMode = 'window';
+            dateSpecificSlots = [];
+            rangeTimeSlots = [];
+            rangeDateStart = '';
+            rangeDateEnd = '';
+            document.querySelectorAll('input[name="scheduleMode"]').forEach((input) => {
+                input.checked = input.value === scheduleMode;
+            });
+            document.getElementById('rangeStartDate').value = '';
+            document.getElementById('rangeEndDate').value = '';
+            updateScheduleVisibility();
+            renderDateSlots();
+            renderRangeSlots();
         }
 
         // --- REQUESTS ---
@@ -332,13 +586,34 @@
         }
 
         // --- CATALOG ---
+        function getFilteredAllos() {
+            const titleFilter = catalogFilters.title.trim().toLowerCase();
+            const statusFilter = catalogFilters.status;
+
+            return allos.filter((allo) => {
+                const matchesTitle = !titleFilter
+                    || allo.title.toLowerCase().includes(titleFilter);
+                const matchesStatus = statusFilter === 'ALL'
+                    || allo.status === statusFilter;
+                return matchesTitle && matchesStatus;
+            });
+        }
+
         function renderCatalog() {
             const grid = document.getElementById('catalogGrid');
-            const html = allos.map(a => {
-                let statusInfo = '<span class="text-slate-500 text-xs">Non planifié</span>';
-                if (a.window_start_at && a.window_end_at) {
-                    statusInfo = `<span class="text-indigo-400 text-xs font-mono">${formatDateTime(a.window_start_at)} → ${formatDateTime(a.window_end_at)}</span>`;
-                }
+            const filteredAllos = getFilteredAllos();
+            if (filteredAllos.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-500">
+                        <i class="fa-solid fa-filter text-3xl mb-3 opacity-30"></i>
+                        <p>Aucun allo ne correspond à ces filtres.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = filteredAllos.map(a => {
+                const windowInfo = formatWindowInfo(a.window_start_at, a.window_end_at);
                 const adminsStr = a.admins && a.admins.length > 0 ? a.admins.map(admin => admin.name).join(', ') : "Tous";
                 return `
                     <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow flex flex-col">
@@ -351,7 +626,12 @@
                         </div>
                         <p class="text-sm text-slate-400 mb-2 flex-1">${a.description || 'Pas de description.'}</p>
                         <div class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-user-shield mr-1"></i> Géré par: <span class="text-white">${adminsStr}</span></div>
-                        <div class="flex items-center gap-2 mb-4 bg-slate-700/30 p-2 rounded"><i class="fa-regular fa-calendar text-slate-400"></i> ${statusInfo}<span class="ml-auto text-xs bg-slate-700 px-2 py-1 rounded">${a.slot_duration_minutes} min/slot</span></div>
+                        <div class="flex items-start justify-between gap-3 mb-4 bg-slate-700/30 p-3 rounded">
+                            <div class="flex flex-col gap-1">
+                                ${windowInfo}
+                            </div>
+                            <span class="text-xs bg-slate-700 px-2 py-1 rounded">${a.slot_duration_minutes} min/slot</span>
+                        </div>
                         <div class="flex gap-2 mt-auto">
                             <button onclick="window.openEditAllo(${a.id})" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"><i class="fa-solid fa-pen mr-2"></i> Modifier</button>
                             <button type="button" onclick="window.deleteAllo(${a.id})" class="px-3 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded text-sm transition-colors" title="Supprimer"><i class="fa-solid fa-trash"></i></button>
@@ -366,10 +646,13 @@
             try {
                 const response = await fetch(`${API.allos}/${id}`, {
                     method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': csrf() },
+                    headers: {
+                        ...jsonHeaders(),
+                        'X-CSRF-TOKEN': csrf(),
+                    },
                     credentials: 'same-origin',
                 });
-                const payload = await response.json();
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Suppression impossible.');
                 showToast("Allo supprimé", "success");
                 await loadAllos();
@@ -391,6 +674,7 @@
             document.getElementById('alloDesc').value = "";
             document.getElementById('alloStatus').value = "DRAFT";
             populateAdminList([]);
+            resetScheduleState();
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
@@ -408,16 +692,70 @@
             document.getElementById('alloDesc').value = a.description || "";
             document.getElementById('alloStatus').value = a.status || "DRAFT";
             populateAdminList(a.admin_ids || []);
+            resetScheduleState();
+
+            if (Array.isArray(a.time_slots) && a.time_slots.length > 0) {
+                const first = a.time_slots[0];
+                const sameRange = a.time_slots.every(slot => slot.start_date === first.start_date && slot.end_date === first.end_date);
+                if (sameRange) {
+                    scheduleMode = 'range';
+                    rangeDateStart = first.start_date || '';
+                    rangeDateEnd = first.end_date || '';
+                    rangeTimeSlots = a.time_slots.map(slot => ({
+                        start_time: slot.start_time || '',
+                        end_time: slot.end_time || '',
+                    }));
+                    document.getElementById('rangeStartDate').value = rangeDateStart;
+                    document.getElementById('rangeEndDate').value = rangeDateEnd;
+                    renderRangeSlots();
+                } else {
+                    scheduleMode = 'date';
+                    dateSpecificSlots = a.time_slots.map(slot => ({
+                        date: slot.start_date || '',
+                        start_time: slot.start_time || '',
+                        end_time: slot.end_time || '',
+                    }));
+                    renderDateSlots();
+                }
+                document.querySelectorAll('input[name="scheduleMode"]').forEach((input) => {
+                    input.checked = input.value === scheduleMode;
+                });
+                updateScheduleVisibility();
+            }
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
 
         function closeAlloModal() { document.getElementById('alloModal').classList.add('hidden'); document.body.classList.remove('modal-active'); }
 
+        function bindCatalogFilters() {
+            const titleFilter = document.getElementById('catalogTitleFilter');
+            const statusFilter = document.getElementById('catalogStatusFilter');
+            const resetButton = document.getElementById('catalogResetFilters');
+
+            const applyFilters = () => {
+                catalogFilters = {
+                    title: titleFilter.value,
+                    status: statusFilter.value,
+                };
+                renderCatalog();
+            };
+
+            titleFilter.addEventListener('input', applyFilters);
+            statusFilter.addEventListener('change', applyFilters);
+            resetButton.addEventListener('click', () => {
+                titleFilter.value = '';
+                statusFilter.value = 'ALL';
+                applyFilters();
+            });
+        }
+
         async function submitAllo() {
             const id = document.getElementById('editAlloId').value;
             const selectedAdmins = [];
             document.querySelectorAll('input[name="alloAdmins"]:checked').forEach(cb => selectedAdmins.push(cb.value));
+            const selectedMode = document.querySelector('input[name="scheduleMode"]:checked')?.value || 'window';
+            let timeSlots = null;
             const data = {
                 title: document.getElementById('alloTitle').value,
                 points_cost: parseInt(document.getElementById('alloCost').value),
@@ -429,19 +767,84 @@
                 admin_ids: selectedAdmins.map(id => parseInt(id)),
             };
             if(!data.title) { showToast("Titre requis", 'error'); return; }
-            if(!data.window_start_at || !data.window_end_at) { showToast("Dates d'ouverture/fermeture requises", 'error'); return; }
+            if (selectedMode === 'window') {
+                data.time_slots = null;
+            }
+            if (selectedMode === 'date') {
+                const normalizedSlots = dateSpecificSlots.map(slot => ({
+                    start_date: slot.date,
+                    end_date: slot.date,
+                    start_time: slot.start_time,
+                    end_time: slot.end_time,
+                })).filter(slot => slot.start_date || slot.start_time || slot.end_time);
+                if (normalizedSlots.length === 0) {
+                    showToast("Ajoute au moins un créneau daté.", 'error');
+                    return;
+                }
+                const hasIncomplete = normalizedSlots.some(slot => !slot.start_date || !slot.start_time || !slot.end_time);
+                if (hasIncomplete) {
+                    showToast("Tous les créneaux datés doivent être complets.", 'error');
+                    return;
+                }
+                timeSlots = normalizedSlots;
+                data.window_start_at = null;
+                data.window_end_at = null;
+            }
+
+            if (selectedMode === 'range') {
+                rangeDateStart = document.getElementById('rangeStartDate').value;
+                rangeDateEnd = document.getElementById('rangeEndDate').value;
+                if (!rangeDateStart || !rangeDateEnd) {
+                    showToast("Dates de période requises.", 'error');
+                    return;
+                }
+                const normalizedSlots = rangeTimeSlots.map(slot => ({
+                    start_date: rangeDateStart,
+                    end_date: rangeDateEnd,
+                    start_time: slot.start_time,
+                    end_time: slot.end_time,
+                })).filter(slot => slot.start_time || slot.end_time);
+                if (normalizedSlots.length === 0) {
+                    showToast("Ajoute au moins une fenêtre horaire.", 'error');
+                    return;
+                }
+                const hasIncomplete = normalizedSlots.some(slot => !slot.start_time || !slot.end_time);
+                if (hasIncomplete) {
+                    showToast("Toutes les fenêtres horaires doivent être complètes.", 'error');
+                    return;
+                }
+                timeSlots = normalizedSlots;
+                data.window_start_at = null;
+                data.window_end_at = null;
+            }
+
+            if (data.status !== 'DRAFT') {
+                if (selectedMode === 'window' && (!data.window_start_at || !data.window_end_at)) {
+                    showToast("Dates d'ouverture/fermeture requises", 'error');
+                    return;
+                }
+                if ((selectedMode === 'date' || selectedMode === 'range') && (!timeSlots || timeSlots.length === 0)) {
+                    showToast("Créneaux requis", 'error');
+                    return;
+                }
+            }
+
+            if (timeSlots !== null) {
+                data.time_slots = timeSlots;
+            }
 
             try {
                 const response = await fetch(id ? `${API.allos}/${id}` : API.allos, {
                     method: id ? 'PUT' : 'POST',
                     headers: {
+                        ...jsonHeaders(),
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrf(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify(data),
                 });
-                const payload = await response.json();
+                const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Sauvegarde impossible.');
                 showToast(id ? "Allo mis à jour" : "Allo créé", 'success');
                 closeAlloModal();
@@ -457,13 +860,14 @@
                 const response = await fetch(`${API.usages}/${id}`, {
                     method: 'PUT',
                     headers: {
+                        ...jsonHeaders(),
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrf(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify(payload),
                 });
-                const result = await response.json();
+                const result = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(result.message || 'Mise à jour impossible.');
                 showToast('Demande mise à jour.', 'success');
                 await loadRequests();
@@ -542,7 +946,28 @@
         // Init
         window.deleteAllo = deleteAllo;
         window.openEditAllo = openEditAllo;
+        document.querySelectorAll('input[name="scheduleMode"]').forEach(input => {
+            input.addEventListener('change', (event) => setScheduleMode(event.target.value));
+        });
+        document.getElementById('addDateSlot').addEventListener('click', () => {
+            dateSpecificSlots.push({ date: '', start_time: '', end_time: '' });
+            renderDateSlots();
+        });
+        document.getElementById('addRangeSlot').addEventListener('click', () => {
+            rangeTimeSlots.push({ start_time: '', end_time: '' });
+            renderRangeSlots();
+        });
+        document.getElementById('rangeStartDate').addEventListener('change', (event) => {
+            rangeDateStart = event.target.value;
+        });
+        document.getElementById('rangeEndDate').addEventListener('change', (event) => {
+            rangeDateEnd = event.target.value;
+        });
+        updateScheduleVisibility();
+        renderDateSlots();
+        renderRangeSlots();
         loadAdmins().then(populateAdminList);
+        bindCatalogFilters();
         loadAllos();
         loadRequests();
 
