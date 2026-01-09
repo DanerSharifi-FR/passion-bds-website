@@ -29,8 +29,6 @@ return new class extends Migration
                 ->constrained('users')
                 ->cascadeOnDelete();
 
-            $table->integer('points_spent');
-
             $table->string('status', 20);
 
             $table->foreignId('handled_by_id')
@@ -53,12 +51,6 @@ return new class extends Migration
         });
 
         // Keep only constraints that don't touch FK columns
-        DB::statement("
-            ALTER TABLE allo_usages
-            ADD CONSTRAINT chk_au_points_spent_min0
-            CHECK (points_spent >= 0)
-        ");
-
         DB::statement("
             ALTER TABLE allo_usages
             ADD CONSTRAINT chk_au_status_valid

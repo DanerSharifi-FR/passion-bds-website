@@ -19,7 +19,6 @@ return new class extends Migration
             $table->string('slug', 255)->nullable();
             $table->text('description')->nullable();
 
-            $table->integer('points_cost');
             $table->string('status', 20);
 
             $table->timestamp('window_start_at');
@@ -41,12 +40,6 @@ return new class extends Migration
         });
 
         // DB-level constraints matching the schema doc
-        DB::statement("
-            ALTER TABLE allos
-            ADD CONSTRAINT chk_allos_points_cost_min0
-            CHECK (points_cost >= 0)
-        ");
-
         DB::statement("
             ALTER TABLE allos
             ADD CONSTRAINT chk_allos_window_end_after_start

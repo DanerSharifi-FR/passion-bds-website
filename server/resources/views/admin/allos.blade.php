@@ -92,15 +92,9 @@
                             <label class="block text-sm font-medium text-slate-300 mb-1">Titre</label>
                             <input type="text" id="alloTitle" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5 focus:ring-yellow-500 focus:border-yellow-500" placeholder="ex: P'tit Dej au lit" required>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-300 mb-1">Coût (Pts)</label>
-                                <input type="number" id="alloCost" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5 font-mono text-yellow-400" placeholder="200" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-300 mb-1">Durée Slot (min)</label>
-                                <input type="number" id="alloDuration" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="15" value="15" required>
-                            </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Durée Slot (min)</label>
+                            <input type="number" id="alloDuration" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="15" value="15" required>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-1">Statut</label>
@@ -563,8 +557,6 @@
                                         <i class="fa-solid fa-user mr-1"></i> ${r.user_name}
                                         <span class="mx-2">•</span>
                                         <i class="fa-regular fa-clock mr-1"></i> Créneau : <span class="text-white font-mono">${formatDateTime(r.slot_start_at)}</span>
-                                        <span class="mx-2">•</span>
-                                        <span class="text-yellow-400 font-mono">${r.points_spent} pts</span>
                                     </p>
                                 </div>
                             </div>
@@ -622,7 +614,6 @@
                                 <h3 class="text-lg font-bold text-white">${a.title}</h3>
                                 <span class="text-[10px] uppercase tracking-wide text-slate-400">${statusLabel(a.status)}</span>
                             </div>
-                            <span class="text-yellow-400 font-mono font-bold">${a.points_cost} pts</span>
                         </div>
                         <p class="text-sm text-slate-400 mb-2 flex-1">${a.description || 'Pas de description.'}</p>
                         <div class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-user-shield mr-1"></i> Géré par: <span class="text-white">${adminsStr}</span></div>
@@ -667,7 +658,6 @@
             document.getElementById('alloModalTitle').innerText = "Créer un Allo";
             document.getElementById('editAlloId').value = "";
             document.getElementById('alloTitle').value = "";
-            document.getElementById('alloCost').value = "100";
             document.getElementById('alloDuration').value = "15";
             document.getElementById('alloStart').value = "";
             document.getElementById('alloEnd').value = "";
@@ -685,7 +675,6 @@
             document.getElementById('alloModalTitle').innerText = "Modifier Allo";
             document.getElementById('editAlloId').value = a.id;
             document.getElementById('alloTitle').value = a.title;
-            document.getElementById('alloCost').value = a.points_cost;
             document.getElementById('alloDuration').value = a.slot_duration_minutes;
             document.getElementById('alloStart').value = toInputDateTime(a.window_start_at);
             document.getElementById('alloEnd').value = toInputDateTime(a.window_end_at);
@@ -758,7 +747,6 @@
             let timeSlots = null;
             const data = {
                 title: document.getElementById('alloTitle').value,
-                points_cost: parseInt(document.getElementById('alloCost').value),
                 slot_duration_minutes: parseInt(document.getElementById('alloDuration').value),
                 window_start_at: document.getElementById('alloStart').value,
                 window_end_at: document.getElementById('alloEnd').value,

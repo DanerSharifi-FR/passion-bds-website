@@ -18,7 +18,7 @@
                 Catalogue <span class="text-passion-fire-orange">Allos</span>
             </h1>
             <p class="text-passion-pink-500 font-medium mt-2 text-sm md:text-base">
-                Des services tentants à réserver contre des points. Choisis ton créneau et laisse-nous un petit mot 💌
+                Des services tentants à réserver. Choisis ton créneau et laisse-nous un petit mot 💌
             </p>
         </div>
 
@@ -243,9 +243,6 @@
                             <h2 class="font-display font-black uppercase text-2xl text-passion-red">${allo.title}</h2>
                             <p class="text-sm text-gray-600 mt-2">${allo.description ?? ''}</p>
                         </div>
-                        <span class="bg-passion-fire-orange text-passion-red font-display font-black text-sm px-3 py-1 shadow-[3px_3px_0_#000]">
-                            ${allo.points_cost} pts
-                        </span>
                     </div>
                     <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red flex flex-col gap-1">
                         ${formatWindowLabel(allo.window_start_at, allo.window_end_at, allo.time_slots)}

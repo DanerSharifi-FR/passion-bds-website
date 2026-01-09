@@ -21,7 +21,6 @@ use Illuminate\Support\Carbon;
  * @property string $title
  * @property string|null $slug
  * @property string|null $description
- * @property int $points_cost
  * @property string $status
  * @property Carbon $window_start_at
  * @property Carbon $window_end_at
@@ -54,7 +53,6 @@ class Allo extends Model
         'title',
         'slug',
         'description',
-        'points_cost',
         'status',
         'window_start_at',
         'window_end_at',
@@ -68,7 +66,6 @@ class Allo extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'points_cost' => 'integer',
         'slot_duration_minutes' => 'integer',
         'window_start_at' => 'datetime',
         'window_end_at' => 'datetime',

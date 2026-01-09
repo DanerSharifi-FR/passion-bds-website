@@ -49,9 +49,6 @@
                     <p class="text-xs font-bold uppercase text-passion-red">Ton créneau choisi</p>
                     <p id="allo-selected-slot" class="text-sm font-semibold text-slate-700">Sélectionne un créneau</p>
                 </div>
-                <span id="allo-points"
-                      class="bg-passion-fire-orange text-passion-red font-display font-black text-sm px-3 py-1 shadow-[3px_3px_0_#000]">
-                </span>
             </div>
             <div class="space-y-2">
                 <label class="text-xs font-bold uppercase text-passion-red">Ton note pour nous</label>
@@ -83,7 +80,6 @@
         const bookingButton = document.getElementById('allo-book-btn');
         const noteInput = document.getElementById('allo-note');
         const feedbackElement = document.getElementById('allo-feedback');
-        const pointsElement = document.getElementById('allo-points');
 
         let alloData = null;
         let selectedSlot = null;
@@ -404,7 +400,6 @@
 
                 titleElement.textContent = alloData.title || 'Créneaux Allo';
                 descriptionElement.textContent = alloData.description || '';
-                pointsElement.textContent = `${alloData.points_cost} pts`;
 
                 windowCard.innerHTML = formatWindowLabel(alloData.window_start_at, alloData.window_end_at, alloData.time_slots);
                 windowCard.classList.remove('hidden');

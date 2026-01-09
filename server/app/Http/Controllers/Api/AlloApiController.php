@@ -9,7 +9,6 @@ use App\Models\Allo;
 use App\Models\AlloSlot;
 use App\Models\AlloUsage;
 use App\Services\AlloUsageService;
-use App\Services\PointTransactionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -66,7 +65,6 @@ class AlloApiController extends Controller
                 'id' => $allo->id,
                 'title' => $allo->title,
                 'description' => $allo->description,
-                'points_cost' => $allo->points_cost,
                 'status' => $allo->status,
                 'capacity' => $totalCapacity,
                 'booked_count' => $bookedCount,
@@ -118,7 +116,6 @@ class AlloApiController extends Controller
      */
     public function storeBooking(
         Request $request,
-        PointTransactionService $pointTransactionService,
     ): JsonResponse {
         $user = $request->user();
 
@@ -165,12 +162,6 @@ class AlloApiController extends Controller
             return response()->json(['message' => 'Ce créneau est bloqué.'], 422);
         }
 
-        $balance = $pointTransactionService->getUserBalance($user);
-
-        if ($balance < $allo->points_cost) {
-            return response()->json(['message' => 'Points insuffisants pour réserver cet allo.'], 422);
-        }
-
         $existingBooking = AlloUsage::query()
             ->where('user_id', $user->id)
             ->where('slot_start_at', $slot->slot_start_at)
@@ -180,7 +171,7 @@ class AlloApiController extends Controller
             return response()->json(['message' => 'Vous avez déjà réservé ce créneau.'], 422);
         }
 
-        $booking = DB::transaction(function () use ($user, $allo, $slot, $validated, $pointTransactionService): AlloUsage {
+        $booking = DB::transaction(function () use ($user, $allo, $slot, $validated): AlloUsage {
             $slot = AlloSlot::query()
                 ->where('id', $slot->id)
                 ->lockForUpdate()
@@ -217,7 +208,6 @@ class AlloApiController extends Controller
                 'allo_slot_id' => $slot->id,
                 'slot_start_at' => $slot->slot_start_at,
                 'user_id' => $user->id,
-                'points_spent' => $allo->points_cost,
                 'user_note' => $validated['user_note'] ?? null,
                 'status' => AlloUsageService::STATUS_PENDING,
             ]);
@@ -225,15 +215,6 @@ class AlloApiController extends Controller
             $newCount = $currentBookings + 1;
             $slot->status = $newCount >= $slotCapacity ? 'booked' : 'available';
             $slot->save();
-
-            $pointTransactionService->createManualTransaction(
-                targetUser: $user,
-                actor: null,
-                amount: -$allo->points_cost,
-                reason: sprintf('Réservation allo : %s', $allo->title),
-                contextType: 'allo',
-                contextId: $allo->id,
-            );
 
             return $usage;
         });

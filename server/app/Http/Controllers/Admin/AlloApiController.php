@@ -92,7 +92,6 @@ class AlloApiController extends Controller
                 'au.allo_id',
                 'a.title as allo_title',
                 'au.slot_start_at',
-                'au.points_spent',
                 'au.status',
                 'au.created_at',
                 'au.accepted_at',
@@ -174,11 +173,9 @@ class AlloApiController extends Controller
         if ($normalizedTimeSlots !== null) {
             $payload['time_slots'] = $normalizedTimeSlots;
         }
-
         $validator = Validator::make($payload, [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'points_cost' => ['required', 'integer', 'min:0'],
             'status' => ['required', Rule::in(['DRAFT', 'OPEN', 'CLOSED', 'DISABLED'])],
             'window_start_at' => ['nullable', 'date'],
             'window_end_at' => ['nullable', 'date', 'after:window_start_at'],
@@ -293,7 +290,6 @@ class AlloApiController extends Controller
             'id' => $allo->id,
             'title' => $allo->title,
             'description' => $allo->description,
-            'points_cost' => $allo->points_cost,
             'status' => $allo->status,
             'capacity' => $capacity,
             'booked_count' => $bookedCount,
@@ -322,7 +318,6 @@ class AlloApiController extends Controller
             'allo_id' => (int) $row->allo_id,
             'allo_title' => $row->allo_title,
             'slot_start_at' => $this->formatDate($row->slot_start_at),
-            'points_spent' => (int) $row->points_spent,
             'status' => $row->status,
             'created_at' => $this->formatDate($row->created_at),
             'accepted_at' => $this->formatDate($row->accepted_at),
@@ -347,7 +342,6 @@ class AlloApiController extends Controller
             'allo_id' => $usage->allo_id,
             'allo_title' => $usage->allo?->title,
             'slot_start_at' => $usage->slot_start_at?->toIso8601String(),
-            'points_spent' => $usage->points_spent,
             'status' => $usage->status,
             'created_at' => $usage->created_at?->toIso8601String(),
             'accepted_at' => $usage->accepted_at?->toIso8601String(),

@@ -269,7 +269,7 @@
                                 </tr>
                                 <tr>
                                     <td class="pr-2 align-top text-right text-lg">🎯</td>
-                                    <td>Gagner des points Allo en participant aux activités</td>
+                                    <td>Réserver un allo en participant aux activités</td>
                                 </tr>
                             </table>
                         </div>
