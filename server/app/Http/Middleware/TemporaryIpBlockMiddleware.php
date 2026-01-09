@@ -32,6 +32,11 @@ class TemporaryIpBlockMiddleware
             return $next($request);
         }
 
+        // Avoid blocking if connected admin ()
+        if (auth()->check() && auth()->user()->isSuperAdmin()) {
+            return $next($request);
+        }
+
         $last = AuditLog::query()
             ->where('ip_address', $ip)
             ->whereIn('action', self::BLOCKING_ACTIONS)
