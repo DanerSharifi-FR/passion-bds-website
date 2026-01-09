@@ -1,4 +1,3 @@
-@dd("va te faire enculé")
 <!DOCTYPE html>
 <html lang="fr" class="h-full bg-slate-900">
 <head>
