@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\AuditLog;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class TemporaryIpBlockMiddleware
@@ -33,8 +34,16 @@ class TemporaryIpBlockMiddleware
         }
 
         // Avoid blocking if connected admin ()
-        if (auth()->check() && auth()->user()->isSuperAdmin()) {
-            return $next($request);
+        if (auth()->check()) {
+            $connectedUserRoles = DB::table('user_roles')
+                ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+                ->where('user_roles.user_id', auth()->id() ?? 0)
+                ->pluck('roles.name')
+                ->all();
+
+            if (in_array('ROLE_SUPER_ADMIN', $connectedUserRoles, true)) {
+                return $next($request);
+            }
         }
 
         $last = AuditLog::query()
