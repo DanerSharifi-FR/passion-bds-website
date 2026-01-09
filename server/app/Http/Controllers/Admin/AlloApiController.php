@@ -166,7 +166,8 @@ class AlloApiController extends Controller
 
     private function validateAllo(Request $request): array
     {
-        $requiresWindow = $request->input('status') !== 'DRAFT';
+        $status = strtoupper((string) $request->input('status', ''));
+        $requiresWindow = $status !== 'DRAFT';
         $normalizedTimeSlots = $this->normalizeTimeSlots($request->input('time_slots'));
         $payload = $request->all();
 
@@ -179,7 +180,7 @@ class AlloApiController extends Controller
             'status' => ['required', Rule::in(['DRAFT', 'OPEN', 'CLOSED', 'DISABLED'])],
             'window_start_at' => ['nullable', 'date'],
             'window_end_at' => ['nullable', 'date', 'after:window_start_at'],
-            'slot_duration_minutes' => ['required', 'integer', 'min:1'],
+            'slot_duration_minutes' => [Rule::requiredIf($requiresWindow), 'nullable', 'integer', 'min:1'],
             'time_slots' => ['nullable', 'array'],
             'time_slots.*.start_date' => ['required_with:time_slots', 'date_format:Y-m-d'],
             'time_slots.*.end_date' => ['required_with:time_slots', 'date_format:Y-m-d', 'after_or_equal:start_date'],
@@ -194,7 +195,7 @@ class AlloApiController extends Controller
             $hasTimeSlots = is_array($timeSlots) && count($timeSlots) > 0;
             $hasWindow = !empty($payload['window_start_at']) && !empty($payload['window_end_at']);
 
-            if (is_array($timeSlots) && count($timeSlots) === 0 && array_key_exists('time_slots', $payload)) {
+            if ($requiresWindow && is_array($timeSlots) && count($timeSlots) === 0 && array_key_exists('time_slots', $payload)) {
                 $validator->errors()->add('time_slots', 'Au moins un créneau est requis.');
             }
 

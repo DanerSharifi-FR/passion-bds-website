@@ -745,16 +745,24 @@
             document.querySelectorAll('input[name="alloAdmins"]:checked').forEach(cb => selectedAdmins.push(cb.value));
             const selectedMode = document.querySelector('input[name="scheduleMode"]:checked')?.value || 'window';
             let timeSlots = null;
+            const statusValue = document.getElementById('alloStatus').value;
+            const isDraft = statusValue === 'DRAFT';
+            const durationValue = document.getElementById('alloDuration').value;
+            const durationMinutes = durationValue ? parseInt(durationValue) : null;
             const data = {
                 title: document.getElementById('alloTitle').value,
-                slot_duration_minutes: parseInt(document.getElementById('alloDuration').value),
+                slot_duration_minutes: Number.isNaN(durationMinutes) ? null : durationMinutes,
                 window_start_at: document.getElementById('alloStart').value,
                 window_end_at: document.getElementById('alloEnd').value,
                 description: document.getElementById('alloDesc').value,
-                status: document.getElementById('alloStatus').value,
+                status: statusValue,
                 admin_ids: selectedAdmins.map(id => parseInt(id)),
             };
             if(!data.title) { showToast("Titre requis", 'error'); return; }
+            if (!isDraft && !data.slot_duration_minutes) {
+                showToast("Durée du slot requise", 'error');
+                return;
+            }
             if (selectedMode === 'window') {
                 data.time_slots = null;
             }
@@ -765,7 +773,7 @@
                     start_time: slot.start_time,
                     end_time: slot.end_time,
                 })).filter(slot => slot.start_date || slot.start_time || slot.end_time);
-                if (normalizedSlots.length === 0) {
+                if (!isDraft && normalizedSlots.length === 0) {
                     showToast("Ajoute au moins un créneau daté.", 'error');
                     return;
                 }
@@ -774,7 +782,7 @@
                     showToast("Tous les créneaux datés doivent être complets.", 'error');
                     return;
                 }
-                timeSlots = normalizedSlots;
+                timeSlots = normalizedSlots.length ? normalizedSlots : null;
                 data.window_start_at = null;
                 data.window_end_at = null;
             }
@@ -782,7 +790,7 @@
             if (selectedMode === 'range') {
                 rangeDateStart = document.getElementById('rangeStartDate').value;
                 rangeDateEnd = document.getElementById('rangeEndDate').value;
-                if (!rangeDateStart || !rangeDateEnd) {
+                if (!isDraft && (!rangeDateStart || !rangeDateEnd)) {
                     showToast("Dates de période requises.", 'error');
                     return;
                 }
@@ -792,7 +800,7 @@
                     start_time: slot.start_time,
                     end_time: slot.end_time,
                 })).filter(slot => slot.start_time || slot.end_time);
-                if (normalizedSlots.length === 0) {
+                if (!isDraft && normalizedSlots.length === 0) {
                     showToast("Ajoute au moins une fenêtre horaire.", 'error');
                     return;
                 }
@@ -801,12 +809,12 @@
                     showToast("Toutes les fenêtres horaires doivent être complètes.", 'error');
                     return;
                 }
-                timeSlots = normalizedSlots;
+                timeSlots = normalizedSlots.length ? normalizedSlots : null;
                 data.window_start_at = null;
                 data.window_end_at = null;
             }
 
-            if (data.status !== 'DRAFT') {
+            if (!isDraft) {
                 if (selectedMode === 'window' && (!data.window_start_at || !data.window_end_at)) {
                     showToast("Dates d'ouverture/fermeture requises", 'error');
                     return;

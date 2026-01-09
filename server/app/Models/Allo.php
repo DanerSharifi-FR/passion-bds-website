@@ -24,7 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string $status
  * @property Carbon $window_start_at
  * @property Carbon $window_end_at
- * @property int $slot_duration_minutes
+ * @property int|null $slot_duration_minutes
  * @property array<int, array{start_date: string, end_date: string, start_time: string, end_time: string}>|null $time_slots
  * @property int|null $created_by_id
  * @property int|null $updated_by_id
