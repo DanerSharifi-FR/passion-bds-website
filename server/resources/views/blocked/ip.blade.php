@@ -1,9 +1,3 @@
-@php
-// if ?debug=1 show user auth info if authenticated
-if (request()->query('debug') == '1' && auth()->check()) {
-    dd(auth()->user()->toArray());
-}
-@endphp
 <!DOCTYPE html>
 <html lang="fr" class="h-full bg-slate-950">
 <head>

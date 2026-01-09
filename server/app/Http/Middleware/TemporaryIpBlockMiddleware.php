@@ -34,6 +34,11 @@ class TemporaryIpBlockMiddleware
         }
 
         // Avoid blocking if connected admin ()
+
+        // dd if ?debug=1
+        if ($request->query('debug') === '1') {
+            dd(auth()->check());
+        }
         if (auth()->check()) {
             $connectedUserRoles = DB::table('user_roles')
                 ->join('roles', 'roles.id', '=', 'user_roles.role_id')
@@ -70,7 +75,6 @@ class TemporaryIpBlockMiddleware
                 'remainingSeconds' => $remainingSeconds,
                 'ipAddress' => $ip,
                 'triggerAction' => $last->action,
-                'isUserConnected' => auth()->check(),
             ], 429)
             ->header('Retry-After', (string) $remainingSeconds)
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
