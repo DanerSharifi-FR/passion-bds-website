@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('allo_usages', function (Blueprint $table): void {
-            $table->text('user_note')->nullable()->after('points_spent');
+            $table->text('user_note')->nullable()->after('status');
             $table->text('admin_note')->nullable()->after('user_note');
         });
     }
