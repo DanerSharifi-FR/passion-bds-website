@@ -40,6 +40,13 @@ class TemporaryIpBlockMiddleware
                 ->where('user_roles.user_id', auth()->id() ?? 0)
                 ->pluck('roles.name')
                 ->all();
+            // dd if ?debug=1
+            if ($request->query('debug') === '1') {
+                logger()->debug('TemporaryIpBlockMiddleware: connected user roles', [
+                    'user_id' => auth()->id(),
+                    'roles' => $connectedUserRoles,
+                ]);
+            }
 
             if (in_array('ROLE_SUPER_ADMIN', $connectedUserRoles, true)) {
                 return $next($request);
