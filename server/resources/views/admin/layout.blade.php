@@ -1,14 +1,4 @@
-@php
-    use Illuminate\Support\Facades\Auth;
-
-    if (Auth::check() && Auth::user()->university_email == "daner.sharifi@imt-atlantique.net") {
-        Auth::logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
-    }
-@endphp
-
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr" class="h-full bg-slate-900">
 <head>
     <meta charset="UTF-8">
