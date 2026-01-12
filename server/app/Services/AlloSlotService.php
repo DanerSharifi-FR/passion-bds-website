@@ -143,6 +143,32 @@ class AlloSlotService
         /** @var Carbon $windowEnd */
         $windowEnd = Carbon::parse($allo->window_end_at);
 
+        if (! $windowStart->isSameDay($windowEnd)) {
+            $windows = [];
+            $startTime = $windowStart->format('H:i:s');
+            $endTime = $windowEnd->format('H:i:s');
+            $currentDate = $windowStart->copy()->startOfDay();
+            $endDate = $windowEnd->copy()->startOfDay();
+
+            while ($currentDate->lessThanOrEqualTo($endDate)) {
+                $dayStart = $currentDate->copy()->setTimeFromTimeString($startTime);
+                $dayEnd = $currentDate->copy()->setTimeFromTimeString($endTime);
+
+                if ($currentDate->isSameDay($windowStart)) {
+                    $dayStart = $windowStart->copy();
+                }
+
+                if ($currentDate->isSameDay($windowEnd)) {
+                    $dayEnd = $windowEnd->copy();
+                }
+
+                $windows[] = [$dayStart, $dayEnd];
+                $currentDate->addDay();
+            }
+
+            return $windows;
+        }
+
         return [[$windowStart, $windowEnd]];
     }
 }
