@@ -272,7 +272,7 @@
 
             const slotsByDate = slots.reduce((acc, slot) => {
                 const date = new Date(slot.slot_start_at);
-                const key = date.toISOString().split('T')[0];
+                const key = toDateKey(date);
                 acc[key] = acc[key] || [];
                 acc[key].push(slot);
                 return acc;
