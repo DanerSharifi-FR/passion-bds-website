@@ -40,7 +40,7 @@
              class="hidden bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red flex flex-col gap-1 mb-6">
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="allo-timetable"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start" id="allo-timetable"></div>
 
         <div id="allo-booking-card"
              class="mt-8 bg-white border-2 border-passion-red shadow-[6px_6px_0_#000] p-6 space-y-4 hidden">
@@ -281,7 +281,7 @@
             Object.entries(slotsByDate).forEach(([dateKey, daySlots], index) => {
                 daySlots.sort((a, b) => new Date(a.slot_start_at) - new Date(b.slot_start_at));
                 const card = document.createElement('details');
-                card.className = 'bg-white border-2 border-passion-red shadow-[4px_4px_0_#000] p-4 space-y-3';
+                card.className = 'bg-white border-2 border-passion-red shadow-[4px_4px_0_#000] p-4 space-y-3 self-start';
                 if (index === 0) {
                     card.open = true;
                 }
