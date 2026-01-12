@@ -793,7 +793,7 @@
                 return;
             }
             if (selectedMode === 'window') {
-                data.time_slots = null;
+                delete data.time_slots;
             }
             if (selectedMode === 'date') {
                 const normalizedSlots = dateSpecificSlots.map(slot => ({

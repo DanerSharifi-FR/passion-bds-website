@@ -201,7 +201,7 @@ class AlloApiController extends Controller
             $hasTimeSlots = is_array($timeSlots) && count($timeSlots) > 0;
             $hasWindow = !empty($payload['window_start_at']) && !empty($payload['window_end_at']);
 
-            if ($requiresWindow && is_array($timeSlots) && count($timeSlots) === 0 && array_key_exists('time_slots', $payload)) {
+            if ($requiresWindow && ! $hasWindow && is_array($timeSlots) && count($timeSlots) === 0 && array_key_exists('time_slots', $payload)) {
                 $validator->errors()->add('time_slots', 'Au moins un créneau est requis.');
             }
 
