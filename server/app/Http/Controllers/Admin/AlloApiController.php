@@ -170,6 +170,12 @@ class AlloApiController extends Controller
         $requiresWindow = $status !== 'DRAFT';
         $normalizedTimeSlots = $this->normalizeTimeSlots($request->input('time_slots'));
         $payload = $request->all();
+        $timeSlotDateRule = $requiresWindow
+            ? ['required_with:time_slots', 'date_format:Y-m-d']
+            : ['nullable', 'date_format:Y-m-d'];
+        $timeSlotTimeRule = $requiresWindow
+            ? ['required_with:time_slots', 'date_format:H:i']
+            : ['nullable', 'date_format:H:i'];
 
         if ($normalizedTimeSlots !== null) {
             $payload['time_slots'] = $normalizedTimeSlots;
@@ -182,10 +188,10 @@ class AlloApiController extends Controller
             'window_end_at' => ['nullable', 'date', 'after:window_start_at'],
             'slot_duration_minutes' => [Rule::requiredIf($requiresWindow), 'nullable', 'integer', 'min:1'],
             'time_slots' => ['nullable', 'array'],
-            'time_slots.*.start_date' => ['required_with:time_slots', 'date_format:Y-m-d'],
-            'time_slots.*.end_date' => ['required_with:time_slots', 'date_format:Y-m-d', 'after_or_equal:start_date'],
-            'time_slots.*.start_time' => ['required_with:time_slots', 'date_format:H:i'],
-            'time_slots.*.end_time' => ['required_with:time_slots', 'date_format:H:i'],
+            'time_slots.*.start_date' => $timeSlotDateRule,
+            'time_slots.*.end_date' => array_merge($timeSlotDateRule, ['after_or_equal:start_date']),
+            'time_slots.*.start_time' => $timeSlotTimeRule,
+            'time_slots.*.end_time' => $timeSlotTimeRule,
             'admin_ids' => ['nullable', 'array'],
             'admin_ids.*' => ['integer', 'exists:users,id'],
         ]);
@@ -195,7 +201,7 @@ class AlloApiController extends Controller
             $hasTimeSlots = is_array($timeSlots) && count($timeSlots) > 0;
             $hasWindow = !empty($payload['window_start_at']) && !empty($payload['window_end_at']);
 
-            if ($requiresWindow && is_array($timeSlots) && count($timeSlots) === 0 && array_key_exists('time_slots', $payload)) {
+            if ($requiresWindow && ! $hasWindow && is_array($timeSlots) && count($timeSlots) === 0 && array_key_exists('time_slots', $payload)) {
                 $validator->errors()->add('time_slots', 'Au moins un créneau est requis.');
             }
 

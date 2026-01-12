@@ -197,6 +197,7 @@
         let rangeTimeSlots = [];
         let rangeDateStart = '';
         let rangeDateEnd = '';
+        let isDraftMode = true;
 
         function csrf() {
             return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -400,6 +401,7 @@
         function setScheduleMode(mode) {
             scheduleMode = mode;
             updateScheduleVisibility();
+            updateAlloRequirements();
         }
 
         function updateScheduleVisibility() {
@@ -410,6 +412,27 @@
             windowFields.classList.toggle('hidden', scheduleMode !== 'window');
             dateFields.classList.toggle('hidden', scheduleMode !== 'date');
             rangeFields.classList.toggle('hidden', scheduleMode !== 'range');
+        }
+
+        function updateAlloRequirements() {
+            const statusValue = document.getElementById('alloStatus').value;
+            const durationInput = document.getElementById('alloDuration');
+            const windowStartInput = document.getElementById('alloStart');
+            const windowEndInput = document.getElementById('alloEnd');
+            const dateSlotsContainer = document.getElementById('dateSlotsContainer');
+            const rangeSlotsContainer = document.getElementById('rangeSlotsContainer');
+
+            isDraftMode = statusValue === 'DRAFT';
+            durationInput.required = !isDraftMode;
+            windowStartInput.required = !isDraftMode && scheduleMode === 'window';
+            windowEndInput.required = !isDraftMode && scheduleMode === 'window';
+
+            dateSlotsContainer.querySelectorAll('input').forEach((input) => {
+                input.required = !isDraftMode && scheduleMode === 'date';
+            });
+            rangeSlotsContainer.querySelectorAll('input').forEach((input) => {
+                input.required = !isDraftMode && scheduleMode === 'range';
+            });
         }
 
         function renderDateSlots() {
@@ -438,6 +461,7 @@
                         const field = event.target.dataset.field;
                         dateSpecificSlots[idx][field] = event.target.value;
                     });
+                    input.required = !isDraftMode && scheduleMode === 'date';
                 });
                 row.querySelector('[data-action="remove"]').addEventListener('click', (event) => {
                     const idx = Number(event.currentTarget.dataset.index);
@@ -473,6 +497,7 @@
                         const field = event.target.dataset.field;
                         rangeTimeSlots[idx][field] = event.target.value;
                     });
+                    input.required = !isDraftMode && scheduleMode === 'range';
                 });
                 row.querySelector('[data-action="remove"]').addEventListener('click', (event) => {
                     const idx = Number(event.currentTarget.dataset.index);
@@ -497,6 +522,7 @@
             updateScheduleVisibility();
             renderDateSlots();
             renderRangeSlots();
+            updateAlloRequirements();
         }
 
         // --- REQUESTS ---
@@ -665,6 +691,7 @@
             document.getElementById('alloStatus').value = "DRAFT";
             populateAdminList([]);
             resetScheduleState();
+            updateAlloRequirements();
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
@@ -711,6 +738,7 @@
                 });
                 updateScheduleVisibility();
             }
+            updateAlloRequirements();
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
@@ -749,6 +777,7 @@
             const isDraft = statusValue === 'DRAFT';
             const durationValue = document.getElementById('alloDuration').value;
             const durationMinutes = durationValue ? parseInt(durationValue) : null;
+            const normalizeSlotValue = (value) => (value ? value : null);
             const data = {
                 title: document.getElementById('alloTitle').value,
                 slot_duration_minutes: Number.isNaN(durationMinutes) ? null : durationMinutes,
@@ -764,21 +793,21 @@
                 return;
             }
             if (selectedMode === 'window') {
-                data.time_slots = null;
+                delete data.time_slots;
             }
             if (selectedMode === 'date') {
                 const normalizedSlots = dateSpecificSlots.map(slot => ({
-                    start_date: slot.date,
-                    end_date: slot.date,
-                    start_time: slot.start_time,
-                    end_time: slot.end_time,
+                    start_date: normalizeSlotValue(slot.date),
+                    end_date: normalizeSlotValue(slot.date),
+                    start_time: normalizeSlotValue(slot.start_time),
+                    end_time: normalizeSlotValue(slot.end_time),
                 })).filter(slot => slot.start_date || slot.start_time || slot.end_time);
                 if (!isDraft && normalizedSlots.length === 0) {
                     showToast("Ajoute au moins un créneau daté.", 'error');
                     return;
                 }
                 const hasIncomplete = normalizedSlots.some(slot => !slot.start_date || !slot.start_time || !slot.end_time);
-                if (hasIncomplete) {
+                if (!isDraft && hasIncomplete) {
                     showToast("Tous les créneaux datés doivent être complets.", 'error');
                     return;
                 }
@@ -797,15 +826,15 @@
                 const normalizedSlots = rangeTimeSlots.map(slot => ({
                     start_date: rangeDateStart,
                     end_date: rangeDateEnd,
-                    start_time: slot.start_time,
-                    end_time: slot.end_time,
+                    start_time: normalizeSlotValue(slot.start_time),
+                    end_time: normalizeSlotValue(slot.end_time),
                 })).filter(slot => slot.start_time || slot.end_time);
                 if (!isDraft && normalizedSlots.length === 0) {
                     showToast("Ajoute au moins une fenêtre horaire.", 'error');
                     return;
                 }
                 const hasIncomplete = normalizedSlots.some(slot => !slot.start_time || !slot.end_time);
-                if (hasIncomplete) {
+                if (!isDraft && hasIncomplete) {
                     showToast("Toutes les fenêtres horaires doivent être complètes.", 'error');
                     return;
                 }
@@ -945,6 +974,9 @@
         document.querySelectorAll('input[name="scheduleMode"]').forEach(input => {
             input.addEventListener('change', (event) => setScheduleMode(event.target.value));
         });
+        document.getElementById('alloStatus').addEventListener('change', () => {
+            updateAlloRequirements();
+        });
         document.getElementById('addDateSlot').addEventListener('click', () => {
             dateSpecificSlots.push({ date: '', start_time: '', end_time: '' });
             renderDateSlots();
@@ -962,6 +994,7 @@
         updateScheduleVisibility();
         renderDateSlots();
         renderRangeSlots();
+        updateAlloRequirements();
         loadAdmins().then(populateAdminList);
         bindCatalogFilters();
         loadAllos();
