@@ -161,6 +161,107 @@
             `;
         }
 
+        function toMinutes(time) {
+            const [hours, minutes] = String(time).split(':').map((part) => Number(part));
+            if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+                return null;
+            }
+            return (hours * 60) + minutes;
+        }
+
+        function toDateKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function isSlotWithinTimeSlots(slotStart, slotEnd, timeSlots = []) {
+            if (!Array.isArray(timeSlots) || timeSlots.length === 0) {
+                return true;
+            }
+
+            const slotDate = toDateKey(slotStart);
+            const slotEndDate = toDateKey(slotEnd);
+            if (slotEndDate !== slotDate) {
+                return false;
+            }
+            const slotStartMinutes = (slotStart.getHours() * 60) + slotStart.getMinutes();
+            const slotEndMinutes = (slotEnd.getHours() * 60) + slotEnd.getMinutes();
+
+            return timeSlots.some((window) => {
+                if (!window?.start_date || !window?.end_date || !window?.start_time || !window?.end_time) {
+                    return false;
+                }
+
+                if (slotDate < window.start_date || slotDate > window.end_date) {
+                    return false;
+                }
+
+                const windowStart = toMinutes(window.start_time);
+                const windowEnd = toMinutes(window.end_time);
+
+                if (windowStart === null || windowEnd === null) {
+                    return false;
+                }
+
+                return slotStartMinutes >= windowStart && slotEndMinutes <= windowEnd;
+            });
+        }
+
+        function formatRemainingLabel(remaining) {
+            if (remaining === null || Number.isNaN(remaining)) {
+                return '';
+            }
+
+            if (remaining <= 0) {
+                return 'Complet';
+            }
+
+            const suffix = remaining > 1 ? 's' : '';
+            return `${remaining} place${suffix} restante${suffix}`;
+        }
+
+        function buildSlotOptions(allo) {
+            if (!allo?.slots?.length) {
+                return '<option value="">Aucun créneau disponible</option>';
+            }
+
+            const now = new Date();
+            const slots = allo.slots.filter((slot) => {
+                if (!slot.slot_start_at || !slot.slot_end_at) return false;
+                const slotStart = new Date(slot.slot_start_at);
+                const slotEnd = new Date(slot.slot_end_at);
+                if (!isSlotWithinTimeSlots(slotStart, slotEnd, allo.time_slots)) {
+                    return false;
+                }
+                return slotStart >= now;
+            });
+
+            if (!slots.length) {
+                return '<option value="">Aucun créneau disponible</option>';
+            }
+
+            const options = slots.map((slot) => {
+                const slotStart = new Date(slot.slot_start_at);
+                const slotEnd = new Date(slot.slot_end_at);
+                const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
+                const remainingLabel = formatRemainingLabel(remaining);
+                const isSelectable = ['available', 'partial'].includes(slot.status)
+                    && (remaining === null || remaining > 0)
+                    && allo.status === 'OPEN'
+                    && slotStart >= now;
+                const statusLabel = remainingLabel
+                    ? ` • ${remainingLabel}`
+                    : '';
+                const label = `${formatDateLabel(slotStart)} · ${formatTime(slotStart)} → ${formatTime(slotEnd)}${statusLabel}`;
+
+                return `<option value="${slot.id}" ${isSelectable ? '' : 'disabled'}>${label}</option>`;
+            }).join('');
+
+            return `<option value="">Sélectionne un créneau</option>${options}`;
+        }
+
         function setFilterButtons() {
             filterButtons.forEach((btn) => {
                 const isActive = btn.dataset.filter === activeFilter;
