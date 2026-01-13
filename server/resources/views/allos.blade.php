@@ -336,7 +336,7 @@
 
                 card.innerHTML = `
                     ${isEnded ? `
-                        <span class="absolute -top-4 right-4 rotate-[-8deg] bg-slate-600 text-white text-xs font-black uppercase px-3 py-1 shadow-[2px_2px_0_#000]">
+                        <span class="absolute -top-4 right-4 rotate-[-8deg] bg-slate-600 text-white text-xs font-black uppercase px-3 py-1 shadow-[2px_2px_0_#000] animate-pulse">
                             Victime de son succès...
                         </span>
                     ` : ''}
@@ -349,11 +349,6 @@
                     <div class="${isEnded ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-passion-pink-100 border-passion-red text-passion-red'} border px-4 py-3 text-sm font-semibold flex flex-col gap-1">
                         ${formatWindowLabel(allo.window_start_at, allo.window_end_at, allo.time_slots)}
                     </div>
-                    ${isEnded ? `
-                        <div class="bg-slate-200 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
-                            Créneaux clôturés.
-                        </div>
-                    ` : ''}
                     ${isDisabled ? `
                         <span class="text-center bg-slate-400 text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] cursor-not-allowed">
                             Créneaux clôturés
