@@ -96,6 +96,18 @@
             }).format(date);
         }
 
+        function formatNumericDate(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+            }).format(date);
+        }
+
+        function formatDateTimeRangeLabel(start, end) {
+            return `de ${formatNumericDate(start)} ${formatTime(start)} à ${formatNumericDate(end)} ${formatTime(end)}`;
+        }
+
         function formatTimeLabel(time) {
             return time.replace(':', 'h');
         }
@@ -110,6 +122,19 @@
 
         function formatWindowLabel(startAt, endAt, timeSlots = []) {
             if (Array.isArray(timeSlots) && timeSlots.length) {
+                if (timeSlots.length === 1) {
+                    const slot = timeSlots[0];
+                    if (slot?.start_date && slot?.end_date && slot?.start_time && slot?.end_time) {
+                        const start = new Date(`${slot.start_date}T${slot.start_time}`);
+                        const end = new Date(`${slot.end_date}T${slot.end_time}`);
+                        return `
+                            <div class="flex items-center gap-2">
+                                <span aria-hidden="true">📅</span>
+                                <span>${formatDateTimeRangeLabel(start, end)}</span>
+                            </div>
+                        `;
+                    }
+                }
                 const ranges = new Map();
 
                 timeSlots.forEach((slot) => {
@@ -152,18 +177,12 @@
             if (!startAt || !endAt) return '<span>Dates à venir</span>';
             const start = new Date(startAt);
             const end = new Date(endAt);
-            const dateLabel = formatDateRangeLabel(start, end);
-            const startTime = formatTimeLabel(formatTime(start));
-            const endTime = formatTimeLabel(formatTime(end));
+            const dateTimeLabel = formatDateTimeRangeLabel(start, end);
 
             return `
                 <div class="flex items-center gap-2">
                     <span aria-hidden="true">📅</span>
-                    <span>${dateLabel}</span>
-                </div>
-                <div class="flex items-center gap-2 ml-5 pl-3 border-l border-passion-red/30">
-                    <span aria-hidden="true">🕒</span>
-                    <span>de ${startTime} à ${endTime}</span>
+                    <span>${dateTimeLabel}</span>
                 </div>
             `;
         }
