@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Activity;
 use App\Models\Allo;
 use App\Models\AlloSlot;
+use App\Models\AlloUsage;
+use App\Services\AlloUsageService;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Random\RandomException;
@@ -32,12 +35,41 @@ class PageController extends Controller
         return view('allo-reservations');
     }
 
-    public function alloSlots(int $alloId): Factory|View
+    public function alloSlots(Request $request, int $alloId): Factory|View
     {
         /** @var Allo $allo */
         $allo = Allo::query()
             ->whereIn('status', ['OPEN', 'CLOSED'])
             ->findOrFail($alloId);
+
+        $user = $request->user();
+        $bookingId = (int) $request->query('booking', 0);
+
+        if ($user !== null) {
+            $existingBooking = AlloUsage::query()
+                ->where('user_id', $user->id)
+                ->where('allo_id', $allo->id)
+                ->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ])
+                ->orderByDesc('slot_start_at')
+                ->first();
+
+            if ($existingBooking !== null && $existingBooking->id !== $bookingId) {
+                if ($existingBooking->status === AlloUsageService::STATUS_PENDING) {
+                    return redirect()->route('allos.slots', [
+                        'alloId' => $alloId,
+                        'booking' => $existingBooking->id,
+                    ]);
+                }
+
+                return redirect()->route('allos.reservations', [
+                    'allo_id' => $alloId,
+                ]);
+            }
+        }
 
         $now = now();
         $windowBounds = $this->resolveWindowBounds($allo);
