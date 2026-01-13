@@ -42,13 +42,14 @@ class PageController extends Controller
         $now = now();
         $windowBounds = $this->resolveWindowBounds($allo);
         $windowEnd = $windowBounds[1] ?? null;
+        $availabilityThreshold = $now->copy()->addMinutes(max((int) ($allo->security_margin_minutes ?? 0), 0));
 
         $hasAnySlots = AlloSlot::query()
             ->where('allo_id', $allo->id)
             ->exists();
         $hasFutureSlots = AlloSlot::query()
             ->where('allo_id', $allo->id)
-            ->where('slot_start_at', '>=', $now)
+            ->where('slot_start_at', '>=', $availabilityThreshold)
             ->exists();
 
         $slotsPassed = $hasAnySlots && ! $hasFutureSlots;

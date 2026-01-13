@@ -238,12 +238,20 @@
             return durationMinutes === expectedMinutes;
         }
 
+        function getAvailabilityThreshold(allo) {
+            const margin = Number(allo?.security_margin_minutes ?? 0);
+            if (!Number.isFinite(margin) || margin <= 0) {
+                return new Date();
+            }
+            return new Date(Date.now() + (margin * 60000));
+        }
+
         function buildSlotOptions(allo) {
             if (!allo?.slots?.length) {
                 return '<option value="">Aucun créneau disponible</option>';
             }
 
-            const now = new Date();
+            const threshold = getAvailabilityThreshold(allo);
             const slots = allo.slots.filter((slot) => {
                 if (!slot.slot_start_at || !slot.slot_end_at) return false;
                 const slotStart = new Date(slot.slot_start_at);
@@ -254,7 +262,7 @@
                 if (!isSlotDurationMatching(slotStart, slotEnd, allo.slot_duration_minutes)) {
                     return false;
                 }
-                return slotStart >= now;
+                return slotStart >= threshold;
             });
 
             if (!slots.length) {
@@ -269,7 +277,7 @@
                 const isSelectable = ['available', 'partial'].includes(slot.status)
                     && (remaining === null || remaining > 0)
                     && allo.status === 'OPEN'
-                    && slotStart >= now;
+                    && slotStart >= threshold;
                 const statusLabel = remainingLabel
                     ? ` • ${remainingLabel}`
                     : '';
