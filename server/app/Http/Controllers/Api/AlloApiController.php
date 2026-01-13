@@ -64,6 +64,7 @@ class AlloApiController extends Controller
             ->get();
 
         $bookingsBySlotId = collect();
+        $bookingCountsByAlloDate = collect();
 
         if ($user !== null) {
             $bookingsBySlotId = AlloUsage::query()
@@ -71,9 +72,27 @@ class AlloApiController extends Controller
                 ->whereIn('allo_id', $allos->pluck('id'))
                 ->get()
                 ->keyBy('allo_slot_id');
+
+            $bookingCountsByAlloDate = AlloUsage::query()
+                ->selectRaw('allo_id, DATE(slot_start_at) as slot_date, COUNT(*) as bookings_count')
+                ->where('user_id', $user->id)
+                ->whereIn('allo_id', $allos->pluck('id'))
+                ->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ])
+                ->groupBy('allo_id', 'slot_date')
+                ->get()
+                ->groupBy('allo_id')
+                ->map(function ($rows): array {
+                    return $rows->mapWithKeys(function ($row): array {
+                        return [$row->slot_date => (int) $row->bookings_count];
+                    })->all();
+                });
         }
 
-        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $editingBooking, $now, $slotsOnly): array {
+        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $bookingCountsByAlloDate, $editingBooking, $now, $slotsOnly, $user): array {
             $totalCapacity = (int) $allo->slots->sum('capacity');
             $bookedCount = (int) $allo->slots->sum(function (AlloSlot $slot): int {
                 return (int) ($slot->bookings_count ?? 0);
@@ -103,6 +122,24 @@ class AlloApiController extends Controller
 
                 return in_array($slot->status, ['available', 'partial'], true) && $remaining > 0;
             });
+
+            $dailyLimit = $allo->daily_booking_limit;
+            $canBookNew = true;
+
+            if ($user !== null && $dailyLimit !== null && $dailyLimit > 0) {
+                $bookingCountsByDate = $bookingCountsByAlloDate->get($allo->id, []);
+                $canBookNew = $selectableSlots->contains(function (AlloSlot $slot) use ($bookingCountsByDate, $dailyLimit): bool {
+                    $slotDate = $slot->slot_start_at?->format('Y-m-d');
+
+                    if ($slotDate === null) {
+                        return false;
+                    }
+
+                    $currentCount = (int) ($bookingCountsByDate[$slotDate] ?? 0);
+
+                    return $currentCount < $dailyLimit;
+                });
+            }
 
             $disabledDates = [];
 
@@ -188,11 +225,13 @@ class AlloApiController extends Controller
                 'window_end_at' => $windowEnd?->toIso8601String(),
                 'slot_duration_minutes' => $allo->slot_duration_minutes,
                 'security_margin_minutes' => $securityMargin,
+                'daily_booking_limit' => $dailyLimit,
                 'slot_capacity' => (int) $allo->admins_count,
                 'time_slots' => $allo->time_slots ?? [],
                 'is_window_open' => $windowEnd !== null
                     && $now->lessThanOrEqualTo($windowEnd),
                 'is_window_ended' => $windowEnd !== null && $now->greaterThan($windowEnd),
+                'can_book_new' => $canBookNew,
                 'disabled_dates' => $slotsOnly ? $disabledDates : [],
                 'slots' => ($slotsOnly ? $selectableSlots : $allo->slots)->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo, $slotCapacityFallback): array {
                     /** @var AlloUsage|null $booking */
