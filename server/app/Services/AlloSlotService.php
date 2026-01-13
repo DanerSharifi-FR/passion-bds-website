@@ -30,15 +30,15 @@ class AlloSlotService
 
         $capacity = $allo->admins()->count();
 
-        // On récupère les start_at existants pour cet allo afin d’éviter les doublons.
-        /** @var Collection<int, string> $existingStartTimes */
-        $existingStartTimes = AlloSlot::query()
+        /** @var Collection<string, AlloSlot> $existingSlots */
+        $existingSlots = AlloSlot::query()
             ->where('allo_id', $allo->id)
-            ->pluck('slot_start_at')
-            ->map(static fn ($value): string => Carbon::parse($value)->toDateTimeString());
-
-        /** @var array<int, string> $existingStartTimesArray */
-        $existingStartTimesArray = $existingStartTimes->all();
+            ->withCount('usages')
+            ->get()
+            ->keyBy(static function (AlloSlot $slot): string {
+                return $slot->slot_start_at?->toDateTimeString()
+                    ?? Carbon::parse($slot->slot_start_at)->toDateTimeString();
+            });
 
         AlloSlot::query()
             ->where('allo_id', $allo->id)
@@ -65,7 +65,15 @@ class AlloSlotService
 
                 $startString = $currentStart->toDateTimeString();
 
-                if (in_array($startString, $existingStartTimesArray, true)) {
+                $existingSlot = $existingSlots->get($startString);
+
+                if ($existingSlot) {
+                    if ($existingSlot->slot_end_at?->toDateTimeString() !== $currentEnd->toDateTimeString()
+                        && (int) $existingSlot->usages_count === 0) {
+                        $existingSlot->slot_end_at = $currentEnd;
+                        $existingSlot->save();
+                    }
+
                     // Slot déjà existant : on avance simplement.
                     $currentStart = $currentEnd;
 
