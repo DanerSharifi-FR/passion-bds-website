@@ -373,10 +373,15 @@
                     .filter((booking) => booking !== null);
                 const userBooking = userBookings[0];
                 const hasBooking = Boolean(userBooking);
+                const dailyLimit = Number(allo.daily_booking_limit ?? 0);
+                const hasDailyLimit = Number.isFinite(dailyLimit) && dailyLimit > 0;
+                const canBookNew = allo.can_book_new ?? true;
                 const showBookingStatus = hasBooking && !isEnded;
                 const bookingStatusLabel = userBooking?.status
                     ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
                     : '';
+                const showSlotsButton = !isDisabled && canBookNew;
+                const showExtraSlotsButton = hasBooking && showSlotsButton && hasDailyLimit && isAuthenticated;
 
                 const card = document.createElement('div');
                 card.className = `relative border-2 shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4 ${
@@ -405,16 +410,28 @@
                         </div>
                     ` : ''}
                     ${isDisabled ? '' : (hasBooking && isAuthenticated) ? `
-                        <a href="/allos/reservations?allo_id=${allo.id}"
-                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
-                            Modifier ma réservation
-                        </a>
-                    ` : `
+                        <div class="flex flex-col gap-3">
+                            <a href="/allos/reservations?allo_id=${allo.id}"
+                               class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
+                                Modifier ma réservation
+                            </a>
+                            ${showExtraSlotsButton ? `
+                                <a href="/allos/${allo.id}/creneaux"
+                                   class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
+                                    Voir les créneaux
+                                </a>
+                            ` : ''}
+                        </div>
+                    ` : (showSlotsButton ? `
                         <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                             Voir les créneaux
                         </a>
-                    `}
+                    ` : `
+                        <span class="text-center text-sm font-semibold text-slate-500">
+                            Limite quotidienne atteinte.
+                        </span>
+                    `)}
                     <div class="allo-form hidden space-y-4 border-t border-passion-red/30 pt-4">
                         <div class="space-y-3">
                             <label class="text-xs font-bold uppercase text-passion-red">Choisis un créneau</label>
