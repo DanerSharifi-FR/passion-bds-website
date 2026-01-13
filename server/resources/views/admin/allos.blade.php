@@ -298,11 +298,11 @@
             return `
                 <div class="flex items-center gap-2">
                     <i class="fa-regular fa-calendar text-slate-400"></i>
-                    <span class="text-indigo-200 text-xs font-mono">de ${formatDateTime(startAt)}</span>
+                    <span class="text-indigo-200 text-xs font-mono">du ${formatDateTime(startAt)}</span>
                 </div>
                 <div class="flex items-center gap-2 ml-5 pl-3 border-l border-slate-600/60">
-                    <i class="fa-regular fa-calendar text-slate-400"></i>
-                    <span class="text-indigo-200 text-xs font-mono">à ${formatDateTime(endAt)}</span>
+                    <i class="fa-solid fa-arrow-right text-slate-400 text-[10px]"></i>
+                    <span class="text-indigo-200 text-xs font-mono">au ${formatDateTime(endAt)}</span>
                 </div>
             `;
         }
