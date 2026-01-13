@@ -311,36 +311,33 @@
                         <div class="font-display font-black uppercase text-slate-500 text-lg flex items-center justify-between">
                             <span>${formatDateLabel(dayDate)}</span>
                         </div>
-                        <div class="space-y-2" data-date="${dateKey}"></div>
                         <span class="absolute -top-3 right-3 rotate-[-8deg] bg-slate-500 text-white text-xs font-black uppercase px-2 py-1 shadow-[2px_2px_0_#000]">Trop tard</span>
                     `;
 
                 const list = card.querySelector('[data-date]');
-                const visibleSlots = dayHasSelectableSlots
-                    ? daySlots.filter((slot) => isSelectableSlot(slot))
-                    : daySlots;
+                if (dayHasSelectableSlots && list) {
+                    const visibleSlots = daySlots.filter((slot) => isSelectableSlot(slot));
 
-                visibleSlots.forEach((slot) => {
-                    const slotStart = new Date(slot.slot_start_at);
-                    const slotEnd = new Date(slot.slot_end_at);
-                    const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
-                    const remainingLabel = formatRemainingLabel(remaining);
-                    const isSelectable = isSelectableSlot(slot);
-                    const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
+                    visibleSlots.forEach((slot) => {
+                        const slotStart = new Date(slot.slot_start_at);
+                        const slotEnd = new Date(slot.slot_end_at);
+                        const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
+                        const remainingLabel = formatRemainingLabel(remaining);
+                        const isSelectable = isSelectableSlot(slot);
+                        const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
 
-                    const label = document.createElement('label');
-                    label.className = dayHasSelectableSlots
-                        ? `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`
-                        : 'flex items-center justify-between gap-3 border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-400';
-                    label.innerHTML = `
-                        <div class="flex items-center gap-2">
-                            <input type="radio" name="allo-slot" value="${slot.id}" ${isSelectable && isAuthenticated ? '' : 'disabled'} />
-                            <span>${timeLabel}</span>
-                        </div>
-                        <span class="text-xs ${dayHasSelectableSlots ? 'text-passion-red' : 'text-slate-400'}">${remainingLabel}</span>
-                    `;
-                    list.appendChild(label);
-                });
+                        const label = document.createElement('label');
+                        label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
+                        label.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="allo-slot" value="${slot.id}" ${isSelectable && isAuthenticated ? '' : 'disabled'} />
+                                <span>${timeLabel}</span>
+                            </div>
+                            <span class="text-xs text-passion-red">${remainingLabel}</span>
+                        `;
+                        list.appendChild(label);
+                    });
+                }
 
                 timetableElement.appendChild(card);
             });
