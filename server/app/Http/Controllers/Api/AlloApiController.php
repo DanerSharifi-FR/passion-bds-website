@@ -36,6 +36,7 @@ class AlloApiController extends Controller
             ->withCount('admins')
             ->with(['slots' => function ($query) use ($slotsOnly, $now): void {
                 $query
+                    ->where('slot_start_at', '>=', $now)
                     ->orderBy('slot_start_at')
                     ->withCount(['usages as bookings_count' => function ($usageQuery): void {
                         $usageQuery->whereIn('status', [
@@ -97,6 +98,61 @@ class AlloApiController extends Controller
                     ->values()
                     ->all();
             }
+
+            $slots = $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo): array {
+                /** @var AlloUsage|null $booking */
+                $booking = $bookingsBySlotId->get($slot->id);
+                $capacity = (int) ($slot->capacity ?? $allo->admins_count);
+                $bookingsCount = (int) ($slot->bookings_count ?? 0);
+                $remaining = max($capacity - $bookingsCount, 0);
+
+                return [
+                    'id' => $slot->id,
+                    'slot_start_at' => $slot->slot_start_at?->toIso8601String(),
+                    'slot_end_at' => $slot->slot_end_at?->toIso8601String(),
+                    'status' => $slot->status,
+                    'capacity' => $capacity,
+                    'booked_count' => $bookingsCount,
+                    'remaining' => $remaining,
+                    'bookings_count' => $bookingsCount,
+                    'remaining_capacity' => $remaining,
+                    'user_booking' => $booking ? [
+                        'id' => $booking->id,
+                        'status' => $booking->status,
+                        'user_note' => $booking->user_note,
+                        'slot_start_at' => $booking->slot_start_at?->toIso8601String(),
+                    ] : null,
+                ];
+            });
+
+            $slots = $slots
+                ->groupBy(function (array $slot): ?string {
+                    if (! $slot['slot_start_at']) {
+                        return null;
+                    }
+
+                    return Carbon::parse($slot['slot_start_at'])->toDateString();
+                })
+                ->filter(function ($daySlots, $dateKey) use ($now): bool {
+                    if ($dateKey === null) {
+                        return false;
+                    }
+
+                    return $daySlots->contains(function (array $slot) use ($now): bool {
+                        if (! $slot['slot_start_at']) {
+                            return false;
+                        }
+
+                        $slotStart = Carbon::parse($slot['slot_start_at']);
+                        $remaining = (int) ($slot['remaining'] ?? 0);
+
+                        return $slotStart->greaterThanOrEqualTo($now)
+                            && in_array($slot['status'], ['available', 'partial'], true)
+                            && $remaining > 0;
+                    });
+                })
+                ->flatten(1)
+                ->values();
 
             return [
                 'id' => $allo->id,
