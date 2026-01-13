@@ -25,10 +25,16 @@ class AlloApiController extends Controller
         $user = $request->user();
         $now = now();
 
+        $alloId = $request->query('allo_id');
+        $slotsOnly = $request->boolean('slots_only');
+
         $allos = Allo::query()
             ->whereIn('status', ['OPEN', 'CLOSED'])
+            ->when($alloId, function ($query) use ($alloId): void {
+                $query->where('id', (int) $alloId);
+            })
             ->withCount('admins')
-            ->with(['slots' => function ($query) use ($now): void {
+            ->with(['slots' => function ($query) use ($slotsOnly, $now): void {
                 $query
                     ->where('slot_start_at', '>=', $now)
                     ->orderBy('slot_start_at')
@@ -39,6 +45,12 @@ class AlloApiController extends Controller
                             AlloUsageService::STATUS_DONE,
                         ]);
                     }]);
+
+                if ($slotsOnly) {
+                    $query
+                        ->whereIn('status', ['available', 'partial'])
+                        ->where('slot_start_at', '>=', $now);
+                }
             }])
             ->orderBy('window_start_at')
             ->get();

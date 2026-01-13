@@ -406,7 +406,7 @@
 
         async function loadAllo() {
             try {
-                const response = await fetch('/api/allos');
+                const response = await fetch(`/api/allos?allo_id=${alloId}&slots_only=1`);
                 const data = await response.json();
                 const allos = data.allos || [];
                 alloData = allos.find((allo) => allo.id === alloId) || null;
