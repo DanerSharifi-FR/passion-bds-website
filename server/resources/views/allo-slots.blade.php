@@ -50,15 +50,16 @@
                     <p id="allo-selected-slot" class="text-sm font-semibold text-slate-700">Sélectionne un créneau</p>
                 </div>
             </div>
-            <div class="space-y-2">
-                <label class="text-xs font-bold uppercase text-passion-red">Ton note pour nous</label>
-                <textarea id="allo-note" class="w-full border-2 border-passion-red px-3 py-2 text-sm" rows="2"
-                          placeholder="Ex: sieste après 15h, merci !"></textarea>
-            </div>
             <div id="allo-description-reminder"
                  class="hidden flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-700">
                 <span aria-hidden="true">ℹ️</span>
                 <p class="font-medium"></p>
+            </div>
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase text-passion-red">Ton note pour nous</label>
+                <textarea id="allo-note" class="w-full border-2 border-passion-red px-3 py-2 text-sm" rows="2"
+                          data-default-placeholder="Ex: sieste après 15h, merci !"
+                          placeholder="Ex: sieste après 15h, merci !"></textarea>
             </div>
             <button id="allo-book-btn"
                     class="w-full bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -455,8 +456,10 @@
                 if (alloData.description) {
                     descriptionReminder.querySelector('p').textContent = alloData.description;
                     descriptionReminder.classList.remove('hidden');
+                    noteInput.placeholder = alloData.description;
                 } else {
                     descriptionReminder.classList.add('hidden');
+                    noteInput.placeholder = noteInput.dataset.defaultPlaceholder || '';
                 }
 
                 windowCard.innerHTML = formatWindowLabel(alloData.window_start_at, alloData.window_end_at, alloData.time_slots);
