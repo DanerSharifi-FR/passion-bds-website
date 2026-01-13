@@ -254,10 +254,19 @@
             return durationMinutes === expectedMinutes;
         }
 
+        function getAvailabilityThreshold(allo) {
+            const margin = Number(allo?.security_margin_minutes ?? 0);
+            if (!Number.isFinite(margin) || margin <= 0) {
+                return new Date();
+            }
+            return new Date(Date.now() + (margin * 60000));
+        }
+
         function renderTimetable() {
             if (!alloData) return;
 
             const now = new Date();
+            const threshold = getAvailabilityThreshold(alloData);
             const windowOpen = typeof alloData.is_window_open === 'boolean'
                 ? alloData.is_window_open
                 : (alloData.window_end_at && now <= new Date(alloData.window_end_at));
@@ -280,7 +289,7 @@
                 return availableSlotStatuses.includes(slot.status)
                     && (remaining === null || remaining > 0)
                     && alloData.status === 'OPEN'
-                    && slotStart >= now
+                    && slotStart >= threshold
                     && (!currentBooking || canEditBooking);
             };
 
@@ -295,7 +304,7 @@
                 if (!isSlotDurationMatching(slotStart, slotEnd, alloData.slot_duration_minutes)) {
                     return false;
                 }
-                return slotStart >= now;
+                return slotStart >= threshold;
             });
 
             if (!slots.length && !disabledDates.length) {
@@ -439,7 +448,7 @@
                 return;
             }
 
-            if (selectedSlot.slot_start_at && new Date(selectedSlot.slot_start_at) < new Date()) {
+            if (selectedSlot.slot_start_at && new Date(selectedSlot.slot_start_at) < getAvailabilityThreshold(alloData)) {
                 setFeedback('Ce créneau n’est plus disponible. Les créneaux ont été mis à jour.');
                 await loadAllo();
                 return;
@@ -472,6 +481,7 @@
                 if (!response.ok) {
                     const message = data.message || 'Erreur lors de la réservation.';
                     if (message.includes('déjà passé')
+                        || message.includes('pas encore disponible')
                         || message.includes('déjà réservé')
                         || message.includes('indisponible')) {
                         setFeedback('Ce créneau n’est plus disponible. Les créneaux ont été mis à jour.');

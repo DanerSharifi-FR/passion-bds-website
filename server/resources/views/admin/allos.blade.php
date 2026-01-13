@@ -97,6 +97,10 @@
                             <input type="number" id="alloDuration" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="15" value="15" required>
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Marge de sécurité (min)</label>
+                            <input type="number" id="alloSecurityMargin" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="0" value="0" min="0">
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-slate-300 mb-1">Statut</label>
                             <select id="alloStatus" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5">
                                 <option value="DRAFT">Brouillon</option>
@@ -776,6 +780,7 @@
             document.getElementById('editAlloId').value = "";
             document.getElementById('alloTitle').value = "";
             document.getElementById('alloDuration').value = "15";
+            document.getElementById('alloSecurityMargin').value = "0";
             document.getElementById('alloStart').value = "";
             document.getElementById('alloEnd').value = "";
             document.getElementById('alloDesc').value = "";
@@ -794,6 +799,7 @@
             document.getElementById('editAlloId').value = a.id;
             document.getElementById('alloTitle').value = a.title;
             document.getElementById('alloDuration').value = a.slot_duration_minutes;
+            document.getElementById('alloSecurityMargin').value = a.security_margin_minutes ?? 0;
             document.getElementById('alloStart').value = toInputDateTime(a.window_start_at);
             document.getElementById('alloEnd').value = toInputDateTime(a.window_end_at);
             document.getElementById('alloDesc').value = a.description || "";
@@ -868,10 +874,13 @@
             const isDraft = statusValue === 'DRAFT';
             const durationValue = document.getElementById('alloDuration').value;
             const durationMinutes = durationValue ? parseInt(durationValue) : null;
+            const securityMarginValue = document.getElementById('alloSecurityMargin').value;
+            const securityMarginMinutes = securityMarginValue ? parseInt(securityMarginValue) : 0;
             const normalizeSlotValue = (value) => (value ? value : null);
             const data = {
                 title: document.getElementById('alloTitle').value,
                 slot_duration_minutes: Number.isNaN(durationMinutes) ? null : durationMinutes,
+                security_margin_minutes: Number.isNaN(securityMarginMinutes) ? 0 : Math.max(securityMarginMinutes, 0),
                 window_start_at: document.getElementById('alloStart').value,
                 window_end_at: document.getElementById('alloEnd').value,
                 description: document.getElementById('alloDesc').value,

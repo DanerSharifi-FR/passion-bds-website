@@ -73,11 +73,17 @@ class AlloApiController extends Controller
             $windowStart = $windowBounds[0] ?? null;
             $windowEnd = $windowBounds[1] ?? null;
             $slotCapacityFallback = (int) $allo->admins_count;
+            $securityMargin = max((int) ($allo->security_margin_minutes ?? 0), 0);
+            $availabilityThreshold = $now->copy()->addMinutes($securityMargin);
 
-            $selectableSlots = $allo->slots->filter(function (AlloSlot $slot) use ($slotCapacityFallback): bool {
+            $selectableSlots = $allo->slots->filter(function (AlloSlot $slot) use ($slotCapacityFallback, $availabilityThreshold): bool {
                 $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
                 $bookingsCount = (int) ($slot->bookings_count ?? 0);
                 $remaining = max($capacity - $bookingsCount, 0);
+
+                if (! $slot->slot_start_at || $slot->slot_start_at->lessThan($availabilityThreshold)) {
+                    return false;
+                }
 
                 return in_array($slot->status, ['available', 'partial'], true) && $remaining > 0;
             });
@@ -133,12 +139,12 @@ class AlloApiController extends Controller
 
                     return Carbon::parse($slot['slot_start_at'])->toDateString();
                 })
-                ->filter(function ($daySlots, $dateKey) use ($now): bool {
+                ->filter(function ($daySlots, $dateKey) use ($availabilityThreshold): bool {
                     if ($dateKey === null) {
                         return false;
                     }
 
-                    return $daySlots->contains(function (array $slot) use ($now): bool {
+                    return $daySlots->contains(function (array $slot) use ($availabilityThreshold): bool {
                         if (! $slot['slot_start_at']) {
                             return false;
                         }
@@ -146,7 +152,7 @@ class AlloApiController extends Controller
                         $slotStart = Carbon::parse($slot['slot_start_at']);
                         $remaining = (int) ($slot['remaining'] ?? 0);
 
-                        return $slotStart->greaterThanOrEqualTo($now)
+                        return $slotStart->greaterThanOrEqualTo($availabilityThreshold)
                             && in_array($slot['status'], ['available', 'partial'], true)
                             && $remaining > 0;
                     });
@@ -165,6 +171,7 @@ class AlloApiController extends Controller
                 'window_start_at' => $windowStart?->toIso8601String(),
                 'window_end_at' => $windowEnd?->toIso8601String(),
                 'slot_duration_minutes' => $allo->slot_duration_minutes,
+                'security_margin_minutes' => $securityMargin,
                 'slot_capacity' => (int) $allo->admins_count,
                 'time_slots' => $allo->time_slots ?? [],
                 'is_window_open' => $windowEnd !== null
@@ -247,8 +254,16 @@ class AlloApiController extends Controller
             ->where('allo_id', $allo->id)
             ->firstOrFail();
 
-        if ($slot->slot_start_at !== null && $slot->slot_start_at->lessThan($now)) {
-            return response()->json(['message' => 'Ce créneau est déjà passé.'], 422);
+        $availabilityThreshold = $now->copy()->addMinutes(max((int) ($allo->security_margin_minutes ?? 0), 0));
+
+        if ($slot->slot_start_at !== null) {
+            if ($slot->slot_start_at->lessThan($now)) {
+                return response()->json(['message' => 'Ce créneau est déjà passé.'], 422);
+            }
+
+            if ($slot->slot_start_at->lessThan($availabilityThreshold)) {
+                return response()->json(['message' => "Ce créneau n'est pas encore disponible."], 422);
+            }
         }
 
         if ($slot->status === 'blocked') {
@@ -404,8 +419,16 @@ class AlloApiController extends Controller
             ->where('allo_id', $allo->id)
             ->firstOrFail();
 
-        if ($slot->slot_start_at !== null && $slot->slot_start_at->lessThan($now)) {
-            return response()->json(['message' => 'Ce créneau est déjà passé.'], 422);
+        $availabilityThreshold = $now->copy()->addMinutes(max((int) ($allo->security_margin_minutes ?? 0), 0));
+
+        if ($slot->slot_start_at !== null) {
+            if ($slot->slot_start_at->lessThan($now)) {
+                return response()->json(['message' => 'Ce créneau est déjà passé.'], 422);
+            }
+
+            if ($slot->slot_start_at->lessThan($availabilityThreshold)) {
+                return response()->json(['message' => "Ce créneau n'est pas encore disponible."], 422);
+            }
         }
 
         if ($slot->status === 'blocked') {
