@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $window_end_at
  * @property int|null $slot_duration_minutes
  * @property int $security_margin_minutes
+ * @property int|null $daily_booking_limit
  * @property array<int, array{start_date: string, end_date: string, start_time: string, end_time: string}>|null $time_slots
  * @property int|null $created_by_id
  * @property int|null $updated_by_id
@@ -59,6 +60,7 @@ class Allo extends Model
         'window_end_at',
         'slot_duration_minutes',
         'security_margin_minutes',
+        'daily_booking_limit',
         'time_slots',
         'created_by_id',
         'updated_by_id',
@@ -70,6 +72,7 @@ class Allo extends Model
     protected $casts = [
         'slot_duration_minutes' => 'integer',
         'security_margin_minutes' => 'integer',
+        'daily_booking_limit' => 'integer',
         'window_start_at' => 'datetime',
         'window_end_at' => 'datetime',
         'time_slots' => 'array',

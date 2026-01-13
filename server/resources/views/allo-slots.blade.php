@@ -494,6 +494,10 @@
 
                 if (!response.ok) {
                     const message = data.message || 'Erreur lors de la réservation.';
+                    if (message.includes('limite de réservations')) {
+                        setFeedback('Tu as atteint la limite de réservations pour cet allo ce jour-là.');
+                        return;
+                    }
                     if (message.includes('déjà réservé un créneau pour cet allo')) {
                         setFeedback('Tu as déjà réservé un créneau ce jour-là. Utilise le bouton “Modifier ma réservation”.');
                         return;
