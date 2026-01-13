@@ -245,6 +245,15 @@
             return `${remaining} place${suffix} restante${suffix}`;
         }
 
+        function isSlotDurationMatching(slotStart, slotEnd, expectedMinutes) {
+            if (!Number.isFinite(expectedMinutes) || expectedMinutes <= 0) {
+                return true;
+            }
+
+            const durationMinutes = Math.round((slotEnd.getTime() - slotStart.getTime()) / 60000);
+            return durationMinutes === expectedMinutes;
+        }
+
         function renderTimetable() {
             if (!alloData) return;
 
@@ -264,6 +273,9 @@
                 if (!isSlotWithinTimeSlots(slotStart, slotEnd, alloData.time_slots)) {
                     return false;
                 }
+                if (!isSlotDurationMatching(slotStart, slotEnd, alloData.slot_duration_minutes)) {
+                    return false;
+                }
                 const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
                 return availableSlotStatuses.includes(slot.status)
                     && (remaining === null || remaining > 0)
@@ -278,6 +290,9 @@
                 const slotStart = new Date(slot.slot_start_at);
                 const slotEnd = new Date(slot.slot_end_at);
                 if (!isSlotWithinTimeSlots(slotStart, slotEnd, alloData.time_slots)) {
+                    return false;
+                }
+                if (!isSlotDurationMatching(slotStart, slotEnd, alloData.slot_duration_minutes)) {
                     return false;
                 }
                 return slotStart >= now;
