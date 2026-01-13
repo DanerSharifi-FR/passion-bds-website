@@ -188,6 +188,7 @@ class AlloApiController extends Controller
             'window_end_at' => ['nullable', 'date', 'after:window_start_at'],
             'slot_duration_minutes' => [Rule::requiredIf($requiresWindow), 'nullable', 'integer', 'min:1'],
             'security_margin_minutes' => ['nullable', 'integer', 'min:0'],
+            'daily_booking_limit' => ['nullable', 'integer', 'min:1'],
             'time_slots' => ['nullable', 'array'],
             'time_slots.*.start_date' => $timeSlotDateRule,
             'time_slots.*.end_date' => array_merge($timeSlotDateRule, ['after_or_equal:start_date']),
@@ -306,6 +307,7 @@ class AlloApiController extends Controller
             'window_end_at' => $allo->window_end_at?->toIso8601String(),
             'slot_duration_minutes' => $allo->slot_duration_minutes,
             'security_margin_minutes' => $allo->security_margin_minutes,
+            'daily_booking_limit' => $allo->daily_booking_limit,
             'time_slots' => $allo->time_slots ?? [],
             'admins' => $allo->admins->map(fn ($admin): array => [
                 'id' => $admin->id,

@@ -286,8 +286,11 @@ class AlloApiController extends Controller
             return response()->json(['message' => 'Ce créneau est bloqué.'], 422);
         }
 
+        $dailyLimit = $allo->daily_booking_limit;
         $slotDate = $slot->slot_start_at?->toDateString();
-        $existingBooking = $slotDate !== null
+        $dailyLimitReached = $slotDate !== null
+            && $dailyLimit !== null
+            && $dailyLimit > 0
             && AlloUsage::query()
                 ->where('user_id', $user->id)
                 ->where('allo_id', $allo->id)
@@ -297,10 +300,10 @@ class AlloApiController extends Controller
                     AlloUsageService::STATUS_ACCEPTED,
                     AlloUsageService::STATUS_DONE,
                 ])
-                ->exists();
+                ->count() >= $dailyLimit;
 
-        if ($existingBooking) {
-            return response()->json(['message' => 'Vous avez déjà réservé un créneau pour cet allo ce jour-là.'], 422);
+        if ($dailyLimitReached) {
+            return response()->json(['message' => 'Vous avez atteint la limite de réservations pour cet allo ce jour-là.'], 422);
         }
 
         $booking = DB::transaction(function () use ($user, $allo, $slot, $validated): AlloUsage {
@@ -518,8 +521,11 @@ class AlloApiController extends Controller
             return response()->json(['message' => 'Ce créneau est bloqué.'], 422);
         }
 
+        $dailyLimit = $allo->daily_booking_limit;
         $slotDate = $slot->slot_start_at?->toDateString();
-        $existingBooking = $slotDate !== null
+        $dailyLimitReached = $slotDate !== null
+            && $dailyLimit !== null
+            && $dailyLimit > 0
             && AlloUsage::query()
                 ->where('user_id', $user->id)
                 ->where('allo_id', $allo->id)
@@ -530,10 +536,10 @@ class AlloApiController extends Controller
                     AlloUsageService::STATUS_DONE,
                 ])
                 ->where('id', '!=', $booking->id)
-                ->exists();
+                ->count() >= $dailyLimit;
 
-        if ($existingBooking) {
-            return response()->json(['message' => 'Vous avez déjà réservé un créneau pour cet allo ce jour-là.'], 422);
+        if ($dailyLimitReached) {
+            return response()->json(['message' => 'Vous avez atteint la limite de réservations pour cet allo ce jour-là.'], 422);
         }
 
         $updatedBooking = DB::transaction(function () use ($allo, $booking, $slot, $validated): AlloUsage {
