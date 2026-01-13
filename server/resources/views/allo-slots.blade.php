@@ -236,12 +236,12 @@
             if (!alloData) return;
 
             const now = new Date();
-            const windowOpen = alloData.window_start_at
-                && alloData.window_end_at
-                && now >= new Date(alloData.window_start_at)
-                && now <= new Date(alloData.window_end_at);
-            const windowEnded = alloData.window_end_at
-                && now > new Date(alloData.window_end_at);
+            const windowOpen = typeof alloData.is_window_open === 'boolean'
+                ? alloData.is_window_open
+                : (alloData.window_end_at && now <= new Date(alloData.window_end_at));
+            const windowEnded = typeof alloData.is_window_ended === 'boolean'
+                ? alloData.is_window_ended
+                : (alloData.window_end_at && now > new Date(alloData.window_end_at));
             const isEnded = windowEnded || alloData.status !== 'OPEN';
             const availableSlotStatuses = ['available', 'partial'];
             const isSelectableSlot = (slot) => {
