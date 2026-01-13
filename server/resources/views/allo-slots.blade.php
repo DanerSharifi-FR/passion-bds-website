@@ -282,10 +282,6 @@
                 daySlots.sort((a, b) => new Date(a.slot_start_at) - new Date(b.slot_start_at));
                 const card = document.createElement('details');
                 card.className = 'bg-white border-2 border-passion-red shadow-[4px_4px_0_#000] p-4 space-y-3 self-start';
-                if (index === 0) {
-                    card.open = true;
-                }
-
                 const dayDate = new Date(`${dateKey}T00:00:00`);
                 card.innerHTML = `
                     <summary class="font-display font-black uppercase text-passion-red text-lg cursor-pointer list-none flex items-center justify-between">
