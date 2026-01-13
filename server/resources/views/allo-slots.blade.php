@@ -232,6 +232,15 @@
             });
         }
 
+        function isSlotDurationMatching(slotStart, slotEnd, expectedMinutes) {
+            if (!Number.isFinite(expectedMinutes) || expectedMinutes <= 0) {
+                return true;
+            }
+
+            const diffMinutes = Math.round((slotEnd - slotStart) / 60000);
+            return diffMinutes === expectedMinutes;
+        }
+
         function formatRemainingLabel(remaining) {
             if (remaining === null || Number.isNaN(remaining)) {
                 return '';
@@ -257,11 +266,15 @@
                 : (alloData.window_end_at && now > new Date(alloData.window_end_at));
             const isEnded = windowEnded || alloData.status !== 'OPEN';
             const availableSlotStatuses = ['available', 'partial'];
+            const slotDurationMinutes = Number(alloData.slot_duration_minutes);
             const isSelectableSlot = (slot) => {
                 if (!slot?.slot_start_at || !slot?.slot_end_at) return false;
                 const slotStart = new Date(slot.slot_start_at);
                 const slotEnd = new Date(slot.slot_end_at);
                 if (!isSlotWithinTimeSlots(slotStart, slotEnd, alloData.time_slots)) {
+                    return false;
+                }
+                if (!isSlotDurationMatching(slotStart, slotEnd, slotDurationMinutes)) {
                     return false;
                 }
                 const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
@@ -278,6 +291,9 @@
                 const slotStart = new Date(slot.slot_start_at);
                 const slotEnd = new Date(slot.slot_end_at);
                 if (!isSlotWithinTimeSlots(slotStart, slotEnd, alloData.time_slots)) {
+                    return false;
+                }
+                if (!isSlotDurationMatching(slotStart, slotEnd, slotDurationMinutes)) {
                     return false;
                 }
                 return slotStart >= now;
