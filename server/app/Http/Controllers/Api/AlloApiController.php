@@ -369,12 +369,29 @@ class AlloApiController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 401);
         }
 
+        $now = now();
+
         $bookings = AlloUsage::query()
             ->where('user_id', $user->id)
-            ->with(['allo', 'slot'])
+            ->with([
+                'slot',
+                'allo' => function ($query): void {
+                    $query
+                        ->withCount('admins')
+                        ->with(['slots' => function ($slotQuery): void {
+                            $slotQuery->withCount(['usages as bookings_count' => function ($usageQuery): void {
+                                $usageQuery->whereIn('status', [
+                                    AlloUsageService::STATUS_PENDING,
+                                    AlloUsageService::STATUS_ACCEPTED,
+                                    AlloUsageService::STATUS_DONE,
+                                ]);
+                            }]);
+                        }]);
+                },
+            ])
             ->orderBy('slot_start_at')
             ->get()
-            ->map(function (AlloUsage $usage): array {
+            ->map(function (AlloUsage $usage) use ($now): array {
                 return [
                     'id' => $usage->id,
                     'status' => $usage->status,
@@ -385,7 +402,7 @@ class AlloApiController extends Controller
                     'allo_title' => $usage->allo?->title,
                     'allo_description' => $usage->allo?->description,
                     'slot_id' => $usage->allo_slot_id,
-                    'can_edit' => $usage->status === AlloUsageService::STATUS_PENDING,
+                    'can_edit' => $this->canEditBooking($usage, $now),
                 ];
             })
             ->values();
@@ -393,6 +410,55 @@ class AlloApiController extends Controller
         return response()->json([
             'bookings' => $bookings,
         ]);
+    }
+
+    private function canEditBooking(AlloUsage $usage, Carbon $now): bool
+    {
+        if ($usage->status !== AlloUsageService::STATUS_PENDING) {
+            return false;
+        }
+
+        $allo = $usage->allo;
+
+        if ($allo === null || $allo->status !== 'OPEN') {
+            return false;
+        }
+
+        $windowBounds = $this->resolveWindowBounds($allo);
+        $windowEnd = $windowBounds[1] ?? null;
+
+        if ($windowEnd === null || $now->greaterThan($windowEnd)) {
+            return false;
+        }
+
+        $securityMargin = max((int) ($allo->security_margin_minutes ?? 0), 0);
+        $availabilityThreshold = $now->copy()->addMinutes($securityMargin);
+        $slotCapacityFallback = (int) ($allo->admins_count ?? 0);
+        $currentSlotId = $usage->allo_slot_id;
+
+        if (! $allo->relationLoaded('slots')) {
+            return false;
+        }
+
+        return $allo->slots->contains(function (AlloSlot $slot) use ($availabilityThreshold, $slotCapacityFallback, $currentSlotId): bool {
+            if ($slot->id === $currentSlotId) {
+                return false;
+            }
+
+            if (! $slot->slot_start_at || $slot->slot_start_at->lessThan($availabilityThreshold)) {
+                return false;
+            }
+
+            if (! in_array($slot->status, ['available', 'partial'], true)) {
+                return false;
+            }
+
+            $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
+            $bookingsCount = (int) ($slot->bookings_count ?? 0);
+            $remaining = max($capacity - $bookingsCount, 0);
+
+            return $remaining > 0;
+        });
     }
 
     public function updateBooking(Request $request, AlloUsage $booking): JsonResponse
