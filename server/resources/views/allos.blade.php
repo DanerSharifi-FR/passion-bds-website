@@ -373,15 +373,13 @@
                     .filter((booking) => booking !== null);
                 const userBooking = userBookings[0];
                 const hasBooking = Boolean(userBooking);
-                const dailyLimit = Number(allo.daily_booking_limit ?? 0);
-                const hasDailyLimit = Number.isFinite(dailyLimit) && dailyLimit > 0;
                 const canBookNew = allo.can_book_new ?? true;
                 const showBookingStatus = hasBooking && !isEnded;
                 const bookingStatusLabel = userBooking?.status
                     ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
                     : '';
                 const showSlotsButton = !isDisabled && canBookNew;
-                const showExtraSlotsButton = hasBooking && showSlotsButton && hasDailyLimit && isAuthenticated;
+                const showExtraSlotsButton = hasBooking && showSlotsButton && isAuthenticated;
 
                 const card = document.createElement('div');
                 card.className = `relative border-2 shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4 ${
