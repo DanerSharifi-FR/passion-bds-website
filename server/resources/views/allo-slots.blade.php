@@ -55,6 +55,11 @@
                 <textarea id="allo-note" class="w-full border-2 border-passion-red px-3 py-2 text-sm" rows="2"
                           placeholder="Ex: sieste après 15h, merci !"></textarea>
             </div>
+            <div id="allo-description-reminder"
+                 class="hidden flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                <span aria-hidden="true">ℹ️</span>
+                <p class="font-medium"></p>
+            </div>
             <button id="allo-book-btn"
                     class="w-full bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Réserver cet allo
@@ -80,6 +85,7 @@
         const bookingButton = document.getElementById('allo-book-btn');
         const noteInput = document.getElementById('allo-note');
         const feedbackElement = document.getElementById('allo-feedback');
+        const descriptionReminder = document.getElementById('allo-description-reminder');
 
         let alloData = null;
         let selectedSlot = null;
@@ -349,7 +355,7 @@
                 timetableElement.appendChild(card);
             });
 
-            bookingButton.disabled = !isAuthenticated || isEnded || !windowOpen;
+            updateBookingButtonState();
         }
 
         function updateSelectedSlot() {
@@ -357,17 +363,38 @@
             if (!input || !alloData) {
                 selectedSlot = null;
                 selectedSlotElement.textContent = 'Sélectionne un créneau';
+                updateBookingButtonState();
                 return;
             }
 
             selectedSlot = alloData.slots.find((slot) => slot.id === Number(input.value)) || null;
             if (!selectedSlot) {
                 selectedSlotElement.textContent = 'Sélectionne un créneau';
+                updateBookingButtonState();
                 return;
             }
 
             const label = `${formatTime(new Date(selectedSlot.slot_start_at))} → ${formatTime(new Date(selectedSlot.slot_end_at))}`;
             selectedSlotElement.textContent = label;
+            updateBookingButtonState();
+        }
+
+        function updateBookingButtonState() {
+            if (!alloData) {
+                bookingButton.disabled = true;
+                return;
+            }
+
+            const now = new Date();
+            const windowOpen = typeof alloData.is_window_open === 'boolean'
+                ? alloData.is_window_open
+                : (alloData.window_end_at && now <= new Date(alloData.window_end_at));
+            const windowEnded = typeof alloData.is_window_ended === 'boolean'
+                ? alloData.is_window_ended
+                : (alloData.window_end_at && now > new Date(alloData.window_end_at));
+            const isEnded = windowEnded || alloData.status !== 'OPEN';
+
+            bookingButton.disabled = !isAuthenticated || isEnded || !windowOpen || !selectedSlot;
         }
 
         async function bookSelectedSlot() {
@@ -405,9 +432,7 @@
             } catch (error) {
                 feedbackElement.textContent = 'Impossible de réserver pour le moment.';
             } finally {
-                if (isAuthenticated) {
-                    bookingButton.disabled = false;
-                }
+                updateBookingButtonState();
             }
         }
 
@@ -427,6 +452,12 @@
 
                 titleElement.textContent = alloData.title || 'Créneaux Allo';
                 descriptionElement.textContent = alloData.description || '';
+                if (alloData.description) {
+                    descriptionReminder.querySelector('p').textContent = alloData.description;
+                    descriptionReminder.classList.remove('hidden');
+                } else {
+                    descriptionReminder.classList.add('hidden');
+                }
 
                 windowCard.innerHTML = formatWindowLabel(alloData.window_start_at, alloData.window_end_at, alloData.time_slots);
                 windowCard.classList.remove('hidden');
