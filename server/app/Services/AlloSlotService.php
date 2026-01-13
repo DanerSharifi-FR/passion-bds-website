@@ -30,15 +30,20 @@ class AlloSlotService
 
         $capacity = $allo->admins()->count();
 
-        // On récupère les start_at existants pour cet allo afin d’éviter les doublons.
-        /** @var Collection<int, string> $existingStartTimes */
-        $existingStartTimes = AlloSlot::query()
-            ->where('allo_id', $allo->id)
-            ->pluck('slot_start_at')
-            ->map(static fn ($value): string => Carbon::parse($value)->toDateTimeString());
+        $minuteKey = static function (Carbon $dateTime): string {
+            return $dateTime->copy()->utc()->format('Y-m-d H:i');
+        };
 
-        /** @var array<int, string> $existingStartTimesArray */
-        $existingStartTimesArray = $existingStartTimes->all();
+        /** @var Collection<string, AlloSlot> $existingSlots */
+        $existingSlots = AlloSlot::query()
+            ->where('allo_id', $allo->id)
+            ->withCount('usages')
+            ->get()
+            ->keyBy(function (AlloSlot $slot) use ($minuteKey): string {
+                $startAt = $slot->slot_start_at ?? Carbon::parse($slot->slot_start_at);
+
+                return $minuteKey($startAt);
+            });
 
         AlloSlot::query()
             ->where('allo_id', $allo->id)
@@ -63,9 +68,17 @@ class AlloSlotService
                     break;
                 }
 
-                $startString = $currentStart->toDateTimeString();
+                $startString = $minuteKey($currentStart);
 
-                if (in_array($startString, $existingStartTimesArray, true)) {
+                $existingSlot = $existingSlots->get($startString);
+
+                if ($existingSlot) {
+                    if ($existingSlot->slot_end_at?->toDateTimeString() !== $currentEnd->toDateTimeString()
+                        && (int) $existingSlot->usages_count === 0) {
+                        $existingSlot->slot_end_at = $currentEnd;
+                        $existingSlot->save();
+                    }
+
                     // Slot déjà existant : on avance simplement.
                     $currentStart = $currentEnd;
 
