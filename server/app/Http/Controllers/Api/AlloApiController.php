@@ -48,7 +48,6 @@ class AlloApiController extends Controller
 
                 if ($slotsOnly) {
                     $query
-                        ->whereIn('status', ['available', 'partial'])
                         ->where('slot_start_at', '>=', $now);
                 }
             }])
@@ -65,7 +64,7 @@ class AlloApiController extends Controller
                 ->keyBy('allo_slot_id');
         }
 
-        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $now): array {
+        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $now, $slotsOnly): array {
             $totalCapacity = (int) $allo->slots->sum('capacity');
             $bookedCount = (int) $allo->slots->sum(function (AlloSlot $slot): int {
                 return (int) ($slot->bookings_count ?? 0);
@@ -73,6 +72,32 @@ class AlloApiController extends Controller
             $windowBounds = $this->resolveWindowBounds($allo);
             $windowStart = $windowBounds[0] ?? null;
             $windowEnd = $windowBounds[1] ?? null;
+            $slotCapacityFallback = (int) $allo->admins_count;
+
+            $selectableSlots = $allo->slots->filter(function (AlloSlot $slot) use ($slotCapacityFallback): bool {
+                $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
+                $bookingsCount = (int) ($slot->bookings_count ?? 0);
+                $remaining = max($capacity - $bookingsCount, 0);
+
+                return in_array($slot->status, ['available', 'partial'], true) && $remaining > 0;
+            });
+
+            $disabledDates = [];
+
+            if ($slotsOnly) {
+                $selectableDates = $selectableSlots
+                    ->map(fn (AlloSlot $slot): ?string => $slot->slot_start_at?->format('Y-m-d'))
+                    ->filter()
+                    ->unique();
+
+                $disabledDates = $allo->slots
+                    ->map(fn (AlloSlot $slot): ?string => $slot->slot_start_at?->format('Y-m-d'))
+                    ->filter()
+                    ->unique()
+                    ->diff($selectableDates)
+                    ->values()
+                    ->all();
+            }
 
             $slots = $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo): array {
                 /** @var AlloUsage|null $booking */
@@ -146,7 +171,32 @@ class AlloApiController extends Controller
                     && $windowEnd !== null
                     && $now->between($windowStart, $windowEnd),
                 'is_window_ended' => $windowEnd !== null && $now->greaterThan($windowEnd),
-                'slots' => $slots,
+                'disabled_dates' => $slotsOnly ? $disabledDates : [],
+                'slots' => ($slotsOnly ? $selectableSlots : $allo->slots)->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo, $slotCapacityFallback): array {
+                    /** @var AlloUsage|null $booking */
+                    $booking = $bookingsBySlotId->get($slot->id);
+                    $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
+                    $bookingsCount = (int) ($slot->bookings_count ?? 0);
+                    $remaining = max($capacity - $bookingsCount, 0);
+
+                    return [
+                        'id' => $slot->id,
+                        'slot_start_at' => $slot->slot_start_at?->toIso8601String(),
+                        'slot_end_at' => $slot->slot_end_at?->toIso8601String(),
+                        'status' => $slot->status,
+                        'capacity' => $capacity,
+                        'booked_count' => $bookingsCount,
+                        'remaining' => $remaining,
+                        'bookings_count' => $bookingsCount,
+                        'remaining_capacity' => $remaining,
+                        'user_booking' => $booking ? [
+                            'id' => $booking->id,
+                            'status' => $booking->status,
+                            'user_note' => $booking->user_note,
+                            'slot_start_at' => $booking->slot_start_at?->toIso8601String(),
+                        ] : null,
+                    ];
+                })->values(),
             ];
         })->values();
 

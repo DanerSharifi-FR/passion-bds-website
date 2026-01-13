@@ -258,6 +258,7 @@
                     && slotStart >= now;
             };
 
+            const disabledDates = Array.isArray(alloData.disabled_dates) ? alloData.disabled_dates : [];
             const slots = alloData.slots.filter((slot) => {
                 if (!slot.slot_start_at || !slot.slot_end_at) return false;
                 const slotStart = new Date(slot.slot_start_at);
@@ -268,7 +269,7 @@
                 return slotStart >= now;
             });
 
-            if (!slots.length) {
+            if (!slots.length && !disabledDates.length) {
                 statusElement.textContent = 'Plus de créneaux disponibles.';
                 timetableElement.innerHTML = '';
                 bookingCard.classList.add('hidden');
@@ -291,9 +292,17 @@
                 return acc;
             }, {});
 
-            Object.entries(slotsByDate).forEach(([dateKey, daySlots], index) => {
+            const dateKeys = new Set([
+                ...Object.keys(slotsByDate),
+                ...disabledDates,
+            ]);
+
+            Array.from(dateKeys)
+                .sort((a, b) => new Date(a) - new Date(b))
+                .forEach((dateKey) => {
+                const daySlots = slotsByDate[dateKey] || [];
                 daySlots.sort((a, b) => new Date(a.slot_start_at) - new Date(b.slot_start_at));
-                const dayHasSelectableSlots = daySlots.some((slot) => isSelectableSlot(slot));
+                const dayHasSelectableSlots = daySlots.length > 0 && daySlots.some((slot) => isSelectableSlot(slot));
                 const card = document.createElement(dayHasSelectableSlots ? 'details' : 'div');
                 card.className = dayHasSelectableSlots
                     ? 'bg-white border-2 border-passion-red shadow-[4px_4px_0_#000] p-4 space-y-3 self-start relative'
@@ -316,9 +325,7 @@
 
                 const list = card.querySelector('[data-date]');
                 if (dayHasSelectableSlots && list) {
-                    const visibleSlots = daySlots.filter((slot) => isSelectableSlot(slot));
-
-                    visibleSlots.forEach((slot) => {
+                    daySlots.filter((slot) => isSelectableSlot(slot)).forEach((slot) => {
                         const slotStart = new Date(slot.slot_start_at);
                         const slotEnd = new Date(slot.slot_end_at);
                         const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
