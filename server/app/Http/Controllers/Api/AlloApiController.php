@@ -107,8 +107,12 @@ class AlloApiController extends Controller
                 ? $editingBooking->allo_slot_id
                 : null;
 
-            $selectableSlots = $allo->slots->filter(function (AlloSlot $slot) use ($slotCapacityFallback, $availabilityThreshold, $editingSlotId): bool {
+            $selectableSlots = $allo->slots->filter(function (AlloSlot $slot) use ($slotCapacityFallback, $availabilityThreshold, $editingSlotId, $bookingsBySlotId): bool {
                 if ($editingSlotId !== null && $slot->id === $editingSlotId) {
+                    return true;
+                }
+
+                if ($bookingsBySlotId->has($slot->id)) {
                     return true;
                 }
 
