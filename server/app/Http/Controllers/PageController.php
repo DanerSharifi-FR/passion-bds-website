@@ -6,6 +6,7 @@ use App\Models\Activity;
 use App\Models\Allo;
 use App\Models\AlloSlot;
 use App\Models\AlloUsage;
+use App\Models\User;
 use App\Services\AlloUsageService;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
@@ -42,8 +43,10 @@ class PageController extends Controller
             ->whereIn('status', ['OPEN', 'CLOSED'])
             ->findOrFail($alloId);
 
+        $now = now();
         $user = $request->user();
         $bookingId = (int) $request->query('booking', 0);
+        $canBookNew = $user instanceof User ? $this->canBookNew($allo, $user, $now) : true;
 
         if ($user !== null) {
             $existingBooking = AlloUsage::query()
@@ -58,20 +61,25 @@ class PageController extends Controller
                 ->first();
 
             if ($existingBooking !== null && $existingBooking->id !== $bookingId) {
-                if ($existingBooking->status === AlloUsageService::STATUS_PENDING) {
-                    return redirect()->route('allos.slots', [
-                        'alloId' => $alloId,
-                        'booking' => $existingBooking->id,
+                if (! $canBookNew) {
+                    if ($existingBooking->status === AlloUsageService::STATUS_PENDING) {
+                        return redirect()->route('allos.slots', [
+                            'alloId' => $alloId,
+                            'booking' => $existingBooking->id,
+                        ]);
+                    }
+
+                    return redirect()->route('allos.reservations', [
+                        'allo_id' => $alloId,
                     ]);
                 }
-
-                return redirect()->route('allos.reservations', [
-                    'allo_id' => $alloId,
-                ]);
             }
         }
 
-        $now = now();
+        if ($user !== null && $bookingId === 0 && ! $canBookNew) {
+            abort(404);
+        }
+
         $windowBounds = $this->resolveWindowBounds($allo);
         $windowEnd = $windowBounds[1] ?? null;
         $availabilityThreshold = $now->copy()->addMinutes(max((int) ($allo->security_margin_minutes ?? 0), 0));
@@ -94,6 +102,64 @@ class PageController extends Controller
         return view('allo-slots', [
             'alloId' => $alloId,
         ]);
+    }
+
+    private function canBookNew(Allo $allo, User $user, Carbon $now): bool
+    {
+        $dailyLimit = $allo->daily_booking_limit;
+
+        if ($dailyLimit === null || $dailyLimit <= 0) {
+            return true;
+        }
+
+        $availabilityThreshold = $now->copy()->addMinutes(max((int) ($allo->security_margin_minutes ?? 0), 0));
+        $slotCapacityFallback = $allo->admins()->count();
+
+        $bookingCountsByDate = AlloUsage::query()
+            ->selectRaw('DATE(slot_start_at) as slot_date, COUNT(*) as bookings_count')
+            ->where('user_id', $user->id)
+            ->where('allo_id', $allo->id)
+            ->whereIn('status', [
+                AlloUsageService::STATUS_PENDING,
+                AlloUsageService::STATUS_ACCEPTED,
+                AlloUsageService::STATUS_DONE,
+            ])
+            ->groupBy('slot_date')
+            ->get()
+            ->pluck('bookings_count', 'slot_date');
+
+        $slots = AlloSlot::query()
+            ->where('allo_id', $allo->id)
+            ->where('slot_start_at', '>=', $availabilityThreshold)
+            ->whereIn('status', ['available', 'partial'])
+            ->withCount(['usages as bookings_count' => function ($usageQuery): void {
+                $usageQuery->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ]);
+            }])
+            ->get();
+
+        return $slots->contains(function (AlloSlot $slot) use ($bookingCountsByDate, $dailyLimit, $slotCapacityFallback): bool {
+            $slotDate = $slot->slot_start_at?->toDateString();
+
+            if ($slotDate === null) {
+                return false;
+            }
+
+            $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
+            $bookingsCount = (int) ($slot->bookings_count ?? 0);
+            $remaining = max($capacity - $bookingsCount, 0);
+
+            if ($remaining <= 0) {
+                return false;
+            }
+
+            $currentCount = (int) ($bookingCountsByDate[$slotDate] ?? 0);
+
+            return $currentCount < $dailyLimit;
+        });
     }
 
     public function activities(): Factory|View
