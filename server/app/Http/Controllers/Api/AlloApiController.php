@@ -27,6 +27,15 @@ class AlloApiController extends Controller
 
         $alloId = $request->query('allo_id');
         $slotsOnly = $request->boolean('slots_only');
+        $bookingId = $request->query('booking_id');
+
+        $editingBooking = null;
+        if ($slotsOnly && $user !== null && $bookingId !== null && $bookingId !== '') {
+            $editingBooking = AlloUsage::query()
+                ->where('id', (int) $bookingId)
+                ->where('user_id', $user->id)
+                ->first();
+        }
 
         $allos = Allo::query()
             ->whereIn('status', ['OPEN', 'CLOSED'])
@@ -64,7 +73,7 @@ class AlloApiController extends Controller
                 ->keyBy('allo_slot_id');
         }
 
-        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $now, $slotsOnly): array {
+        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $editingBooking, $now, $slotsOnly): array {
             $totalCapacity = (int) $allo->slots->sum('capacity');
             $bookedCount = (int) $allo->slots->sum(function (AlloSlot $slot): int {
                 return (int) ($slot->bookings_count ?? 0);
@@ -75,8 +84,15 @@ class AlloApiController extends Controller
             $slotCapacityFallback = (int) $allo->admins_count;
             $securityMargin = max((int) ($allo->security_margin_minutes ?? 0), 0);
             $availabilityThreshold = $now->copy()->addMinutes($securityMargin);
+            $editingSlotId = $slotsOnly && $editingBooking?->allo_id === $allo->id
+                ? $editingBooking->allo_slot_id
+                : null;
 
-            $selectableSlots = $allo->slots->filter(function (AlloSlot $slot) use ($slotCapacityFallback, $availabilityThreshold): bool {
+            $selectableSlots = $allo->slots->filter(function (AlloSlot $slot) use ($slotCapacityFallback, $availabilityThreshold, $editingSlotId): bool {
+                if ($editingSlotId !== null && $slot->id === $editingSlotId) {
+                    return true;
+                }
+
                 $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
                 $bookingsCount = (int) ($slot->bookings_count ?? 0);
                 $remaining = max($capacity - $bookingsCount, 0);
@@ -420,8 +436,9 @@ class AlloApiController extends Controller
             ->firstOrFail();
 
         $availabilityThreshold = $now->copy()->addMinutes(max((int) ($allo->security_margin_minutes ?? 0), 0));
+        $isSameSlot = $slot->id === $booking->allo_slot_id;
 
-        if ($slot->slot_start_at !== null) {
+        if (! $isSameSlot && $slot->slot_start_at !== null) {
             if ($slot->slot_start_at->lessThan($now)) {
                 return response()->json(['message' => 'Ce créneau est déjà passé.'], 422);
             }
