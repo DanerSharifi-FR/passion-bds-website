@@ -229,6 +229,15 @@
             return `${remaining} place${suffix} restante${suffix}`;
         }
 
+        function isSlotDurationMatching(slotStart, slotEnd, expectedMinutes) {
+            if (!Number.isFinite(expectedMinutes) || expectedMinutes <= 0) {
+                return true;
+            }
+
+            const durationMinutes = Math.round((slotEnd.getTime() - slotStart.getTime()) / 60000);
+            return durationMinutes === expectedMinutes;
+        }
+
         function buildSlotOptions(allo) {
             if (!allo?.slots?.length) {
                 return '<option value="">Aucun créneau disponible</option>';
@@ -240,6 +249,9 @@
                 const slotStart = new Date(slot.slot_start_at);
                 const slotEnd = new Date(slot.slot_end_at);
                 if (!isSlotWithinTimeSlots(slotStart, slotEnd, allo.time_slots)) {
+                    return false;
+                }
+                if (!isSlotDurationMatching(slotStart, slotEnd, allo.slot_duration_minutes)) {
                     return false;
                 }
                 return slotStart >= now;
