@@ -354,6 +354,7 @@
                     .filter((booking) => booking !== null);
                 const userBooking = userBookings[0];
                 const hasBooking = Boolean(userBooking);
+                const showBookingStatus = hasBooking && !isEnded;
                 const bookingStatusLabel = userBooking?.status
                     ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
                     : '';
@@ -380,16 +381,12 @@
                     <div class="${isEnded ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-passion-pink-100 border-passion-red text-passion-red'} border px-4 py-3 text-sm font-semibold flex flex-col gap-1">
                         ${formatWindowLabel(allo.window_start_at, allo.window_end_at, allo.time_slots)}
                     </div>
-                    ${hasBooking ? `
+                    ${showBookingStatus ? `
                         <div class="text-xs font-semibold uppercase text-slate-500">
                             ${bookingStatusLabel}
                         </div>
                     ` : ''}
-                    ${isDisabled ? `
-                        <span class="text-center bg-slate-400 text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] cursor-not-allowed">
-                            Créneaux clôturés
-                        </span>
-                    ` : (hasBooking && isAuthenticated) ? `
+                    ${isDisabled ? '' : (hasBooking && isAuthenticated) ? `
                         <a href="/allos/reservations?allo_id=${allo.id}"
                            class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
                             Modifier ma réservation
