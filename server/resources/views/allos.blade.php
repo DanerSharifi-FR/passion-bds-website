@@ -276,12 +276,11 @@
             if (typeof allo.is_window_open === 'boolean') {
                 return allo.is_window_open;
             }
-            if (!allo.window_start_at || !allo.window_end_at) return false;
+            if (!allo.window_end_at) return false;
             const now = new Date().getTime();
-            const start = new Date(allo.window_start_at).getTime();
             const end = new Date(allo.window_end_at).getTime();
-            if (Number.isNaN(start) || Number.isNaN(end)) return false;
-            return now >= start && now <= end;
+            if (Number.isNaN(end)) return false;
+            return now <= end;
         }
 
         function isWindowEnded(allo) {

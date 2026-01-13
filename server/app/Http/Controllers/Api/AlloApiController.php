@@ -167,9 +167,8 @@ class AlloApiController extends Controller
                 'slot_duration_minutes' => $allo->slot_duration_minutes,
                 'slot_capacity' => (int) $allo->admins_count,
                 'time_slots' => $allo->time_slots ?? [],
-                'is_window_open' => $windowStart !== null
-                    && $windowEnd !== null
-                    && $now->between($windowStart, $windowEnd),
+                'is_window_open' => $windowEnd !== null
+                    && $now->lessThanOrEqualTo($windowEnd),
                 'is_window_ended' => $windowEnd !== null && $now->greaterThan($windowEnd),
                 'disabled_dates' => $slotsOnly ? $disabledDates : [],
                 'slots' => ($slotsOnly ? $selectableSlots : $allo->slots)->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo, $slotCapacityFallback): array {
@@ -238,7 +237,7 @@ class AlloApiController extends Controller
             return response()->json(['message' => 'Cet allo est indisponible.'], 422);
         }
 
-        if (! $now->between($windowStart, $windowEnd)) {
+        if ($now->greaterThan($windowEnd)) {
             return response()->json(['message' => 'Les réservations pour cet allo sont fermées.'], 422);
         }
 
