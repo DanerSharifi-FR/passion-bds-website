@@ -243,6 +243,22 @@
             const windowEnded = alloData.window_end_at
                 && now > new Date(alloData.window_end_at);
             const isEnded = windowEnded || alloData.status !== 'OPEN';
+            const availableSlotStatuses = ['available', 'partial'];
+            const isSelectableSlot = (slot) => {
+                if (!slot?.slot_start_at || !slot?.slot_end_at) return false;
+                const slotStart = new Date(slot.slot_start_at);
+                const slotEnd = new Date(slot.slot_end_at);
+                if (!isSlotWithinTimeSlots(slotStart, slotEnd, alloData.time_slots)) {
+                    return false;
+                }
+                const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
+                return availableSlotStatuses.includes(slot.status)
+                    && (remaining === null || remaining > 0)
+                    && alloData.status === 'OPEN'
+                    && slotStart >= now;
+            };
+
+            const disabledDates = Array.isArray(alloData.disabled_dates) ? alloData.disabled_dates : [];
             const slots = alloData.slots.filter((slot) => {
                 if (!slot.slot_start_at || !slot.slot_end_at) return false;
                 const slotStart = new Date(slot.slot_start_at);
@@ -250,25 +266,23 @@
                 if (!isSlotWithinTimeSlots(slotStart, slotEnd, alloData.time_slots)) {
                     return false;
                 }
-                const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
-                const isReservable = ['available', 'partial'].includes(slot.status)
-                    && (remaining === null || remaining > 0)
-                    && alloData.status === 'OPEN';
-                return isReservable && slotStart >= now;
+                return slotStart >= now;
             });
 
-            if (!slots.length) {
+            if (!slots.length && !disabledDates.length) {
                 statusElement.textContent = 'Plus de créneaux disponibles.';
                 timetableElement.innerHTML = '';
                 bookingCard.classList.add('hidden');
                 return;
             }
 
+            const hasSelectableSlots = slots.some((slot) => isSelectableSlot(slot));
+
             statusElement.textContent = isEnded
                 ? 'Réservations clôturées pour cet allo.'
-                : '';
+                : (hasSelectableSlots ? '' : 'Plus de créneaux disponibles.');
             timetableElement.innerHTML = '';
-            bookingCard.classList.remove('hidden');
+            bookingCard.classList.toggle('hidden', !hasSelectableSlots);
 
             const slotsByDate = slots.reduce((acc, slot) => {
                 const date = new Date(slot.slot_start_at);
@@ -278,42 +292,59 @@
                 return acc;
             }, {});
 
-            Object.entries(slotsByDate).forEach(([dateKey, daySlots], index) => {
+            const dateKeys = new Set([
+                ...Object.keys(slotsByDate),
+                ...disabledDates,
+            ]);
+
+            Array.from(dateKeys)
+                .sort((a, b) => new Date(a) - new Date(b))
+                .forEach((dateKey) => {
+                const daySlots = slotsByDate[dateKey] || [];
                 daySlots.sort((a, b) => new Date(a.slot_start_at) - new Date(b.slot_start_at));
-                const card = document.createElement('details');
-                card.className = 'bg-white border-2 border-passion-red shadow-[4px_4px_0_#000] p-4 space-y-3 self-start';
+                const dayHasSelectableSlots = daySlots.length > 0 && daySlots.some((slot) => isSelectableSlot(slot));
+                const card = document.createElement(dayHasSelectableSlots ? 'details' : 'div');
+                card.className = dayHasSelectableSlots
+                    ? 'bg-white border-2 border-passion-red shadow-[4px_4px_0_#000] p-4 space-y-3 self-start relative'
+                    : 'bg-slate-100 border-2 border-slate-300 text-slate-500 shadow-[4px_4px_0_#000] p-4 space-y-3 self-start relative opacity-80';
                 const dayDate = new Date(`${dateKey}T00:00:00`);
-                card.innerHTML = `
-                    <summary class="font-display font-black uppercase text-passion-red text-lg cursor-pointer list-none flex items-center justify-between">
-                        <span>${formatDateLabel(dayDate)}</span>
-                        <span aria-hidden="true" class="text-xs">▼</span>
-                    </summary>
-                    <div class="space-y-2" data-date="${dateKey}"></div>
-                `;
+                card.innerHTML = dayHasSelectableSlots
+                    ? `
+                        <summary class="font-display font-black uppercase text-passion-red text-lg cursor-pointer list-none flex items-center justify-between">
+                            <span>${formatDateLabel(dayDate)}</span>
+                            <span aria-hidden="true" class="text-xs">▼</span>
+                        </summary>
+                        <div class="space-y-2" data-date="${dateKey}"></div>
+                    `
+                    : `
+                        <div class="font-display font-black uppercase text-slate-500 text-lg flex items-center justify-between">
+                            <span>${formatDateLabel(dayDate)}</span>
+                        </div>
+                        <span class="absolute -top-3 right-3 rotate-[-8deg] bg-slate-500 text-white text-xs font-black uppercase px-2 py-1 shadow-[2px_2px_0_#000]">Trop tard</span>
+                    `;
 
                 const list = card.querySelector('[data-date]');
-                daySlots.forEach((slot) => {
-                    const slotStart = new Date(slot.slot_start_at);
-                    const slotEnd = new Date(slot.slot_end_at);
-                    const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
-                    const remainingLabel = formatRemainingLabel(remaining);
-                    const isSelectable = ['available', 'partial'].includes(slot.status)
-                        && (remaining === null || remaining > 0)
-                        && alloData.status === 'OPEN'
-                        && slotStart >= now;
-                    const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
+                if (dayHasSelectableSlots && list) {
+                    daySlots.filter((slot) => isSelectableSlot(slot)).forEach((slot) => {
+                        const slotStart = new Date(slot.slot_start_at);
+                        const slotEnd = new Date(slot.slot_end_at);
+                        const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
+                        const remainingLabel = formatRemainingLabel(remaining);
+                        const isSelectable = isSelectableSlot(slot);
+                        const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
 
-                    const label = document.createElement('label');
-                    label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
-                    label.innerHTML = `
-                        <div class="flex items-center gap-2">
-                            <input type="radio" name="allo-slot" value="${slot.id}" ${isSelectable && isAuthenticated ? '' : 'disabled'} />
-                            <span>${timeLabel}</span>
-                        </div>
-                        <span class="text-xs text-passion-red">${remainingLabel}</span>
-                    `;
-                    list.appendChild(label);
-                });
+                        const label = document.createElement('label');
+                        label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
+                        label.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <input type="radio" name="allo-slot" value="${slot.id}" ${isSelectable && isAuthenticated ? '' : 'disabled'} />
+                                <span>${timeLabel}</span>
+                            </div>
+                            <span class="text-xs text-passion-red">${remainingLabel}</span>
+                        `;
+                        list.appendChild(label);
+                    });
+                }
 
                 timetableElement.appendChild(card);
             });
@@ -382,7 +413,7 @@
 
         async function loadAllo() {
             try {
-                const response = await fetch('/api/allos');
+                const response = await fetch(`/api/allos?allo_id=${alloId}&slots_only=1`);
                 const data = await response.json();
                 const allos = data.allos || [];
                 alloData = allos.find((allo) => allo.id === alloId) || null;

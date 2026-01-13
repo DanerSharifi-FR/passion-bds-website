@@ -25,10 +25,16 @@ class AlloApiController extends Controller
         $user = $request->user();
         $now = now();
 
+        $alloId = $request->query('allo_id');
+        $slotsOnly = $request->boolean('slots_only');
+
         $allos = Allo::query()
             ->whereIn('status', ['OPEN', 'CLOSED'])
+            ->when($alloId, function ($query) use ($alloId): void {
+                $query->where('id', (int) $alloId);
+            })
             ->withCount('admins')
-            ->with(['slots' => function ($query): void {
+            ->with(['slots' => function ($query) use ($slotsOnly, $now): void {
                 $query
                     ->orderBy('slot_start_at')
                     ->withCount(['usages as bookings_count' => function ($usageQuery): void {
@@ -38,6 +44,11 @@ class AlloApiController extends Controller
                             AlloUsageService::STATUS_DONE,
                         ]);
                     }]);
+
+                if ($slotsOnly) {
+                    $query
+                        ->where('slot_start_at', '>=', $now);
+                }
             }])
             ->orderBy('window_start_at')
             ->get();
@@ -52,7 +63,7 @@ class AlloApiController extends Controller
                 ->keyBy('allo_slot_id');
         }
 
-        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $now): array {
+        $payload = $allos->map(function (Allo $allo) use ($bookingsBySlotId, $now, $slotsOnly): array {
             $totalCapacity = (int) $allo->slots->sum('capacity');
             $bookedCount = (int) $allo->slots->sum(function (AlloSlot $slot): int {
                 return (int) ($slot->bookings_count ?? 0);
@@ -60,6 +71,32 @@ class AlloApiController extends Controller
             $windowBounds = $this->resolveWindowBounds($allo);
             $windowStart = $windowBounds[0] ?? null;
             $windowEnd = $windowBounds[1] ?? null;
+            $slotCapacityFallback = (int) $allo->admins_count;
+
+            $selectableSlots = $allo->slots->filter(function (AlloSlot $slot) use ($slotCapacityFallback): bool {
+                $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
+                $bookingsCount = (int) ($slot->bookings_count ?? 0);
+                $remaining = max($capacity - $bookingsCount, 0);
+
+                return in_array($slot->status, ['available', 'partial'], true) && $remaining > 0;
+            });
+
+            $disabledDates = [];
+
+            if ($slotsOnly) {
+                $selectableDates = $selectableSlots
+                    ->map(fn (AlloSlot $slot): ?string => $slot->slot_start_at?->format('Y-m-d'))
+                    ->filter()
+                    ->unique();
+
+                $disabledDates = $allo->slots
+                    ->map(fn (AlloSlot $slot): ?string => $slot->slot_start_at?->format('Y-m-d'))
+                    ->filter()
+                    ->unique()
+                    ->diff($selectableDates)
+                    ->values()
+                    ->all();
+            }
 
             return [
                 'id' => $allo->id,
@@ -78,10 +115,11 @@ class AlloApiController extends Controller
                     && $windowEnd !== null
                     && $now->between($windowStart, $windowEnd),
                 'is_window_ended' => $windowEnd !== null && $now->greaterThan($windowEnd),
-                'slots' => $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo): array {
+                'disabled_dates' => $slotsOnly ? $disabledDates : [],
+                'slots' => ($slotsOnly ? $selectableSlots : $allo->slots)->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo, $slotCapacityFallback): array {
                     /** @var AlloUsage|null $booking */
                     $booking = $bookingsBySlotId->get($slot->id);
-                    $capacity = (int) ($slot->capacity ?? $allo->admins_count);
+                    $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
                     $bookingsCount = (int) ($slot->bookings_count ?? 0);
                     $remaining = max($capacity - $bookingsCount, 0);
 
