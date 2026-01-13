@@ -590,11 +590,6 @@
                 return;
             }
 
-            if (isEditing && selectedSlots.length !== 1) {
-                setFeedback('Choisis un seul créneau pour modifier ta réservation.');
-                return;
-            }
-
             const limitValidation = getDailyLimitValidation(selectedSlots);
             if (!limitValidation.ok) {
                 setFeedback(limitValidation.message);
