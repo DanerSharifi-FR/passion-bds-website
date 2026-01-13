@@ -484,11 +484,11 @@
                     daySlots.filter((slot) => isSelectableSlot(slot)).forEach((slot) => {
                         const slotStart = new Date(slot.slot_start_at);
                         const slotEnd = new Date(slot.slot_end_at);
+                        const hasUserBooking = Boolean(slot.user_booking);
                         const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
-                        const remainingLabel = formatRemainingLabel(remaining);
+                        const remainingLabel = hasUserBooking ? 'Modifier' : formatRemainingLabel(remaining);
                         const isSelectable = isSelectableSlot(slot);
                         const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
-                        const hasUserBooking = Boolean(slot.user_booking);
                         const bookingStatus = slot.user_booking?.status ?? '';
                         const isPendingBooking = bookingStatus === 'PENDING';
                         const shouldDisableInput = (hasUserBooking && isPendingBooking) || !isSelectable || !isAuthenticated;
