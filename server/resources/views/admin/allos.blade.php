@@ -242,6 +242,19 @@
             }).format(date);
         }
 
+        function statusBadgeClasses(status) {
+            switch (status) {
+                case 'OPEN':
+                    return 'bg-emerald-900/20 text-emerald-300 border-emerald-900/30';
+                case 'CLOSED':
+                    return 'bg-amber-900/20 text-amber-300 border-amber-900/30';
+                case 'DISABLED':
+                    return 'bg-slate-700/40 text-slate-300 border-slate-600';
+                default:
+                    return 'bg-indigo-900/20 text-indigo-300 border-indigo-900/30';
+            }
+        }
+
         function formatDateOnly(dateString) {
             if (!dateString) return '';
             const [year, month, day] = dateString.split('-');
@@ -272,7 +285,7 @@
                         <i class="fa-regular fa-calendar text-slate-400"></i>
                         <span class="text-indigo-200 text-xs">${dateLabel}</span>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 ml-5 pl-3 border-l border-slate-600/60">
                         <i class="fa-regular fa-clock text-slate-400"></i>
                         <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
                     </div>
@@ -284,7 +297,7 @@
                     <i class="fa-regular fa-calendar text-slate-400"></i>
                     <span class="text-indigo-200 text-xs font-mono">de ${formatDateTime(startAt)}</span>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 ml-5 pl-3 border-l border-slate-600/60">
                     <i class="fa-regular fa-calendar text-slate-400"></i>
                     <span class="text-indigo-200 text-xs font-mono">à ${formatDateTime(endAt)}</span>
                 </div>
@@ -315,7 +328,7 @@
                     const endTime = formatTimeOnly(slot.end_time);
                     if (!startTime || !endTime) return '';
                     return `
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 ml-5 pl-3 border-l border-slate-600/60">
                             <i class="fa-regular fa-clock text-slate-400"></i>
                             <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
                         </div>
@@ -349,7 +362,7 @@
                 }
                 return `
                     ${dateLine}
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 ml-5 pl-3 border-l border-slate-600/60">
                         <i class="fa-regular fa-clock text-slate-400"></i>
                         <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
                     </div>
@@ -716,7 +729,7 @@
                         <div class="flex justify-between items-start mb-2 gap-2">
                             <div>
                                 <h3 class="text-lg font-bold text-white">${a.title}</h3>
-                                <span class="text-[10px] uppercase tracking-wide text-slate-400">${statusLabel(a.status)}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wide rounded border ${statusBadgeClasses(a.status)}">${statusLabel(a.status)}</span>
                             </div>
                         </div>
                         <p class="text-sm text-slate-400 mb-2 flex-1">${a.description || 'Pas de description.'}</p>
