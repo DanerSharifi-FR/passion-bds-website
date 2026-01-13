@@ -288,7 +288,13 @@
             const inputs = Array.from(document.querySelectorAll('input[name="allo-slot"]:checked'));
             return inputs
                 .map((input) => alloData.slots.find((slot) => slot.id === Number(input.value)))
-                .filter(Boolean);
+                .filter((slot) => {
+                    if (!slot) return false;
+                    if (!isEditing && slot.user_booking) {
+                        return false;
+                    }
+                    return true;
+                });
         }
 
         function getDailyLimitValue() {
@@ -401,6 +407,9 @@
             const disabledDates = Array.isArray(alloData.disabled_dates) ? alloData.disabled_dates : [];
             const slots = alloData.slots.filter((slot) => {
                 if (!slot.slot_start_at || !slot.slot_end_at) return false;
+                if (slot.user_booking) {
+                    return true;
+                }
                 if (isCurrentBookingSlot(slot)) {
                     return true;
                 }
@@ -479,12 +488,16 @@
                         const remainingLabel = formatRemainingLabel(remaining);
                         const isSelectable = isSelectableSlot(slot);
                         const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
+                        const hasUserBooking = Boolean(slot.user_booking);
+                        const bookingStatus = slot.user_booking?.status ?? '';
+                        const isPendingBooking = bookingStatus === 'PENDING';
+                        const shouldDisableInput = (hasUserBooking && isPendingBooking) || !isSelectable || !isAuthenticated;
 
                         const label = document.createElement('label');
                         label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
                         label.innerHTML = `
                             <div class="flex items-center gap-2">
-                                <input type="${inputType}" name="allo-slot" value="${slot.id}" ${isSelectable && isAuthenticated ? '' : 'disabled'} />
+                                <input type="${inputType}" name="allo-slot" value="${slot.id}" ${hasUserBooking ? 'checked' : ''} ${shouldDisableInput ? 'disabled' : ''} />
                                 <span>${timeLabel}</span>
                             </div>
                             <span class="text-xs text-passion-red">${remainingLabel}</span>
