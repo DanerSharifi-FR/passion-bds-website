@@ -30,14 +30,19 @@ class AlloSlotService
 
         $capacity = $allo->admins()->count();
 
+        $minuteKey = static function (Carbon $dateTime): string {
+            return $dateTime->copy()->utc()->format('Y-m-d H:i');
+        };
+
         /** @var Collection<string, AlloSlot> $existingSlots */
         $existingSlots = AlloSlot::query()
             ->where('allo_id', $allo->id)
             ->withCount('usages')
             ->get()
-            ->keyBy(static function (AlloSlot $slot): string {
-                return $slot->slot_start_at?->toDateTimeString()
-                    ?? Carbon::parse($slot->slot_start_at)->toDateTimeString();
+            ->keyBy(function (AlloSlot $slot) use ($minuteKey): string {
+                $startAt = $slot->slot_start_at ?? Carbon::parse($slot->slot_start_at);
+
+                return $minuteKey($startAt);
             });
 
         AlloSlot::query()
@@ -63,7 +68,7 @@ class AlloSlotService
                     break;
                 }
 
-                $startString = $currentStart->toDateTimeString();
+                $startString = $minuteKey($currentStart);
 
                 $existingSlot = $existingSlots->get($startString);
 
