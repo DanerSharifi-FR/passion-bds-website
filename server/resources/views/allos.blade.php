@@ -273,6 +273,9 @@
         }
 
         function isWindowOpen(allo) {
+            if (typeof allo.is_window_open === 'boolean') {
+                return allo.is_window_open;
+            }
             if (!allo.window_start_at || !allo.window_end_at) return false;
             const now = new Date().getTime();
             const start = new Date(allo.window_start_at).getTime();
@@ -282,6 +285,9 @@
         }
 
         function isWindowEnded(allo) {
+            if (typeof allo.is_window_ended === 'boolean') {
+                return allo.is_window_ended;
+            }
             if (!allo.window_end_at) return false;
             const now = new Date().getTime();
             const end = new Date(allo.window_end_at).getTime();
@@ -294,21 +300,6 @@
             return allosData.filter((allo) => {
                 const status = String(allo.status || '').toUpperCase();
                 return status === 'OPEN' && isWindowOpen(allo);
-            });
-        }
-
-        function isWindowEnded(allo) {
-            if (!allo.window_end_at) return false;
-            const now = new Date();
-            const end = new Date(allo.window_end_at);
-            return now > end;
-        }
-
-        function getVisibleAllos() {
-            if (activeFilter === 'all') return allosData;
-            return allosData.filter((allo) => {
-                const windowEnded = allo.is_window_ended ?? isWindowEnded(allo);
-                return allo.status === 'OPEN' && !windowEnded;
             });
         }
 
@@ -330,33 +321,44 @@
                 const status = String(allo.status || '').toUpperCase();
                 const windowOpen = isWindowOpen(allo);
                 const windowEnded = isWindowEnded(allo);
-                const isEnded = windowEnded || !windowOpen || status !== 'OPEN';
+                const isEnded = windowEnded || status !== 'OPEN';
+                const isDisabled = isEnded;
                 const userBookings = allo.slots
                     .map((slot) => slot.user_booking)
                     .filter((booking) => booking !== null);
 
                 const card = document.createElement('div');
-                card.className = 'bg-white border-2 border-passion-red shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4';
+                card.className = `relative border-2 shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4 ${
+                    isEnded
+                        ? 'bg-slate-100 border-slate-300 text-slate-500'
+                        : 'bg-white border-passion-red'
+                }`;
 
                 card.innerHTML = `
+                    ${isEnded ? `
+                        <span class="absolute -top-4 right-4 rotate-[-8deg] bg-slate-600 text-white text-xs font-black uppercase px-3 py-1 shadow-[2px_2px_0_#000] animate-pulse">
+                            Victime de son succès...
+                        </span>
+                    ` : ''}
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h2 class="font-display font-black uppercase text-2xl text-passion-red">${allo.title}</h2>
-                            <p class="text-sm text-gray-600 mt-2">${allo.description ?? ''}</p>
+                            <h2 class="font-display font-black uppercase text-2xl ${isEnded ? 'text-slate-600' : 'text-passion-red'}">${allo.title}</h2>
+                            <p class="text-sm ${isEnded ? 'text-slate-500' : 'text-gray-600'} mt-2">${allo.description ?? ''}</p>
                         </div>
                     </div>
-                    <div class="bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red flex flex-col gap-1">
+                    <div class="${isEnded ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-passion-pink-100 border-passion-red text-passion-red'} border px-4 py-3 text-sm font-semibold flex flex-col gap-1">
                         ${formatWindowLabel(allo.window_start_at, allo.window_end_at, allo.time_slots)}
                     </div>
-                    ${isEnded ? `
-                        <div class="bg-slate-100 border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
-                            Victime de son succès : créneaux clôturés.
-                        </div>
-                    ` : ''}
-                    <a href="/allos/${allo.id}/creneaux"
-                       class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
-                        Voir les créneaux
-                    </button>
+                    ${isDisabled ? `
+                        <span class="text-center bg-slate-400 text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] cursor-not-allowed">
+                            Créneaux clôturés
+                        </span>
+                    ` : `
+                        <a href="/allos/${allo.id}/creneaux"
+                           class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
+                            Voir les créneaux
+                        </a>
+                    `}
                     <div class="allo-form hidden space-y-4 border-t border-passion-red/30 pt-4">
                         <div class="space-y-3">
                             <label class="text-xs font-bold uppercase text-passion-red">Choisis un créneau</label>
