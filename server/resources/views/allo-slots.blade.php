@@ -381,6 +381,7 @@
                 return;
             }
 
+            setFeedback('');
             selectedSlot = alloData.slots.find((slot) => slot.id === Number(input.value)) || null;
             if (!selectedSlot) {
                 selectedSlotElement.textContent = 'Sélectionne un créneau';
@@ -423,6 +424,12 @@
                 return;
             }
 
+            if (selectedSlot.slot_start_at && new Date(selectedSlot.slot_start_at) < new Date()) {
+                setFeedback('Ce créneau n’est plus disponible. Les créneaux ont été mis à jour.');
+                await loadAllo();
+                return;
+            }
+
             bookingButton.disabled = true;
             setFeedback('Réservation en cours...');
 
@@ -439,6 +446,7 @@
                         'X-CSRF-TOKEN': csrfToken,
                     },
                     body: JSON.stringify({
+                        allo_id: alloData.id,
                         allo_slot_id: selectedSlot.id,
                         user_note: noteInput.value.trim() || null,
                     }),
@@ -447,7 +455,15 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    setFeedback(data.message || 'Erreur lors de la réservation.');
+                    const message = data.message || 'Erreur lors de la réservation.';
+                    if (message.includes('déjà passé')
+                        || message.includes('déjà réservé')
+                        || message.includes('indisponible')) {
+                        setFeedback('Ce créneau n’est plus disponible. Les créneaux ont été mis à jour.');
+                        await loadAllo();
+                        return;
+                    }
+                    setFeedback(message);
                     return;
                 }
 
