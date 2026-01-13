@@ -55,12 +55,19 @@
 
 @push('end_scripts')
     <script>
+        const isAuthenticated = @json(auth()->check());
         const catalogElement = document.getElementById('allos-catalog');
         const statusElement = document.getElementById('allos-status');
         const filterButtons = document.querySelectorAll('.allo-filter-btn');
 
         let allosData = [];
         let activeFilter = 'active';
+        const bookingStatusLabels = {
+            PENDING: 'En attente',
+            ACCEPTED: 'Acceptée',
+            DONE: 'Réalisée',
+            CANCELLED: 'Annulée',
+        };
 
         function formatDate(dateString) {
             if (!dateString) return '';
@@ -325,6 +332,11 @@
                 const userBookings = allo.slots
                     .map((slot) => slot.user_booking)
                     .filter((booking) => booking !== null);
+                const userBooking = userBookings[0];
+                const hasBooking = Boolean(userBooking);
+                const bookingStatusLabel = userBooking?.status
+                    ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
+                    : '';
 
                 const card = document.createElement('div');
                 card.className = `relative border-2 shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4 ${
@@ -348,10 +360,20 @@
                     <div class="${isEnded ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-passion-pink-100 border-passion-red text-passion-red'} border px-4 py-3 text-sm font-semibold flex flex-col gap-1">
                         ${formatWindowLabel(allo.window_start_at, allo.window_end_at, allo.time_slots)}
                     </div>
+                    ${hasBooking ? `
+                        <div class="text-xs font-semibold uppercase text-slate-500">
+                            ${bookingStatusLabel}
+                        </div>
+                    ` : ''}
                     ${isDisabled ? `
                         <span class="text-center bg-slate-400 text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] cursor-not-allowed">
                             Créneaux clôturés
                         </span>
+                    ` : (hasBooking && isAuthenticated) ? `
+                        <a href="/allos/reservations?allo_id=${allo.id}"
+                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
+                            Modifier ma réservation
+                        </a>
                     ` : `
                         <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">

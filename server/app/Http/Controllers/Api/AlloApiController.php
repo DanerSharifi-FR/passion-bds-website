@@ -255,13 +255,21 @@ class AlloApiController extends Controller
             return response()->json(['message' => 'Ce créneau est bloqué.'], 422);
         }
 
-        $existingBooking = AlloUsage::query()
-            ->where('user_id', $user->id)
-            ->where('slot_start_at', $slot->slot_start_at)
-            ->exists();
+        $slotDate = $slot->slot_start_at?->toDateString();
+        $existingBooking = $slotDate !== null
+            && AlloUsage::query()
+                ->where('user_id', $user->id)
+                ->where('allo_id', $allo->id)
+                ->whereDate('slot_start_at', $slotDate)
+                ->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ])
+                ->exists();
 
         if ($existingBooking) {
-            return response()->json(['message' => 'Vous avez déjà réservé ce créneau.'], 422);
+            return response()->json(['message' => 'Vous avez déjà réservé un créneau pour cet allo ce jour-là.'], 422);
         }
 
         $booking = DB::transaction(function () use ($user, $allo, $slot, $validated): AlloUsage {
@@ -322,6 +330,174 @@ class AlloApiController extends Controller
         ], 201);
     }
 
+    public function bookings(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+
+        $bookings = AlloUsage::query()
+            ->where('user_id', $user->id)
+            ->with(['allo', 'slot'])
+            ->orderBy('slot_start_at')
+            ->get()
+            ->map(function (AlloUsage $usage): array {
+                return [
+                    'id' => $usage->id,
+                    'status' => $usage->status,
+                    'user_note' => $usage->user_note,
+                    'slot_start_at' => $usage->slot_start_at?->toIso8601String(),
+                    'slot_end_at' => $usage->slot?->slot_end_at?->toIso8601String(),
+                    'allo_id' => $usage->allo_id,
+                    'allo_title' => $usage->allo?->title,
+                    'allo_description' => $usage->allo?->description,
+                    'slot_id' => $usage->allo_slot_id,
+                    'can_edit' => $usage->status === AlloUsageService::STATUS_PENDING,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'bookings' => $bookings,
+        ]);
+    }
+
+    public function updateBooking(Request $request, AlloUsage $booking): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+
+        if ($booking->user_id !== $user->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($booking->status !== AlloUsageService::STATUS_PENDING) {
+            return response()->json(['message' => "Cette réservation n'est pas modifiable."], 422);
+        }
+
+        $validated = $request->validate([
+            'allo_slot_id' => ['required', 'integer', Rule::exists('allo_slots', 'id')],
+            'user_note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $now = now();
+        /** @var Allo $allo */
+        $allo = Allo::query()
+            ->where('status', 'OPEN')
+            ->findOrFail((int) $booking->allo_id);
+
+        $windowBounds = $this->resolveWindowBounds($allo);
+        $windowEnd = $windowBounds[1] ?? null;
+
+        if ($windowEnd !== null && $now->greaterThan($windowEnd)) {
+            return response()->json(['message' => 'Les modifications pour cet allo sont fermées.'], 422);
+        }
+
+        /** @var AlloSlot $slot */
+        $slot = AlloSlot::query()
+            ->where('id', (int) $validated['allo_slot_id'])
+            ->where('allo_id', $allo->id)
+            ->firstOrFail();
+
+        if ($slot->slot_start_at !== null && $slot->slot_start_at->lessThan($now)) {
+            return response()->json(['message' => 'Ce créneau est déjà passé.'], 422);
+        }
+
+        if ($slot->status === 'blocked') {
+            return response()->json(['message' => 'Ce créneau est bloqué.'], 422);
+        }
+
+        $slotDate = $slot->slot_start_at?->toDateString();
+        $existingBooking = $slotDate !== null
+            && AlloUsage::query()
+                ->where('user_id', $user->id)
+                ->where('allo_id', $allo->id)
+                ->whereDate('slot_start_at', $slotDate)
+                ->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ])
+                ->where('id', '!=', $booking->id)
+                ->exists();
+
+        if ($existingBooking) {
+            return response()->json(['message' => 'Vous avez déjà réservé un créneau pour cet allo ce jour-là.'], 422);
+        }
+
+        $updatedBooking = DB::transaction(function () use ($allo, $booking, $slot, $validated): AlloUsage {
+            $originalSlotId = $booking->allo_slot_id;
+
+            $lockedSlots = AlloSlot::query()
+                ->whereIn('id', array_unique([$originalSlotId, $slot->id]))
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $lockedSlot = $lockedSlots->get($slot->id);
+
+            if ($lockedSlot === null) {
+                abort(422, 'Ce créneau est indisponible.');
+            }
+
+            if ($lockedSlot->status === 'blocked') {
+                abort(422, 'Ce créneau est bloqué.');
+            }
+
+            $slotCapacity = $allo->admins()->count();
+
+            if ($slotCapacity <= 0) {
+                abort(422, 'Ce créneau est indisponible.');
+            }
+
+            $currentBookings = AlloUsage::query()
+                ->where('allo_slot_id', $lockedSlot->id)
+                ->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ])
+                ->where('id', '!=', $booking->id)
+                ->count();
+
+            if ($currentBookings >= $slotCapacity) {
+                $lockedSlot->status = 'booked';
+                $lockedSlot->save();
+
+                abort(422, 'Ce créneau est déjà réservé.');
+            }
+
+            $booking->allo_slot_id = $lockedSlot->id;
+            $booking->slot_start_at = $lockedSlot->slot_start_at;
+            $booking->user_note = $validated['user_note'] ?? null;
+            $booking->save();
+
+            $newCount = $currentBookings + 1;
+            $lockedSlot->status = $newCount >= $slotCapacity ? 'booked' : 'available';
+            $lockedSlot->save();
+
+            if ($originalSlotId !== $lockedSlot->id) {
+                $this->updateSlotStatus($originalSlotId, $slotCapacity);
+            }
+
+            return $booking;
+        });
+
+        return response()->json([
+            'message' => 'Réservation mise à jour.',
+            'booking' => [
+                'id' => $updatedBooking->id,
+                'status' => $updatedBooking->status,
+                'user_note' => $updatedBooking->user_note,
+            ],
+        ]);
+    }
+
     /**
      * @return array{0: Carbon, 1: Carbon}|null
      */
@@ -370,5 +546,30 @@ class AlloApiController extends Controller
         }
 
         return [$minStart, $maxEnd];
+    }
+
+    private function updateSlotStatus(int $slotId, int $slotCapacity): void
+    {
+        $slot = AlloSlot::query()->find($slotId);
+
+        if ($slot === null) {
+            return;
+        }
+
+        if ($slot->status === 'blocked') {
+            return;
+        }
+
+        $currentBookings = AlloUsage::query()
+            ->where('allo_slot_id', $slot->id)
+            ->whereIn('status', [
+                AlloUsageService::STATUS_PENDING,
+                AlloUsageService::STATUS_ACCEPTED,
+                AlloUsageService::STATUS_DONE,
+            ])
+            ->count();
+
+        $slot->status = $currentBookings >= $slotCapacity ? 'booked' : 'available';
+        $slot->save();
     }
 }
