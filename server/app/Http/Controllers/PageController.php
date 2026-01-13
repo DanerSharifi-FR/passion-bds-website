@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activity;
+use App\Models\Allo;
+use App\Models\AlloSlot;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Random\RandomException;
 
@@ -26,6 +29,30 @@ class PageController extends Controller
 
     public function alloSlots(int $alloId): Factory|View
     {
+        /** @var Allo $allo */
+        $allo = Allo::query()
+            ->whereIn('status', ['OPEN', 'CLOSED'])
+            ->findOrFail($alloId);
+
+        $now = now();
+        $windowBounds = $this->resolveWindowBounds($allo);
+        $windowEnd = $windowBounds[1] ?? null;
+
+        $hasAnySlots = AlloSlot::query()
+            ->where('allo_id', $allo->id)
+            ->exists();
+        $hasFutureSlots = AlloSlot::query()
+            ->where('allo_id', $allo->id)
+            ->where('slot_start_at', '>=', $now)
+            ->exists();
+
+        $slotsPassed = $hasAnySlots && ! $hasFutureSlots;
+        $isEnded = $allo->status !== 'OPEN'
+            || ($windowEnd !== null && $now->greaterThan($windowEnd))
+            || $slotsPassed;
+
+        abort_if($isEnded, 404);
+
         return view('allo-slots', [
             'alloId' => $alloId,
         ]);
@@ -207,6 +234,56 @@ class PageController extends Controller
         return view('team', [
             'teamPoles' => $teamPoles,
         ]);
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}|null
+     */
+    private function resolveWindowBounds(Allo $allo): ?array
+    {
+        if ($allo->window_start_at !== null && $allo->window_end_at !== null) {
+            return [$allo->window_start_at, $allo->window_end_at];
+        }
+
+        $timeSlots = $allo->time_slots;
+
+        if (!is_array($timeSlots) || count($timeSlots) === 0) {
+            return null;
+        }
+
+        $minStart = null;
+        $maxEnd = null;
+
+        foreach ($timeSlots as $slot) {
+            if (!is_array($slot)) {
+                continue;
+            }
+
+            $startDate = $slot['start_date'] ?? null;
+            $endDate = $slot['end_date'] ?? null;
+            $startTime = $slot['start_time'] ?? null;
+            $endTime = $slot['end_time'] ?? null;
+
+            if (!is_string($startDate) || !is_string($endDate) || !is_string($startTime) || !is_string($endTime)) {
+                continue;
+            }
+
+            $start = Carbon::createFromFormat('Y-m-d H:i', "{$startDate} {$startTime}");
+            $end = Carbon::createFromFormat('Y-m-d H:i', "{$endDate} {$endTime}");
+
+            if (! $start instanceof Carbon || ! $end instanceof Carbon) {
+                continue;
+            }
+
+            $minStart = $minStart === null || $start->lessThan($minStart) ? $start : $minStart;
+            $maxEnd = $maxEnd === null || $end->greaterThan($maxEnd) ? $end : $maxEnd;
+        }
+
+        if ($minStart === null || $maxEnd === null) {
+            return null;
+        }
+
+        return [$minStart, $maxEnd];
     }
 
 
