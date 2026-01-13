@@ -242,6 +242,18 @@
             }).format(date);
         }
 
+        function formatDateOnly(dateString) {
+            if (!dateString) return '';
+            const [year, month, day] = dateString.split('-');
+            if (!year || !month || !day) return dateString;
+            return `${day}/${month}/${year}`;
+        }
+
+        function formatTimeOnly(timeString) {
+            if (!timeString) return '';
+            return timeString.slice(0, 5);
+        }
+
         function formatWindowInfo(startAt, endAt) {
             if (!startAt || !endAt) {
                 return `<span class="text-slate-500 text-xs">Non planifié</span>`;
@@ -277,6 +289,72 @@
                     <span class="text-indigo-200 text-xs font-mono">à ${formatDateTime(endAt)}</span>
                 </div>
             `;
+        }
+
+        function formatScheduleInfo(allo) {
+            if (allo.window_start_at || allo.window_end_at) {
+                return formatWindowInfo(allo.window_start_at, allo.window_end_at);
+            }
+
+            const slots = Array.isArray(allo.time_slots) ? allo.time_slots : [];
+            if (slots.length === 0) {
+                return `<span class="text-slate-500 text-xs">Non planifié</span>`;
+            }
+
+            const firstSlot = slots[0];
+            const sameRange = slots.every(slot => slot.start_date === firstSlot.start_date && slot.end_date === firstSlot.end_date);
+
+            if (sameRange) {
+                const startDate = formatDateOnly(firstSlot.start_date);
+                const endDate = formatDateOnly(firstSlot.end_date);
+                const dateLabel = startDate && endDate
+                    ? (startDate === endDate ? `le ${startDate}` : `du ${startDate} au ${endDate}`)
+                    : 'Période à définir';
+                const timeLines = slots.map(slot => {
+                    const startTime = formatTimeOnly(slot.start_time);
+                    const endTime = formatTimeOnly(slot.end_time);
+                    if (!startTime || !endTime) return '';
+                    return `
+                        <div class="flex items-center gap-2">
+                            <i class="fa-regular fa-clock text-slate-400"></i>
+                            <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs">${dateLabel}</span>
+                    </div>
+                    ${timeLines || '<span class="text-slate-500 text-xs">Horaires à définir</span>'}
+                `;
+            }
+
+            return slots.map(slot => {
+                const dateLabel = formatDateOnly(slot.start_date);
+                const startTime = formatTimeOnly(slot.start_time);
+                const endTime = formatTimeOnly(slot.end_time);
+                const dateLine = `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs">${dateLabel || 'Date à définir'}</span>
+                    </div>
+                `;
+                if (!startTime || !endTime) {
+                    return `
+                        ${dateLine}
+                        <span class="text-slate-500 text-xs">Horaires à définir</span>
+                    `;
+                }
+                return `
+                    ${dateLine}
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-clock text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
+                    </div>
+                `;
+            }).join('');
         }
 
         function toInputDateTime(iso) {
@@ -631,7 +709,7 @@
             }
 
             const html = filteredAllos.map(a => {
-                const windowInfo = formatWindowInfo(a.window_start_at, a.window_end_at);
+                const windowInfo = formatScheduleInfo(a);
                 const adminsStr = a.admins && a.admins.length > 0 ? a.admins.map(admin => admin.name).join(', ') : "Tous";
                 return `
                     <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow flex flex-col">
