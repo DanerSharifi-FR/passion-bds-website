@@ -18,7 +18,7 @@
                 Catalogue <span class="text-passion-fire-orange">Allos</span>
             </h1>
             <p class="text-passion-pink-500 font-medium mt-2 text-sm md:text-base">
-                Des services tentants à réserver. Choisis ton créneau et laisse-nous un petit mot 💌
+                Des allos tentants à réserver. Choisis ton créneau et laisse-nous un petit mot 💌
             </p>
         </div>
 
@@ -375,7 +375,6 @@
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <h2 class="font-display font-black uppercase text-2xl ${isEnded ? 'text-slate-600' : 'text-passion-red'}">${allo.title}</h2>
-                            <p class="text-sm ${isEnded ? 'text-slate-500' : 'text-gray-600'} mt-2 whitespace-pre-line">${allo.description ?? ''}</p>
                         </div>
                     </div>
                     <div class="${isEnded ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-passion-pink-100 border-passion-red text-passion-red'} border px-4 py-3 text-sm font-semibold flex flex-col gap-1">
@@ -405,7 +404,7 @@
                             </select>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-xs font-bold uppercase text-passion-red">Ton note pour nous</label>
+                            <label class="text-xs font-bold uppercase text-passion-red">Ta note pour nous</label>
                             <textarea class="allo-note w-full border-2 border-passion-red px-3 py-2 text-sm" rows="2" ${isEnded ? 'disabled' : ''} placeholder="Ex: sieste après 15h, merci !"></textarea>
                         </div>
                         <button class="allo-book-btn bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed">

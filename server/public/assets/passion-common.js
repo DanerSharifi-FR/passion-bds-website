@@ -119,7 +119,7 @@
                     statusBadge.style.backgroundColor = '#9B1237';
                     statusBadge.style.color = 'white';
                     statusText.textContent = "WARM UP";
-                    msg.textContent = "On prepare vos allos... RDV janvier 2026 !";
+                    msg.textContent = "On prépare vos allos... RDV en janvier 2026 !";
                     btnText.textContent = "J'active la machine !";
                 } else {
                     statusBadge.style.backgroundColor = '#FF914D';

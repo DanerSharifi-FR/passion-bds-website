@@ -28,7 +28,7 @@
                     <option value="CANCELLED">Annulés</option>
                 </select>
                 <select id="filterAllo" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 max-w-[200px]" onchange="renderRequests()">
-                    <option value="">Tous les services</option>
+                    <option value="">Tous les allos</option>
                 </select>
                 <div class="relative w-full md:w-64">
                     <input type="text" id="filterUser" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 pl-8 focus:ring-indigo-500" placeholder="Chercher un étudiant..." autocomplete="off">
@@ -46,7 +46,7 @@
     <div id="viewCatalog" class="hidden">
         <div class="flex flex-col gap-4 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 class="text-xl font-bold text-white">Catalogue des Services</h2>
+                <h2 class="text-xl font-bold text-white">Catalogue des Allos</h2>
                 <button onclick="openAlloModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow">
                     <i class="fa-solid fa-plus mr-2"></i> Nouvel Allo
                 </button>
@@ -166,11 +166,10 @@
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-2">Attribution Admins</label>
                             <div class="bg-slate-900 border border-slate-600 rounded-lg p-2 max-h-32 overflow-y-auto" id="adminList"></div>
-                            <p class="text-xs text-slate-500 mt-1">Ces admins recevront les notifications.</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
-                            <textarea id="alloDesc" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Détails du service..."></textarea>
+                            <textarea id="alloDesc" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Détails de l'allo..."></textarea>
                         </div>
                     </form>
                 </div>
@@ -467,7 +466,7 @@
 
         function populateFilters() {
             const alloSelect = document.getElementById('filterAllo');
-            alloSelect.innerHTML = '<option value="">Tous les services</option>';
+            alloSelect.innerHTML = '<option value="">Tous les allos</option>';
             allos.forEach(a => {
                 const opt = document.createElement('option');
                 opt.value = a.id;

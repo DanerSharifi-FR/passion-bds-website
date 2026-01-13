@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
 /**
  * Modèle Allo.
  *
- * Représente un type d'allo (service) que les étudiants peuvent réserver sur des créneaux.
+ * Représente un type d'allo que les étudiants peuvent réserver sur des créneaux.
  *
  * @property int $id
  * @property string $title
