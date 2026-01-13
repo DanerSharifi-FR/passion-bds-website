@@ -105,7 +105,7 @@
         }
 
         function formatDateTimeRangeLabel(start, end) {
-            return `de ${formatNumericDate(start)} ${formatTime(start)} à ${formatNumericDate(end)} ${formatTime(end)}`;
+            return `du ${formatNumericDate(start)} ${formatTime(start)} au ${formatNumericDate(end)} ${formatTime(end)}`;
         }
 
         function formatTimeLabel(time) {
