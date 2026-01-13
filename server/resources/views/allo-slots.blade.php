@@ -270,10 +270,6 @@
         }
 
         function shouldAllowMultipleSelections() {
-            if (isEditing) {
-                return false;
-            }
-
             const dailyLimit = alloData?.daily_booking_limit;
 
             if (dailyLimit === null || dailyLimit === undefined) {
@@ -385,6 +381,9 @@
             const inputType = allowMultipleSelections ? 'checkbox' : 'radio';
             const isSelectableSlot = (slot) => {
                 if (!slot?.slot_start_at || !slot?.slot_end_at) return false;
+                if (slot.user_booking) {
+                    return slot.user_booking.status === 'PENDING';
+                }
                 if (isCurrentBookingSlot(slot)) {
                     return true;
                 }
@@ -491,7 +490,7 @@
                         const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
                         const bookingStatus = slot.user_booking?.status ?? '';
                         const isPendingBooking = bookingStatus === 'PENDING';
-                        const shouldDisableInput = (hasUserBooking && isPendingBooking) || !isSelectable || !isAuthenticated;
+                        const shouldDisableInput = (hasUserBooking && !isPendingBooking) || !isSelectable || !isAuthenticated;
 
                         const label = document.createElement('label');
                         label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
@@ -588,6 +587,11 @@
 
             if (isEditing && !currentBooking) {
                 setFeedback("Impossible de modifier cette réservation.");
+                return;
+            }
+
+            if (isEditing && selectedSlots.length !== 1) {
+                setFeedback('Choisis un seul créneau pour modifier ta réservation.');
                 return;
             }
 

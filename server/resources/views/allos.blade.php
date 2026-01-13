@@ -379,7 +379,9 @@
                     ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
                     : '';
                 const showSlotsButton = !isDisabled && canBookNew;
-                const showExtraSlotsButton = hasBooking && showSlotsButton && isAuthenticated;
+                const bookingButtonLabel = userBookings.length > 1
+                    ? 'Modifier mes réservations'
+                    : 'Modifier ma réservation';
 
                 const card = document.createElement('div');
                 card.className = `relative border-2 shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4 ${
@@ -408,18 +410,10 @@
                         </div>
                     ` : ''}
                     ${isDisabled ? '' : (hasBooking && isAuthenticated) ? `
-                        <div class="flex flex-col gap-3">
-                            <a href="/allos/reservations?allo_id=${allo.id}"
-                               class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
-                                Modifier ma réservation
-                            </a>
-                            ${showExtraSlotsButton ? `
-                                <a href="/allos/${allo.id}/creneaux"
-                                   class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
-                                    Voir les créneaux
-                                </a>
-                            ` : ''}
-                        </div>
+                        <a href="/allos/reservations?allo_id=${allo.id}"
+                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
+                            ${bookingButtonLabel}
+                        </a>
                     ` : (showSlotsButton ? `
                         <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
