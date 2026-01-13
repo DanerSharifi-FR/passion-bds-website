@@ -375,7 +375,7 @@
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <h2 class="font-display font-black uppercase text-2xl ${isEnded ? 'text-slate-600' : 'text-passion-red'}">${allo.title}</h2>
-                            <p class="text-sm ${isEnded ? 'text-slate-500' : 'text-gray-600'} mt-2">${allo.description ?? ''}</p>
+                            <p class="text-sm ${isEnded ? 'text-slate-500' : 'text-gray-600'} mt-2 whitespace-pre-line">${allo.description ?? ''}</p>
                         </div>
                     </div>
                     <div class="${isEnded ? 'bg-slate-200 border-slate-300 text-slate-600' : 'bg-passion-pink-100 border-passion-red text-passion-red'} border px-4 py-3 text-sm font-semibold flex flex-col gap-1">

@@ -102,7 +102,7 @@
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <h2 class="font-display font-black uppercase text-2xl text-passion-red">${reservation.allo_title || 'Allo'}</h2>
-                            <p class="text-sm text-gray-600 mt-2">${reservation.allo_description ?? ''}</p>
+                            <p class="text-sm text-gray-600 mt-2 whitespace-pre-line">${reservation.allo_description ?? ''}</p>
                         </div>
                         <span class="text-xs font-bold uppercase border px-3 py-1 ${statusClass}">
                             ${statusLabel}
