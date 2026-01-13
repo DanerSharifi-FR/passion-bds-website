@@ -114,7 +114,7 @@
                     </div>
                     ${reservation.user_note ? `
                         <div class="text-sm text-slate-600">
-                            <span class="font-semibold text-slate-700">Ton note :</span> ${reservation.user_note}
+                            <span class="font-semibold text-slate-700">Ta note :</span> ${reservation.user_note}
                         </div>
                     ` : ''}
                     <div class="flex flex-wrap items-center gap-3">

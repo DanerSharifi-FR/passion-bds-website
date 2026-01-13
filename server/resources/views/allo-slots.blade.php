@@ -57,7 +57,7 @@
                 <p class="font-medium whitespace-pre-line"></p>
             </div>
             <div class="space-y-2">
-                <label class="text-xs font-bold uppercase text-passion-red">Ton note pour nous</label>
+                <label class="text-xs font-bold uppercase text-passion-red">Ta note pour nous</label>
                 <textarea id="allo-note" class="w-full border-2 border-passion-red px-3 py-2 text-sm" rows="2"
                           data-default-placeholder="Ex: sieste après 15h, merci !"
                           placeholder="Ex: sieste après 15h, merci !"></textarea>
