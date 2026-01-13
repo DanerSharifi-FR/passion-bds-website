@@ -30,4 +30,10 @@ Route::middleware('web')->group(function () {
     Route::post('/allos/bookings', [AlloApiController::class, 'storeBooking'])
         ->middleware('auth')
         ->name('allos.api.bookings.store');
+    Route::get('/allos/bookings', [AlloApiController::class, 'bookings'])
+        ->middleware('auth')
+        ->name('allos.api.bookings.index');
+    Route::put('/allos/bookings/{booking}', [AlloApiController::class, 'updateBooking'])
+        ->middleware('auth')
+        ->name('allos.api.bookings.update');
 });

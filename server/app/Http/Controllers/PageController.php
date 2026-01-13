@@ -27,6 +27,11 @@ class PageController extends Controller
         return view('allos');
     }
 
+    public function alloReservations(): Factory|View
+    {
+        return view('allo-reservations');
+    }
+
     public function alloSlots(int $alloId): Factory|View
     {
         /** @var Allo $allo */
