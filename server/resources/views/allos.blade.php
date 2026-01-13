@@ -124,7 +124,7 @@
                         new Date(`${endDate}T00:00:00`)
                     );
                     const windowLabels = windows.map((window) => `
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 ml-5 pl-3 border-l border-passion-red/30">
                             <span aria-hidden="true">🕒</span>
                             <span>de ${formatTimeLabel(window.start_time)} à ${formatTimeLabel(window.end_time)}</span>
                         </div>
@@ -154,7 +154,7 @@
                     <span aria-hidden="true">📅</span>
                     <span>${dateLabel}</span>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 ml-5 pl-3 border-l border-passion-red/30">
                     <span aria-hidden="true">🕒</span>
                     <span>de ${startTime} à ${endTime}</span>
                 </div>
