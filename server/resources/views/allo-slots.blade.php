@@ -16,7 +16,7 @@
                     class="font-display font-black text-3xl md:text-5xl text-passion-red uppercase tracking-tighter leading-none">
                     Créneaux Allo
                 </h1>
-                <p id="allo-slot-description" class="text-passion-pink-500 font-medium mt-2 text-sm md:text-base"></p>
+                <p id="allo-slot-description" class="text-passion-pink-500 font-medium mt-2 text-sm md:text-base whitespace-pre-line"></p>
                 <p id="allo-slot-intent" class="text-sm text-slate-600 mt-3"></p>
             </div>
         </div>
@@ -54,7 +54,7 @@
             <div id="allo-description-reminder"
                  class="hidden flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-700">
                 <span aria-hidden="true">ℹ️</span>
-                <p class="font-medium"></p>
+                <p class="font-medium whitespace-pre-line"></p>
             </div>
             <div class="space-y-2">
                 <label class="text-xs font-bold uppercase text-passion-red">Ton note pour nous</label>
