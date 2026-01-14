@@ -118,6 +118,25 @@
             line-height: 1.1;
         }
 
+        @keyframes toast-progress {
+            from {
+                transform: scaleX(1);
+            }
+            to {
+                transform: scaleX(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            #toast-container {
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+                width: calc(100% - 32px);
+                max-width: none;
+            }
+        }
+
         #pbds-loader-overlay .pbds-loader-title b {
             letter-spacing: .12em;
             text-transform: uppercase;
@@ -343,6 +362,107 @@
 <main class="flex-grow px-4 flex flex-col items-center justify-start relative w-full overflow-hidden lg:pt-32 pt-8">
     @yield('content')
 </main>
+
+<div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-auto max-w-sm pointer-events-none">
+    <div id="toast-success" class="hidden pointer-events-auto relative overflow-hidden border-2 border-green-600 bg-green-100 text-green-700 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 transition ease-out duration-200 opacity-0 translate-y-2">
+        <span data-toast-message></span>
+        <button type="button" class="ml-auto text-base font-bold leading-none" aria-label="Fermer la notification">×</button>
+        <span data-toast-progress class="absolute bottom-0 left-0 h-1 bg-green-600 w-full origin-left"></span>
+    </div>
+    <div id="toast-error" class="hidden pointer-events-auto relative overflow-hidden border-2 border-passion-red bg-passion-pink-100 text-passion-red px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 transition ease-out duration-200 opacity-0 translate-y-2">
+        <span data-toast-message></span>
+        <button type="button" class="ml-auto text-base font-bold leading-none" aria-label="Fermer la notification">×</button>
+        <span data-toast-progress class="absolute bottom-0 left-0 h-1 bg-passion-red w-full origin-left"></span>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const toastContainer = document.getElementById('toast-container');
+        const toastSuccess = document.getElementById('toast-success');
+        const toastError = document.getElementById('toast-error');
+        let activeToast = null;
+        let activeTimeout = null;
+        const hideTimeouts = new WeakMap();
+
+        function hideToast(toast) {
+            if (!toast) return;
+            const existingTimeout = hideTimeouts.get(toast);
+            if (existingTimeout) {
+                clearTimeout(existingTimeout);
+                hideTimeouts.delete(toast);
+            }
+            toast.classList.add('opacity-0', 'translate-y-2');
+            const timeout = window.setTimeout(() => {
+                toast.classList.add('hidden');
+                hideTimeouts.delete(toast);
+            }, 200);
+            hideTimeouts.set(toast, timeout);
+        }
+
+        function showToast({ message, type = 'error', duration = 4000 } = {}) {
+            if (!toastContainer || !message) return;
+
+            const toast = type === 'success' ? toastSuccess : toastError;
+            const otherToast = type === 'success' ? toastError : toastSuccess;
+            if (!toast || !otherToast) return;
+
+            if (activeTimeout) {
+                clearTimeout(activeTimeout);
+                activeTimeout = null;
+            }
+
+            if (activeToast) {
+                hideToast(activeToast);
+                activeToast = null;
+            }
+
+            hideToast(otherToast);
+
+            const toastMessage = toast.querySelector('[data-toast-message]');
+            const toastCloseButton = toast.querySelector('button');
+            const toastProgress = toast.querySelector('[data-toast-progress]');
+            if (!toastMessage || !toastCloseButton || !toastProgress) return;
+
+            toastMessage.textContent = message;
+            activeToast = toast;
+
+            toastProgress.style.animation = 'none';
+            void toastProgress.offsetHeight;
+            toastProgress.style.animation = `toast-progress ${duration}ms linear forwards`;
+
+            requestAnimationFrame(() => {
+                const existingTimeout = hideTimeouts.get(toast);
+                if (existingTimeout) {
+                    clearTimeout(existingTimeout);
+                    hideTimeouts.delete(toast);
+                }
+                toast.classList.remove('hidden');
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            });
+
+            const closeToast = () => {
+                toastProgress.style.animationPlayState = 'paused';
+                hideToast(toast);
+                if (activeToast === toast) {
+                    activeToast = null;
+                }
+            };
+
+            toastCloseButton.onclick = closeToast;
+
+            activeTimeout = window.setTimeout(() => {
+                if (activeToast === toast) {
+                    closeToast();
+                }
+            }, duration);
+        }
+
+        window.PassionToast = {
+            show: showToast,
+        };
+    })();
+</script>
 
 <!-- MOBILE BOTTOM NAVIGATION (Fixed) -->
 <nav
