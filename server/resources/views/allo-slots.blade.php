@@ -260,9 +260,91 @@
             return new Date(Date.now() + (margin * 60000));
         }
 
-        function isCurrentBookingSlot(slot) {
-            if (!currentBooking || !slot?.user_booking) return false;
-            return slot.user_booking.id === currentBooking.id;
+        function shouldAllowMultipleSelections() {
+            const dailyLimit = alloData?.daily_booking_limit;
+
+            if (dailyLimit === null || dailyLimit === undefined) {
+                return true;
+            }
+
+            return Number(dailyLimit) > 1;
+        }
+
+        function getSelectedSlots() {
+            if (!alloData) return [];
+            const inputs = Array.from(document.querySelectorAll('input[name="allo-slot"]:checked'));
+            return inputs
+                .map((input) => alloData.slots.find((slot) => slot.id === Number(input.value)))
+                .filter((slot) => {
+                    if (!slot) return false;
+                    if (slot.user_booking) {
+                        return false;
+                    }
+                    return true;
+                });
+        }
+
+        function getDailyLimitValue() {
+            const dailyLimit = alloData?.daily_booking_limit;
+            if (dailyLimit === null || dailyLimit === undefined) {
+                return null;
+            }
+            const numericLimit = Number(dailyLimit);
+            return Number.isFinite(numericLimit) ? numericLimit : null;
+        }
+
+        function getUserBookingsByDate() {
+            if (!alloData?.slots?.length) {
+                return {};
+            }
+
+            return alloData.slots.reduce((acc, slot) => {
+                if (!slot.user_booking) {
+                    return acc;
+                }
+
+                const slotDate = slot.slot_start_at ? toDateKey(new Date(slot.slot_start_at)) : null;
+                if (!slotDate) {
+                    return acc;
+                }
+
+                acc[slotDate] = (acc[slotDate] ?? 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        function getSelectedSlotsByDate(slots) {
+            return slots.reduce((acc, slot) => {
+                const slotDate = slot.slot_start_at ? toDateKey(new Date(slot.slot_start_at)) : null;
+                if (!slotDate) {
+                    return acc;
+                }
+
+                acc[slotDate] = (acc[slotDate] ?? 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        function getDailyLimitValidation(slots) {
+            const dailyLimit = getDailyLimitValue();
+
+            if (!dailyLimit || dailyLimit <= 0) {
+                return { ok: true, message: '' };
+            }
+
+            const existingByDate = getUserBookingsByDate();
+            const selectedByDate = getSelectedSlotsByDate(slots);
+
+            const overLimitDates = Object.keys(selectedByDate).filter((dateKey) => {
+                const existingCount = existingByDate[dateKey] ?? 0;
+                return existingCount + selectedByDate[dateKey] > dailyLimit;
+            });
+
+            if (!overLimitDates.length) {
+                return { ok: true, message: '' };
+            }
+
+            return { ok: false, message: 'Tu as atteint la limite de réservations pour cet allo ce jour-là.' };
         }
 
         function shouldAllowMultipleSelections() {
@@ -370,9 +452,6 @@
             const isSelectableSlot = (slot) => {
                 if (!slot?.slot_start_at || !slot?.slot_end_at) return false;
                 if (slot.user_booking) {
-                    return slot.user_booking.status === 'PENDING';
-                }
-                if (isCurrentBookingSlot(slot)) {
                     return true;
                 }
                 const slotStart = new Date(slot.slot_start_at);
@@ -394,9 +473,6 @@
             const slots = alloData.slots.filter((slot) => {
                 if (!slot.slot_start_at || !slot.slot_end_at) return false;
                 if (slot.user_booking) {
-                    return true;
-                }
-                if (isCurrentBookingSlot(slot)) {
                     return true;
                 }
                 const slotStart = new Date(slot.slot_start_at);
@@ -575,9 +651,6 @@
 
             const threshold = getAvailabilityThreshold(alloData);
             const isInvalidSelection = selectedSlots.some((slot) => {
-                if (isCurrentBookingSlot(slot)) {
-                    return false;
-                }
                 if (!slot.slot_start_at) {
                     return true;
                 }
