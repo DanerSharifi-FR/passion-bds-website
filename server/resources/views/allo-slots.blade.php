@@ -76,7 +76,6 @@
         const isAuthenticated = @json(auth()->check());
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
         const alloId = Number(document.querySelector('[data-allo-id]')?.dataset?.alloId ?? 0);
-        const bookingId = Number(new URLSearchParams(window.location.search).get('booking') ?? 0);
 
         const statusElement = document.getElementById('allo-slot-status');
         const titleElement = document.getElementById('allo-slot-title');
@@ -91,12 +90,9 @@
         const noteInput = document.getElementById('allo-note');
         const feedbackElement = document.getElementById('allo-feedback');
         const descriptionReminder = document.getElementById('allo-description-reminder');
-
         let alloData = null;
-        let selectedSlot = null;
+        let selectedSlots = [];
         let currentBooking = null;
-        let canEditBooking = false;
-        let currentBookingSlot = null;
 
         function formatDateLabel(date) {
             return new Intl.DateTimeFormat('fr-FR', {
@@ -263,9 +259,90 @@
             return new Date(Date.now() + (margin * 60000));
         }
 
-        function isCurrentBookingSlot(slot) {
-            if (!currentBooking || !slot?.user_booking) return false;
-            return slot.user_booking.id === currentBooking.id;
+        function shouldAllowMultipleSelections() {
+            const dailyLimit = alloData?.daily_booking_limit;
+
+            if (dailyLimit === null || dailyLimit === undefined) {
+                return true;
+            }
+
+            return Number(dailyLimit) > 1;
+        }
+
+        function getSelectedSlots() {
+            if (!alloData) return [];
+            const inputs = Array.from(document.querySelectorAll('input[name="allo-slot"]:checked'));
+            return inputs
+                .map((input) => alloData.slots.find((slot) => slot.id === Number(input.value)))
+                .filter((slot) => {
+                    if (!slot) return false;
+                    if (slot.user_booking) {
+                        return false;
+                    }
+                    return true;
+                });
+        }
+
+        function getCheckedSlots() {
+            if (!alloData) return [];
+            const inputs = Array.from(document.querySelectorAll('input[name="allo-slot"]:checked'));
+            return inputs
+                .map((input) => alloData.slots.find((slot) => slot.id === Number(input.value)))
+                .filter(Boolean);
+        }
+
+        function getDailyLimitValue() {
+            const dailyLimit = alloData?.daily_booking_limit;
+            if (dailyLimit === null || dailyLimit === undefined) {
+                return null;
+            }
+            const numericLimit = Number(dailyLimit);
+            return Number.isFinite(numericLimit) ? numericLimit : null;
+        }
+
+        function getSelectedSlotsByDate(slots) {
+            return slots.reduce((acc, slot) => {
+                const slotDate = slot.slot_start_at ? toDateKey(new Date(slot.slot_start_at)) : null;
+                if (!slotDate) {
+                    return acc;
+                }
+
+                acc[slotDate] = (acc[slotDate] ?? 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        function getDailyLimitValidation(slots) {
+            const dailyLimit = getDailyLimitValue();
+
+            if (!dailyLimit || dailyLimit <= 0) {
+                return { ok: true, state: 'none', message: '' };
+            }
+
+            const selectedByDate = getSelectedSlotsByDate(slots);
+
+            const overLimitDates = Object.keys(selectedByDate).filter((dateKey) => {
+                return selectedByDate[dateKey] > dailyLimit;
+            });
+
+            if (!overLimitDates.length) {
+                const atLimitDates = Object.keys(selectedByDate).filter((dateKey) => (
+                    selectedByDate[dateKey] === dailyLimit
+                ));
+                return {
+                    ok: true,
+                    state: atLimitDates.length ? 'at' : 'under',
+                    message: atLimitDates.length
+                        ? 'Tu es au bon nombre de réservations pour cet allo.'
+                        : '',
+                };
+            }
+
+            return {
+                ok: false,
+                state: 'over',
+                message: 'Tu as atteint la limite de réservations pour cet allo ce jour-là.',
+            };
         }
 
         function renderTimetable() {
@@ -281,9 +358,11 @@
                 : (alloData.window_end_at && now > new Date(alloData.window_end_at));
             const isEnded = windowEnded || alloData.status !== 'OPEN';
             const availableSlotStatuses = ['available', 'partial'];
+            const allowMultipleSelections = shouldAllowMultipleSelections();
+            const inputType = allowMultipleSelections ? 'checkbox' : 'radio';
             const isSelectableSlot = (slot) => {
                 if (!slot?.slot_start_at || !slot?.slot_end_at) return false;
-                if (isCurrentBookingSlot(slot)) {
+                if (slot.user_booking) {
                     return true;
                 }
                 const slotStart = new Date(slot.slot_start_at);
@@ -298,14 +377,13 @@
                 return availableSlotStatuses.includes(slot.status)
                     && (remaining === null || remaining > 0)
                     && alloData.status === 'OPEN'
-                    && slotStart >= threshold
-                    && (!currentBooking || canEditBooking);
+                    && slotStart >= threshold;
             };
 
             const disabledDates = Array.isArray(alloData.disabled_dates) ? alloData.disabled_dates : [];
             const slots = alloData.slots.filter((slot) => {
                 if (!slot.slot_start_at || !slot.slot_end_at) return false;
-                if (isCurrentBookingSlot(slot)) {
+                if (slot.user_booking) {
                     return true;
                 }
                 const slotStart = new Date(slot.slot_start_at);
@@ -379,16 +457,20 @@
                     daySlots.filter((slot) => isSelectableSlot(slot)).forEach((slot) => {
                         const slotStart = new Date(slot.slot_start_at);
                         const slotEnd = new Date(slot.slot_end_at);
+                        const hasUserBooking = Boolean(slot.user_booking);
                         const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
-                        const remainingLabel = formatRemainingLabel(remaining);
+                        const remainingLabel = hasUserBooking ? 'Réservé par toi' : formatRemainingLabel(remaining);
                         const isSelectable = isSelectableSlot(slot);
                         const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
+                        const bookingStatus = slot.user_booking?.status ?? '';
+                        const isPendingBooking = bookingStatus === 'PENDING';
+                        const shouldDisableInput = (hasUserBooking && !isPendingBooking) || !isSelectable || !isAuthenticated;
 
                         const label = document.createElement('label');
                         label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
                         label.innerHTML = `
                             <div class="flex items-center gap-2">
-                                <input type="radio" name="allo-slot" value="${slot.id}" ${isSelectable && isAuthenticated ? '' : 'disabled'} />
+                                <input type="${inputType}" name="allo-slot" value="${slot.id}" ${hasUserBooking ? 'checked' : ''} ${shouldDisableInput ? 'disabled' : ''} />
                                 <span>${timeLabel}</span>
                             </div>
                             <span class="text-xs text-passion-red">${remainingLabel}</span>
@@ -404,30 +486,45 @@
         }
 
         function updateSelectedSlot() {
-            const input = document.querySelector('input[name="allo-slot"]:checked');
-            if (!input || !alloData) {
-                selectedSlot = currentBookingSlot;
-                if (selectedSlot) {
-                    const label = `${formatTime(new Date(selectedSlot.slot_start_at))} → ${formatTime(new Date(selectedSlot.slot_end_at))}`;
-                    selectedSlotElement.textContent = label;
-                } else {
-                    selectedSlotElement.textContent = 'Sélectionne un créneau';
-                }
+            if (!alloData) {
+                selectedSlots = [];
                 updateBookingButtonState();
                 return;
             }
 
-            setFeedback('');
-            selectedSlot = alloData.slots.find((slot) => slot.id === Number(input.value)) || null;
-            if (!selectedSlot) {
+            selectedSlots = getSelectedSlots();
+
+            if (!selectedSlots.length) {
+                setFeedback('');
                 selectedSlotElement.textContent = 'Sélectionne un créneau';
                 updateBookingButtonState();
                 return;
             }
 
-            const label = `${formatTime(new Date(selectedSlot.slot_start_at))} → ${formatTime(new Date(selectedSlot.slot_end_at))}`;
-            selectedSlotElement.textContent = label;
+            setFeedback('');
+
+            if (selectedSlots.length === 1) {
+                const slot = selectedSlots[0];
+                const label = `${formatTime(new Date(slot.slot_start_at))} → ${formatTime(new Date(slot.slot_end_at))}`;
+                selectedSlotElement.textContent = label;
+            } else {
+                selectedSlotElement.textContent = `${selectedSlots.length} créneaux sélectionnés`;
+            }
+
             updateBookingButtonState();
+        }
+
+        function showLimitToast(state, message) {
+            const showToast = window.PassionToast?.show;
+            if (!showToast) return;
+            if (!message) {
+                return;
+            }
+            showToast({
+                message,
+                type: state === 'at' ? 'success' : 'error',
+                duration: 4000,
+            });
         }
 
         function updateBookingButtonState() {
@@ -445,7 +542,18 @@
                 : (alloData.window_end_at && now > new Date(alloData.window_end_at));
             const isEnded = windowEnded || alloData.status !== 'OPEN';
 
-            bookingButton.disabled = !isAuthenticated || isEnded || !windowOpen || !selectedSlot || !canEditBooking;
+            const hasSelection = selectedSlots.length > 0;
+            const checkedSlots = getCheckedSlots();
+            const limitValidation = getDailyLimitValidation(checkedSlots);
+            if (hasSelection && limitValidation.state !== 'under' && limitValidation.state !== 'none') {
+                showLimitToast(limitValidation.state, limitValidation.message);
+            }
+
+            bookingButton.disabled = !isAuthenticated
+                || isEnded
+                || !windowOpen
+                || !hasSelection
+                || !limitValidation.ok;
         }
 
         function setFeedback(message, isSuccess = false) {
@@ -455,14 +563,26 @@
         }
 
         async function bookSelectedSlot() {
-            if (!selectedSlot || !alloData) {
+            if (!selectedSlots.length || !alloData) {
                 setFeedback('Choisis un créneau disponible.');
                 return;
             }
 
-            if (!isCurrentBookingSlot(selectedSlot)
-                && selectedSlot.slot_start_at
-                && new Date(selectedSlot.slot_start_at) < getAvailabilityThreshold(alloData)) {
+            const limitValidation = getDailyLimitValidation(getCheckedSlots());
+            if (!limitValidation.ok) {
+                showLimitToast(limitValidation.state, limitValidation.message);
+                return;
+            }
+
+            const threshold = getAvailabilityThreshold(alloData);
+            const isInvalidSelection = selectedSlots.some((slot) => {
+                if (!slot.slot_start_at) {
+                    return true;
+                }
+                return new Date(slot.slot_start_at) < threshold;
+            });
+
+            if (isInvalidSelection) {
                 setFeedback('Ce créneau n’est plus disponible. Les créneaux ont été mis à jour.');
                 await loadAllo();
                 return;
@@ -472,49 +592,70 @@
             setFeedback('Réservation en cours...');
 
             try {
-                const endpoint = currentBooking
-                    ? `/api/allos/bookings/${currentBooking.id}`
-                    : '/api/allos/bookings';
-                const method = currentBooking ? 'PUT' : 'POST';
+                const pendingBookings = alloData.slots
+                    .filter((slot) => slot.user_booking && slot.user_booking.status === 'PENDING')
+                    .map((slot) => slot.user_booking);
+                const bookingRequests = [];
+                const updateTargets = selectedSlots.slice(0, pendingBookings.length);
 
-                const response = await fetch(endpoint, {
-                    method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                    },
-                    body: JSON.stringify({
-                        allo_id: alloData.id,
-                        allo_slot_id: selectedSlot.id,
-                        user_note: noteInput.value.trim() || null,
-                    }),
+                updateTargets.forEach((slot, index) => {
+                    const booking = pendingBookings[index];
+                    if (!booking) return;
+                    bookingRequests.push({
+                        slot,
+                        endpoint: `/api/allos/bookings/${booking.id}`,
+                        method: 'PUT',
+                    });
                 });
 
-                const data = await response.json();
+                selectedSlots.slice(updateTargets.length).forEach((slot) => {
+                    bookingRequests.push({
+                        slot,
+                        endpoint: '/api/allos/bookings',
+                        method: 'POST',
+                    });
+                });
 
-                if (!response.ok) {
-                    const message = data.message || 'Erreur lors de la réservation.';
-                    if (message.includes('limite de réservations')) {
-                        setFeedback('Tu as atteint la limite de réservations pour cet allo ce jour-là.');
+                for (const request of bookingRequests) {
+                    const response = await fetch(request.endpoint, {
+                        method: request.method,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({
+                            allo_id: alloData.id,
+                            allo_slot_id: request.slot.id,
+                            user_note: noteInput.value.trim() || null,
+                        }),
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        const message = data.message || 'Erreur lors de la réservation.';
+                        if (message.includes('limite de réservations')) {
+                            showLimitToast('over', 'Tu as atteint la limite de réservations pour cet allo ce jour-là.');
+                            return;
+                        }
+                        if (message.includes('déjà réservé un créneau pour cet allo')) {
+                            setFeedback('Tu as déjà réservé un créneau ce jour-là. Utilise le bouton “Modifier ma réservation”.');
+                            return;
+                        }
+                        if (message.includes('déjà passé')
+                            || message.includes('pas encore disponible')
+                            || message.includes('déjà réservé')
+                            || message.includes('indisponible')) {
+                            setFeedback('Ce créneau n’est plus disponible. Les créneaux ont été mis à jour.');
+                            await loadAllo();
+                            return;
+                        }
+                        setFeedback(message);
                         return;
                     }
-                    if (message.includes('déjà réservé un créneau pour cet allo')) {
-                        setFeedback('Tu as déjà réservé un créneau ce jour-là. Utilise le bouton “Modifier ma réservation”.');
-                        return;
-                    }
-                    if (message.includes('déjà passé')
-                        || message.includes('pas encore disponible')
-                        || message.includes('déjà réservé')
-                        || message.includes('indisponible')) {
-                        setFeedback('Ce créneau n’est plus disponible. Les créneaux ont été mis à jour.');
-                        await loadAllo();
-                        return;
-                    }
-                    setFeedback(message);
-                    return;
                 }
 
-                setFeedback(currentBooking ? 'Réservation mise à jour !' : 'Réservation confirmée !', true);
+                setFeedback('Réservation confirmée !', true);
                 await loadAllo();
                 window.location.href = '/allos/reservations?allo_id=' + alloData.id;
             } catch (error) {
@@ -527,48 +668,34 @@
         function resolveCurrentBooking() {
             if (!alloData?.slots?.length) {
                 currentBooking = null;
-                canEditBooking = true;
                 return null;
             }
 
             const slotWithBooking = alloData.slots.find((slot) => slot.user_booking);
             currentBooking = slotWithBooking?.user_booking || null;
-            currentBookingSlot = slotWithBooking || null;
-            canEditBooking = !currentBooking || currentBooking.status === 'PENDING';
             return slotWithBooking || null;
         }
 
         function updateBookingUI(slotWithBooking) {
             if (!intentElement) return;
 
-            if (currentBooking) {
-                titleElement.textContent = 'Modifier ton créneau';
-                intentElement.textContent = canEditBooking
-                    ? 'Tu as déjà réservé un créneau. Choisis-en un nouveau pour modifier ta réservation.'
-                    : 'Ta réservation est en cours de traitement. La modification est indisponible.';
-                bookingTitleElement.textContent = canEditBooking ? 'Ton créneau actuel' : 'Ton créneau réservé';
-                bookingButton.textContent = canEditBooking ? 'Modifier ma réservation' : 'Modification indisponible';
-                bookingButton.disabled = !canEditBooking;
-                if (slotWithBooking) {
-                    const slotLabel = `${formatTime(new Date(slotWithBooking.slot_start_at))} → ${formatTime(new Date(slotWithBooking.slot_end_at))}`;
-                    selectedSlot = slotWithBooking;
-                    selectedSlotElement.textContent = slotLabel;
-                    noteInput.value = currentBooking.user_note || '';
-                }
-            } else {
-                titleElement.textContent = alloData?.title || 'Créneaux Allo';
-                intentElement.textContent = 'Choisis un créneau pour réserver ton allo.';
-                bookingTitleElement.textContent = 'Ton créneau choisi';
-                bookingButton.textContent = 'Réserver cet allo';
-                bookingButton.disabled = false;
-                noteInput.value = '';
-            }
+            titleElement.textContent = alloData?.title || 'Créneaux Allo';
+            intentElement.textContent = 'Choisis un créneau pour réserver ton allo.';
+            bookingTitleElement.textContent = shouldAllowMultipleSelections()
+                ? 'Tes créneaux choisis'
+                : 'Ton créneau choisi';
+            bookingButton.textContent = shouldAllowMultipleSelections()
+                ? 'Réserver ces créneaux'
+                : 'Réserver cet allo';
+            bookingButton.disabled = false;
+            noteInput.value = currentBooking?.user_note || '';
+            selectedSlots = [];
+            selectedSlotElement.textContent = 'Sélectionne un créneau';
         }
 
         async function loadAllo() {
             try {
-                const bookingQuery = bookingId ? `&booking_id=${bookingId}` : '';
-                const response = await fetch(`/api/allos?allo_id=${alloId}&slots_only=1${bookingQuery}`);
+                const response = await fetch(`/api/allos?allo_id=${alloId}&slots_only=1`);
                 const data = await response.json();
                 const allos = data.allos || [];
                 alloData = allos.find((allo) => allo.id === alloId) || null;
@@ -596,23 +723,8 @@
 
                 const slotWithBooking = resolveCurrentBooking();
 
-                if (bookingId && (!currentBooking || currentBooking.id !== bookingId)) {
-                    window.location.href = `/allos/reservations?allo_id=${alloId}`;
-                    return;
-                }
-                if (!bookingId && currentBooking) {
-                    window.location.href = `/allos/${alloId}/creneaux?booking=${currentBooking.id}`;
-                    return;
-                }
-
                 updateBookingUI(slotWithBooking);
                 renderTimetable();
-                if (slotWithBooking) {
-                    const bookingInput = document.querySelector(`input[name=\"allo-slot\"][value=\"${slotWithBooking.id}\"]`);
-                    if (bookingInput) {
-                        bookingInput.checked = true;
-                    }
-                }
                 updateSelectedSlot();
             } catch (error) {
                 statusElement.textContent = 'Impossible de charger les créneaux.';
