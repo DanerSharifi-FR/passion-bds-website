@@ -441,7 +441,7 @@
                         <span class="text-center text-sm font-semibold text-slate-500">
                             Plus de place disponible.
                         </span>
-                    ` : ''))))}
+                    ` : '')))))}
                     <div class="allo-form hidden space-y-4 border-t border-passion-red/30 pt-4">
                         <div class="space-y-3">
                             <label class="text-xs font-bold uppercase text-passion-red">Choisis un créneau</label>
