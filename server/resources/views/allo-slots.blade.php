@@ -102,13 +102,9 @@
         const noteInput = document.getElementById('allo-note');
         const feedbackElement = document.getElementById('allo-feedback');
         const descriptionReminder = document.getElementById('allo-description-reminder');
-        const toastContainer = document.getElementById('toast-container');
-
         let alloData = null;
         let selectedSlots = [];
         let currentBooking = null;
-        let limitToast = null;
-        let limitToastTimeout = null;
 
         function formatDateLabel(date) {
             return new Intl.DateTimeFormat('fr-FR', {
@@ -531,66 +527,16 @@
         }
 
         function showLimitToast(state, message) {
-            if (!toastContainer) return;
-
-            if (limitToast) {
-                limitToast.classList.add('opacity-0', 'translate-y-2');
-                limitToast.classList.add('hidden');
-                limitToast = null;
-            }
-
-            if (limitToastTimeout) {
-                clearTimeout(limitToastTimeout);
-                limitToastTimeout = null;
-            }
-
+            const showToast = window.PassionToast?.show;
+            if (!showToast) return;
             if (!message) {
                 return;
             }
-
-            const isSuccess = state === 'at';
-            const toast = document.getElementById(isSuccess ? 'toast-success' : 'toast-error');
-            const otherToast = document.getElementById(isSuccess ? 'toast-error' : 'toast-success');
-            if (otherToast) {
-                otherToast.classList.add('opacity-0', 'translate-y-2');
-                otherToast.classList.add('hidden');
-            }
-            if (!toast) return;
-            const toastMessage = toast.querySelector('[data-toast-message]');
-            const toastCloseButton = toast.querySelector('button');
-            const toastProgress = toast.querySelector('[data-toast-progress]');
-            if (!toastMessage || !toastCloseButton || !toastProgress) return;
-
-            toastMessage.textContent = message;
-            limitToast = toast;
-
-            requestAnimationFrame(() => {
-                toast.classList.remove('hidden');
-                toast.classList.remove('opacity-0', 'translate-y-2');
+            showToast({
+                message,
+                type: state === 'at' ? 'success' : 'error',
+                duration: 4000,
             });
-
-            const closeToast = () => {
-                toastProgress.style.animationPlayState = 'paused';
-                toast.classList.add('opacity-0', 'translate-y-2');
-                window.setTimeout(() => {
-                    if (limitToast === toast) {
-                        toast.classList.add('hidden');
-                        limitToast = null;
-                    }
-                }, 200);
-            };
-
-            toastCloseButton.onclick = closeToast;
-
-            toastProgress.style.animation = 'none';
-            void toastProgress.offsetHeight;
-            toastProgress.style.animation = 'toast-progress 4s linear forwards';
-
-            limitToastTimeout = window.setTimeout(() => {
-                if (limitToast === toast) {
-                    closeToast();
-                }
-            }, 4000);
         }
 
         function updateBookingButtonState() {
@@ -611,9 +557,7 @@
             const hasSelection = selectedSlots.length > 0;
             const checkedSlots = getCheckedSlots();
             const limitValidation = getDailyLimitValidation(checkedSlots);
-            if (!hasSelection || limitValidation.state === 'under' || limitValidation.state === 'none') {
-                showLimitToast('none', '');
-            } else {
+            if (hasSelection && limitValidation.state !== 'under' && limitValidation.state !== 'none') {
                 showLimitToast(limitValidation.state, limitValidation.message);
             }
 
