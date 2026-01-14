@@ -287,7 +287,7 @@
                 .filter((slot) => {
                     if (!slot) return false;
                     if (slot.user_booking) {
-                        return false;
+                        return slot.user_booking.status === 'PENDING';
                     }
                     return true;
                 });
