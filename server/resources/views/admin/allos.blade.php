@@ -654,7 +654,7 @@
 
             filtered.forEach(r => {
                 let statusBadge = '', actions = '', cardBorder = 'border-slate-700';
-                const assignControls = renderAssignControls(r);
+            const assignControls = renderAssignControls(r);
                 if(r.status === 'PENDING') {
                     statusBadge = `<span class="px-2 py-1 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-xs font-bold">EN ATTENTE</span>`;
                     actions = `${assignControls}<button onclick="updateStatus(${r.id}, 'CANCELLED')" class="text-slate-400 hover:text-red-400 text-sm px-3">Annuler</button><button onclick="updateStatus(${r.id}, 'ACCEPTED')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-1.5 rounded font-medium shadow">Prendre en charge</button>`;
@@ -731,10 +731,12 @@
                 const selected = admin.id === request.handled_by_id ? 'selected' : '';
                 return `<option value="${admin.id}" ${selected}>${admin.name}</option>`;
             }).join('');
+            const noneSelected = request.handled_by_id ? '' : 'selected';
             const buttonLabel = request.status === 'PENDING' ? 'Attribuer' : 'Réattribuer';
             return `
                 <div class="flex items-center gap-2 mr-2">
                     <select id="${selectId}" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2">
+                        <option value="" ${noneSelected}>Personne</option>
                         ${options}
                     </select>
                     <button onclick="assignUsage(${request.id})" class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded">${buttonLabel}</button>
@@ -745,9 +747,9 @@
         async function assignUsage(id) {
             const select = document.getElementById(`assignSelect_${id}`);
             if (!select) return;
-            const handlerId = parseInt(select.value);
+            const handlerId = select.value ? parseInt(select.value) : null;
             if (!handlerId) {
-                showToast('Sélectionne un admin à attribuer.', 'error');
+                await updateUsage(id, { status: 'PENDING', handled_by_id: null });
                 return;
             }
             await updateUsage(id, { status: 'ACCEPTED', handled_by_id: handlerId });

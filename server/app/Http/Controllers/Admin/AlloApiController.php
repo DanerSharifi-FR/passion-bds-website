@@ -152,7 +152,7 @@ class AlloApiController extends Controller
         ]);
 
         $hasStatus = array_key_exists('status', $validated);
-        $hasHandler = array_key_exists('handled_by_id', $validated) && $validated['handled_by_id'] !== null;
+        $hasHandler = array_key_exists('handled_by_id', $validated);
 
         if (!$hasStatus && !$hasHandler) {
             return response()->json(['message' => 'Aucune modification demandée.'], 422);
@@ -165,21 +165,21 @@ class AlloApiController extends Controller
             return response()->json(['message' => 'Seul le SUPER ADMIN peut modifier un allo réalisé.'], 403);
         }
 
-        if ($hasHandler) {
+        if ($hasHandler && $validated['handled_by_id'] !== null) {
             $this->ensureHandlerIsAllowed($usage, (int) $validated['handled_by_id']);
         }
 
         if ($hasStatus && $validated['status'] !== null) {
             $status = $validated['status'];
 
-            if ($hasHandler && $status !== AlloUsageService::STATUS_ACCEPTED) {
+            if ($hasHandler && $validated['handled_by_id'] !== null && $status !== AlloUsageService::STATUS_ACCEPTED) {
                 return response()->json(['message' => 'L’attribution doit être associée au statut "accepté".'], 422);
             }
 
             if ($status === AlloUsageService::STATUS_PENDING) {
                 $this->resetUsageToPending($usage);
             } elseif ($status === AlloUsageService::STATUS_ACCEPTED) {
-                if ($hasHandler) {
+                if ($hasHandler && $validated['handled_by_id'] !== null) {
                     $this->assignUsage($usage, (int) $validated['handled_by_id']);
                 } else {
                     $usageService->accept($usage, $actor);
@@ -190,6 +190,12 @@ class AlloApiController extends Controller
                 $usageService->cancel($usage, $actor);
             }
         } elseif ($hasHandler) {
+            if ($validated['handled_by_id'] === null) {
+                $this->resetUsageToPending($usage);
+                $usage->load(['allo', 'user', 'handledBy', 'doneBy']);
+
+                return response()->json(['data' => $this->formatUsage($usage)]);
+            }
             if (!in_array($usage->status, [AlloUsageService::STATUS_PENDING, AlloUsageService::STATUS_ACCEPTED], true)) {
                 return response()->json(['message' => 'Impossible d’attribuer cette demande.'], 422);
             }
