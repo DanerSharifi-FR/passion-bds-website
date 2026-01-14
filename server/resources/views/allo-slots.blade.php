@@ -532,9 +532,12 @@
             if (!message) {
                 return;
             }
+            if (state !== 'over') {
+                return;
+            }
             showToast({
                 message,
-                type: state === 'at' ? 'success' : 'error',
+                type: 'error',
                 duration: 4000,
             });
         }
