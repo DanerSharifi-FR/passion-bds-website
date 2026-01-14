@@ -534,7 +534,8 @@
             if (!toastContainer) return;
 
             if (limitToast) {
-                limitToast.remove();
+                limitToast.classList.add('opacity-0', 'translate-y-2');
+                limitToast.classList.add('hidden');
                 limitToast = null;
             }
 
@@ -547,37 +548,24 @@
                 return;
             }
 
-            const toast = document.createElement('div');
             const isSuccess = state === 'at';
-            toast.className = `relative overflow-hidden border-2 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 ${
-                isSuccess
-                    ? 'border-green-600 bg-green-100 text-green-700'
-                    : 'border-passion-red bg-passion-pink-100 text-passion-red'
-            } transition ease-out duration-200 opacity-0 translate-y-2`;
+            const toast = document.getElementById(isSuccess ? 'toast-success' : 'toast-error');
+            const otherToast = document.getElementById(isSuccess ? 'toast-error' : 'toast-success');
+            if (otherToast) {
+                otherToast.classList.add('opacity-0', 'translate-y-2');
+                otherToast.classList.add('hidden');
+            }
+            if (!toast) return;
+            const toastMessage = toast.querySelector('[data-toast-message]');
+            const toastCloseButton = toast.querySelector('button');
+            const toastProgress = toast.querySelector('[data-toast-progress]');
+            if (!toastMessage || !toastCloseButton || !toastProgress) return;
 
-            const toastMessage = document.createElement('span');
             toastMessage.textContent = message;
-
-            const toastCloseButton = document.createElement('button');
-            toastCloseButton.type = 'button';
-            toastCloseButton.className = 'ml-auto text-base font-bold leading-none';
-            toastCloseButton.setAttribute('aria-label', 'Fermer la notification');
-            toastCloseButton.textContent = '×';
-
-            toast.appendChild(toastMessage);
-            toast.appendChild(toastCloseButton);
-            const toastProgress = document.createElement('span');
-            toastProgress.className = `absolute bottom-0 left-0 h-1 ${
-                isSuccess ? 'bg-green-600' : 'bg-passion-red'
-            }`;
-            toastProgress.style.width = '100%';
-            toastProgress.style.transformOrigin = 'left';
-            toastProgress.style.animation = 'toast-progress 4s linear forwards';
-            toast.appendChild(toastProgress);
-            toastContainer.appendChild(toast);
             limitToast = toast;
 
             requestAnimationFrame(() => {
+                toast.classList.remove('hidden');
                 toast.classList.remove('opacity-0', 'translate-y-2');
             });
 
@@ -586,13 +574,17 @@
                 toast.classList.add('opacity-0', 'translate-y-2');
                 window.setTimeout(() => {
                     if (limitToast === toast) {
-                        toast.remove();
+                        toast.classList.add('hidden');
                         limitToast = null;
                     }
                 }, 200);
             };
 
-            toastCloseButton.addEventListener('click', closeToast);
+            toastCloseButton.onclick = closeToast;
+
+            toastProgress.style.animation = 'none';
+            void toastProgress.offsetHeight;
+            toastProgress.style.animation = 'toast-progress 4s linear forwards';
 
             limitToastTimeout = window.setTimeout(() => {
                 if (limitToast === toast) {
