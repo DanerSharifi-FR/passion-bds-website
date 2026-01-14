@@ -36,4 +36,7 @@ Route::middleware('web')->group(function () {
     Route::put('/allos/bookings/{booking}', [AlloApiController::class, 'updateBooking'])
         ->middleware('auth')
         ->name('allos.api.bookings.update');
+    Route::delete('/allos/bookings/{booking}', [AlloApiController::class, 'cancelBooking'])
+        ->middleware('auth')
+        ->name('allos.api.bookings.cancel');
 });
