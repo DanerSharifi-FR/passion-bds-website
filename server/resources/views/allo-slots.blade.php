@@ -485,7 +485,7 @@
                         const slotEnd = new Date(slot.slot_end_at);
                         const hasUserBooking = Boolean(slot.user_booking);
                         const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
-                        const remainingLabel = hasUserBooking ? 'Modifier' : formatRemainingLabel(remaining);
+                        const remainingLabel = hasUserBooking ? 'Réservé par toi' : formatRemainingLabel(remaining);
                         const isSelectable = isSelectableSlot(slot);
                         const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
                         const bookingStatus = slot.user_booking?.status ?? '';
