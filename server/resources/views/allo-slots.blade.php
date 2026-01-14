@@ -92,7 +92,7 @@
         const noteInput = document.getElementById('allo-note');
         const feedbackElement = document.getElementById('allo-feedback');
         const descriptionReminder = document.getElementById('allo-description-reminder');
-        const toastContainer = document.getElementById('allo-toast-container');
+        const toastContainer = document.getElementById('toast-container');
 
         let alloData = null;
         let selectedSlots = [];
@@ -539,19 +539,45 @@
 
             const toast = document.createElement('div');
             const isSuccess = state === 'at';
-            toast.className = `border-2 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] ${
+            toast.className = `border-2 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 ${
                 isSuccess
                     ? 'border-green-600 bg-green-100 text-green-700'
                     : 'border-passion-red bg-passion-pink-100 text-passion-red'
-            }`;
-            toast.textContent = message;
+            } transition ease-out duration-200 opacity-0 translate-y-2`;
+
+            const toastMessage = document.createElement('span');
+            toastMessage.textContent = message;
+
+            const toastCloseButton = document.createElement('button');
+            toastCloseButton.type = 'button';
+            toastCloseButton.className = 'ml-auto text-base font-bold leading-none';
+            toastCloseButton.setAttribute('aria-label', 'Fermer la notification');
+            toastCloseButton.textContent = '×';
+
+            toast.appendChild(toastMessage);
+            toast.appendChild(toastCloseButton);
             toastContainer.appendChild(toast);
             limitToast = toast;
 
+            requestAnimationFrame(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            });
+
+            const closeToast = () => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                window.setTimeout(() => {
+                    if (limitToast === toast) {
+                        toast.remove();
+                        limitToast = null;
+                    }
+                }, 200);
+            };
+
+            toastCloseButton.addEventListener('click', closeToast);
+
             limitToastTimeout = window.setTimeout(() => {
                 if (limitToast === toast) {
-                    toast.remove();
-                    limitToast = null;
+                    closeToast();
                 }
             }, 4000);
         }
