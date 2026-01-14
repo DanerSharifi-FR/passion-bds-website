@@ -25,7 +25,7 @@
         @guest
             <div class="bg-white border-2 border-passion-red shadow-[6px_6px_0_#000] p-5 text-center mb-8">
                 <p class="text-passion-red font-semibold">
-                    Connecte-toi pour réserver un allo et voir les notes des admins.
+                    Connecte-toi pour pouvoir réserver.
                 </p>
                 <a href="{{ route('login') }}"
                    class="inline-block mt-4 bg-passion-red text-white font-display font-black uppercase px-6 py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
