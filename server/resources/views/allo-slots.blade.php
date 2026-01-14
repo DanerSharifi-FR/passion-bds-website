@@ -74,6 +74,16 @@
 @endsection
 
 @push('end_scripts')
+    <style>
+        @keyframes toast-progress {
+            from {
+                transform: scaleX(1);
+            }
+            to {
+                transform: scaleX(0);
+            }
+        }
+    </style>
     <script>
         const isAuthenticated = @json(auth()->check());
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -539,7 +549,7 @@
 
             const toast = document.createElement('div');
             const isSuccess = state === 'at';
-            toast.className = `border-2 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 ${
+            toast.className = `relative overflow-hidden border-2 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 ${
                 isSuccess
                     ? 'border-green-600 bg-green-100 text-green-700'
                     : 'border-passion-red bg-passion-pink-100 text-passion-red'
@@ -556,6 +566,14 @@
 
             toast.appendChild(toastMessage);
             toast.appendChild(toastCloseButton);
+            const toastProgress = document.createElement('span');
+            toastProgress.className = `absolute bottom-0 left-0 h-1 ${
+                isSuccess ? 'bg-green-600' : 'bg-passion-red'
+            }`;
+            toastProgress.style.width = '100%';
+            toastProgress.style.transformOrigin = 'left';
+            toastProgress.style.animation = 'toast-progress 4s linear forwards';
+            toast.appendChild(toastProgress);
             toastContainer.appendChild(toast);
             limitToast = toast;
 
@@ -564,6 +582,7 @@
             });
 
             const closeToast = () => {
+                toastProgress.style.animationPlayState = 'paused';
                 toast.classList.add('opacity-0', 'translate-y-2');
                 window.setTimeout(() => {
                     if (limitToast === toast) {
