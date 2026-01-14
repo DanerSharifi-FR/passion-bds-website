@@ -37,6 +37,8 @@
             Chargement des créneaux...
         </div>
 
+        <div id="allo-toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
         <div id="allo-window-card"
              class="hidden bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red flex flex-col gap-1 mb-6">
         </div>
@@ -72,6 +74,16 @@
 @endsection
 
 @push('end_scripts')
+    <style>
+        @keyframes toast-progress {
+            from {
+                transform: scaleX(1);
+            }
+            to {
+                transform: scaleX(0);
+            }
+        }
+    </style>
     <script>
         const isAuthenticated = @json(auth()->check());
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
