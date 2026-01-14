@@ -118,6 +118,15 @@
             line-height: 1.1;
         }
 
+        @keyframes toast-progress {
+            from {
+                transform: scaleX(1);
+            }
+            to {
+                transform: scaleX(0);
+            }
+        }
+
         #pbds-loader-overlay .pbds-loader-title b {
             letter-spacing: .12em;
             text-transform: uppercase;
@@ -343,6 +352,19 @@
 <main class="flex-grow px-4 flex flex-col items-center justify-start relative w-full overflow-hidden lg:pt-32 pt-8">
     @yield('content')
 </main>
+
+<div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-auto max-w-sm pointer-events-none">
+    <div id="toast-success" class="hidden pointer-events-auto relative overflow-hidden border-2 border-green-600 bg-green-100 text-green-700 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 transition ease-out duration-200 opacity-0 translate-y-2">
+        <span data-toast-message></span>
+        <button type="button" class="ml-auto text-base font-bold leading-none" aria-label="Fermer la notification">×</button>
+        <span data-toast-progress class="absolute bottom-0 left-0 h-1 bg-green-600 w-full origin-left"></span>
+    </div>
+    <div id="toast-error" class="hidden pointer-events-auto relative overflow-hidden border-2 border-passion-red bg-passion-pink-100 text-passion-red px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 transition ease-out duration-200 opacity-0 translate-y-2">
+        <span data-toast-message></span>
+        <button type="button" class="ml-auto text-base font-bold leading-none" aria-label="Fermer la notification">×</button>
+        <span data-toast-progress class="absolute bottom-0 left-0 h-1 bg-passion-red w-full origin-left"></span>
+    </div>
+</div>
 
 <!-- MOBILE BOTTOM NAVIGATION (Fixed) -->
 <nav
