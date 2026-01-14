@@ -410,7 +410,7 @@
                         </div>
                     ` : ''}
                     ${isDisabled ? '' : (hasBooking && isAuthenticated) ? `
-                        <a href="/allos/reservations?allo_id=${allo.id}"
+                        <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
                             ${bookingButtonLabel}
                         </a>
