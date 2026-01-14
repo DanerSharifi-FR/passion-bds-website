@@ -37,6 +37,8 @@
             Chargement des créneaux...
         </div>
 
+        <div id="allo-toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
         <div id="allo-window-card"
              class="hidden bg-passion-pink-100 border border-passion-red px-4 py-3 text-sm font-semibold text-passion-red flex flex-col gap-1 mb-6">
         </div>
@@ -90,10 +92,13 @@
         const noteInput = document.getElementById('allo-note');
         const feedbackElement = document.getElementById('allo-feedback');
         const descriptionReminder = document.getElementById('allo-description-reminder');
+        const toastContainer = document.getElementById('allo-toast-container');
 
         let alloData = null;
         let selectedSlots = [];
         let currentBooking = null;
+        let limitToast = null;
+        let limitToastTimeout = null;
 
         function formatDateLabel(date) {
             return new Intl.DateTimeFormat('fr-FR', {
@@ -284,6 +289,14 @@
                 });
         }
 
+        function getCheckedSlots() {
+            if (!alloData) return [];
+            const inputs = Array.from(document.querySelectorAll('input[name="allo-slot"]:checked'));
+            return inputs
+                .map((input) => alloData.slots.find((slot) => slot.id === Number(input.value)))
+                .filter(Boolean);
+        }
+
         function getDailyLimitValue() {
             const dailyLimit = alloData?.daily_booking_limit;
             if (dailyLimit === null || dailyLimit === undefined) {
@@ -291,26 +304,6 @@
             }
             const numericLimit = Number(dailyLimit);
             return Number.isFinite(numericLimit) ? numericLimit : null;
-        }
-
-        function getUserBookingsByDate() {
-            if (!alloData?.slots?.length) {
-                return {};
-            }
-
-            return alloData.slots.reduce((acc, slot) => {
-                if (!slot.user_booking) {
-                    return acc;
-                }
-
-                const slotDate = slot.slot_start_at ? toDateKey(new Date(slot.slot_start_at)) : null;
-                if (!slotDate) {
-                    return acc;
-                }
-
-                acc[slotDate] = (acc[slotDate] ?? 0) + 1;
-                return acc;
-            }, {});
         }
 
         function getSelectedSlotsByDate(slots) {
@@ -329,22 +322,33 @@
             const dailyLimit = getDailyLimitValue();
 
             if (!dailyLimit || dailyLimit <= 0) {
-                return { ok: true, message: '' };
+                return { ok: true, state: 'none', message: '' };
             }
 
-            const existingByDate = getUserBookingsByDate();
             const selectedByDate = getSelectedSlotsByDate(slots);
 
             const overLimitDates = Object.keys(selectedByDate).filter((dateKey) => {
-                const existingCount = existingByDate[dateKey] ?? 0;
-                return existingCount + selectedByDate[dateKey] > dailyLimit;
+                return selectedByDate[dateKey] > dailyLimit;
             });
 
             if (!overLimitDates.length) {
-                return { ok: true, message: '' };
+                const atLimitDates = Object.keys(selectedByDate).filter((dateKey) => (
+                    selectedByDate[dateKey] === dailyLimit
+                ));
+                return {
+                    ok: true,
+                    state: atLimitDates.length ? 'at' : 'under',
+                    message: atLimitDates.length
+                        ? 'Tu es au bon nombre de réservations pour cet allo.'
+                        : '',
+                };
             }
 
-            return { ok: false, message: 'Tu as atteint la limite de réservations pour cet allo ce jour-là.' };
+            return {
+                ok: false,
+                state: 'over',
+                message: 'Tu as atteint la limite de réservations pour cet allo ce jour-là.',
+            };
         }
 
         function renderTimetable() {
@@ -516,6 +520,42 @@
             updateBookingButtonState();
         }
 
+        function showLimitToast(state, message) {
+            if (!toastContainer) return;
+
+            if (limitToast) {
+                limitToast.remove();
+                limitToast = null;
+            }
+
+            if (limitToastTimeout) {
+                clearTimeout(limitToastTimeout);
+                limitToastTimeout = null;
+            }
+
+            if (!message) {
+                return;
+            }
+
+            const toast = document.createElement('div');
+            const isSuccess = state === 'at';
+            toast.className = `border-2 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] ${
+                isSuccess
+                    ? 'border-green-600 bg-green-100 text-green-700'
+                    : 'border-passion-red bg-passion-pink-100 text-passion-red'
+            }`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            limitToast = toast;
+
+            limitToastTimeout = window.setTimeout(() => {
+                if (limitToast === toast) {
+                    toast.remove();
+                    limitToast = null;
+                }
+            }, 4000);
+        }
+
         function updateBookingButtonState() {
             if (!alloData) {
                 bookingButton.disabled = true;
@@ -532,9 +572,12 @@
             const isEnded = windowEnded || alloData.status !== 'OPEN';
 
             const hasSelection = selectedSlots.length > 0;
-            const limitValidation = getDailyLimitValidation(selectedSlots);
-            if (!limitValidation.ok) {
-                setFeedback(limitValidation.message);
+            const checkedSlots = getCheckedSlots();
+            const limitValidation = getDailyLimitValidation(checkedSlots);
+            if (!hasSelection || limitValidation.state === 'under' || limitValidation.state === 'none') {
+                showLimitToast('none', '');
+            } else {
+                showLimitToast(limitValidation.state, limitValidation.message);
             }
 
             bookingButton.disabled = !isAuthenticated
@@ -556,9 +599,9 @@
                 return;
             }
 
-            const limitValidation = getDailyLimitValidation(selectedSlots);
+            const limitValidation = getDailyLimitValidation(getCheckedSlots());
             if (!limitValidation.ok) {
-                setFeedback(limitValidation.message);
+                showLimitToast(limitValidation.state, limitValidation.message);
                 return;
             }
 
@@ -623,7 +666,7 @@
                     if (!response.ok) {
                         const message = data.message || 'Erreur lors de la réservation.';
                         if (message.includes('limite de réservations')) {
-                            setFeedback('Tu as atteint la limite de réservations pour cet allo ce jour-là.');
+                            showLimitToast('over', 'Tu as atteint la limite de réservations pour cet allo ce jour-là.');
                             return;
                         }
                         if (message.includes('déjà réservé un créneau pour cet allo')) {
