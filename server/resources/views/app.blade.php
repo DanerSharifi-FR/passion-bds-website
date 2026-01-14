@@ -344,6 +344,8 @@
     @yield('content')
 </main>
 
+<div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+
 <!-- MOBILE BOTTOM NAVIGATION (Fixed) -->
 <nav
     class="lg:hidden fixed bottom-0 w-full bg-white border-t border-passion-pink-200 z-50 flex justify-around items-center pb-4 pt-3 h-20">
