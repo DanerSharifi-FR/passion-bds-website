@@ -193,6 +193,8 @@
             usages: '/admin/api/allo-usages',
         };
 
+        const isSuperAdmin = @json(auth()->user()->hasRole('ROLE_SUPER_ADMIN'));
+
         let allos = [];
         let requests = [];
         let admins = [];
@@ -652,19 +654,22 @@
 
             filtered.forEach(r => {
                 let statusBadge = '', actions = '', cardBorder = 'border-slate-700';
+                const assignControls = renderAssignControls(r);
                 if(r.status === 'PENDING') {
                     statusBadge = `<span class="px-2 py-1 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-xs font-bold">EN ATTENTE</span>`;
-                    actions = `<button onclick="updateStatus(${r.id}, 'CANCELLED')" class="text-slate-400 hover:text-red-400 text-sm px-3">Annuler</button><button onclick="updateStatus(${r.id}, 'ACCEPTED')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-1.5 rounded font-medium shadow">Prendre en charge</button>`;
+                    actions = `${assignControls}<button onclick="updateStatus(${r.id}, 'CANCELLED')" class="text-slate-400 hover:text-red-400 text-sm px-3">Annuler</button><button onclick="updateStatus(${r.id}, 'ACCEPTED')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-1.5 rounded font-medium shadow">Prendre en charge</button>`;
                     cardBorder = 'border-yellow-500/30';
                 } else if (r.status === 'ACCEPTED') {
                     const handlerName = r.handled_by_name || 'Admin';
                     statusBadge = `<span class="px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold">EN COURS (${handlerName})</span>`;
-                    actions = `<button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3">Relâcher</button><button onclick="updateStatus(${r.id}, 'DONE')" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded font-medium shadow">Terminer</button>`;
+                    actions = `${assignControls}<button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3">Relâcher</button><button onclick="updateStatus(${r.id}, 'DONE')" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded font-medium shadow">Terminer</button>`;
                     cardBorder = 'border-blue-500/30';
                 } else if (r.status === 'DONE') {
                     statusBadge = `<span class="px-2 py-1 rounded bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-bold">TERMINÉ</span>`;
                     const doneBy = r.done_by_name || r.handled_by_name || 'Admin';
-                    actions = `<span class="text-xs text-slate-500 mr-3 hidden sm:inline">Géré par ${doneBy}</span><button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3 flex items-center border-l border-slate-700 ml-2 pl-4"><i class="fa-solid fa-rotate-left mr-1"></i> Rouvrir</button>`;
+                    actions = isSuperAdmin
+                        ? `<span class="text-xs text-slate-500 mr-3 hidden sm:inline">Géré par ${doneBy}</span><button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3 flex items-center border-l border-slate-700 ml-2 pl-4"><i class="fa-solid fa-rotate-left mr-1"></i> Rouvrir</button>`
+                        : `<span class="text-xs text-slate-500 mr-3">Géré par ${doneBy}</span>`;
                     cardBorder = 'border-green-500/30';
                 } else {
                     statusBadge = `<span class="px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold">ANNULÉ</span>`;
@@ -700,6 +705,52 @@
         async function updateStatus(id, status) {
             const payload = { status };
             await updateUsage(id, payload);
+        }
+
+        function getAssignableAdmins(alloId) {
+            const allo = allos.find(item => item.id === alloId);
+            const alloAdmins = Array.isArray(allo?.admins) ? allo.admins : [];
+            if (alloAdmins.length > 0) {
+                return alloAdmins;
+            }
+            return admins;
+        }
+
+        function renderAssignControls(request) {
+            if (request.status !== 'PENDING' && request.status !== 'ACCEPTED') {
+                return '';
+            }
+
+            const availableAdmins = getAssignableAdmins(request.allo_id);
+            if (!availableAdmins || availableAdmins.length === 0) {
+                return '<span class="text-xs text-slate-500 mr-2">Aucun responsable.</span>';
+            }
+
+            const selectId = `assignSelect_${request.id}`;
+            const options = availableAdmins.map(admin => {
+                const selected = admin.id === request.handled_by_id ? 'selected' : '';
+                return `<option value="${admin.id}" ${selected}>${admin.name}</option>`;
+            }).join('');
+            const buttonLabel = request.status === 'PENDING' ? 'Attribuer' : 'Réattribuer';
+            return `
+                <div class="flex items-center gap-2 mr-2">
+                    <select id="${selectId}" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2">
+                        ${options}
+                    </select>
+                    <button onclick="assignUsage(${request.id})" class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded">${buttonLabel}</button>
+                </div>
+            `;
+        }
+
+        async function assignUsage(id) {
+            const select = document.getElementById(`assignSelect_${id}`);
+            if (!select) return;
+            const handlerId = parseInt(select.value);
+            if (!handlerId) {
+                showToast('Sélectionne un admin à attribuer.', 'error');
+                return;
+            }
+            await updateUsage(id, { status: 'ACCEPTED', handled_by_id: handlerId });
         }
 
         // --- CATALOG ---
@@ -1108,7 +1159,10 @@
         renderDateSlots();
         renderRangeSlots();
         updateAlloRequirements();
-        loadAdmins().then(populateAdminList);
+        loadAdmins().then(() => {
+            populateAdminList();
+            renderRequests();
+        });
         bindCatalogFilters();
         loadAllos();
         loadRequests();

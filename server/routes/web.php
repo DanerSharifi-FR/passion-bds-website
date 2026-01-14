@@ -79,10 +79,13 @@ Route::prefix('admin')->as('admin.')->group(function () {
         Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')->group(function () {
             Route::get('/challenges', [ChallengeController::class, 'index'])->name('challenges');
             Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions');
-            Route::get('/allos', [AlloController::class, 'index'])->name('allos');
 
             Route::get('/activities', [ActivitiesController::class, 'index'])->name('activities');
             Route::get('/activities/{activity}/players', [ActivityPlayersController::class, 'index'])->name('activities.players');
+        });
+
+        Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')->group(function () {
+            Route::get('/allos', [AlloController::class, 'index'])->name('allos');
         });
 
         // Admin API
@@ -150,7 +153,12 @@ Route::prefix('admin')->as('admin.')->group(function () {
                 Route::put('/activities/{activity}/participants/{userId}/points', [ActivityParticipantsApiController::class, 'setPoints']);
 
                 Route::get('/audit-logs', [AdminAuditLogsApiController::class, 'index']);
+            });
 
+        Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')
+            ->prefix('api')
+            ->as('api.')
+            ->group(function () {
                 // Allos management
                 Route::get('/allos', [AlloApiController::class, 'index'])->name('allos.index');
                 Route::post('/allos', [AlloApiController::class, 'store'])->name('allos.store');

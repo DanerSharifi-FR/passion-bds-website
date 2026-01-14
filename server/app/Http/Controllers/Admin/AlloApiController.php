@@ -18,6 +18,14 @@ use Illuminate\Validation\Rule;
 
 class AlloApiController extends Controller
 {
+    private const ADMIN_ROLES = [
+        'ROLE_SUPER_ADMIN',
+        'ROLE_BLOGGER',
+        'ROLE_GAMEMASTER',
+        'ROLE_SHOP',
+        'ROLE_TEAM',
+    ];
+
     public function index()
     {
         $allos = Allo::query()
@@ -34,7 +42,7 @@ class AlloApiController extends Controller
         $admins = DB::table('users as u')
             ->join('user_roles as ur', 'ur.user_id', '=', 'u.id')
             ->join('roles as r', 'r.id', '=', 'ur.role_id')
-            ->whereIn('r.name', ['ROLE_SUPER_ADMIN', 'ROLE_GAMEMASTER'])
+            ->whereIn('r.name', self::ADMIN_ROLES)
             ->groupBy('u.id', 'u.display_name', 'u.university_email')
             ->select([
                 'u.id',
@@ -98,6 +106,7 @@ class AlloApiController extends Controller
                 'au.done_at',
                 'au.cancelled_at',
                 'au.user_note',
+                'au.handled_by_id',
                 'u.id as user_id',
                 'u.university_email as user_email',
                 DB::raw('COALESCE(u.display_name, u.university_email) as user_name'),
@@ -139,24 +148,52 @@ class AlloApiController extends Controller
                 AlloUsageService::STATUS_DONE,
                 AlloUsageService::STATUS_CANCELLED,
             ])],
+            'handled_by_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
         ]);
 
-        if (!array_key_exists('status', $validated)) {
+        $hasStatus = array_key_exists('status', $validated);
+        $hasHandler = array_key_exists('handled_by_id', $validated) && $validated['handled_by_id'] !== null;
+
+        if (!$hasStatus && !$hasHandler) {
             return response()->json(['message' => 'Aucune modification demandée.'], 422);
         }
 
-        if (array_key_exists('status', $validated) && $validated['status'] !== null) {
+        $actor = $request->user();
+        $isSuperAdmin = $actor?->hasRole('ROLE_SUPER_ADMIN') ?? false;
+
+        if ($usage->status === AlloUsageService::STATUS_DONE && !$isSuperAdmin) {
+            return response()->json(['message' => 'Seul le SUPER ADMIN peut modifier un allo réalisé.'], 403);
+        }
+
+        if ($hasHandler) {
+            $this->ensureHandlerIsAllowed($usage, (int) $validated['handled_by_id']);
+        }
+
+        if ($hasStatus && $validated['status'] !== null) {
             $status = $validated['status'];
+
+            if ($hasHandler && $status !== AlloUsageService::STATUS_ACCEPTED) {
+                return response()->json(['message' => 'L’attribution doit être associée au statut "accepté".'], 422);
+            }
 
             if ($status === AlloUsageService::STATUS_PENDING) {
                 $this->resetUsageToPending($usage);
             } elseif ($status === AlloUsageService::STATUS_ACCEPTED) {
-                $usageService->accept($usage, $request->user());
+                if ($hasHandler) {
+                    $this->assignUsage($usage, (int) $validated['handled_by_id']);
+                } else {
+                    $usageService->accept($usage, $actor);
+                }
             } elseif ($status === AlloUsageService::STATUS_DONE) {
-                $usageService->markDone($usage, $request->user());
+                $usageService->markDone($usage, $actor);
             } elseif ($status === AlloUsageService::STATUS_CANCELLED) {
-                $usageService->cancel($usage, $request->user());
+                $usageService->cancel($usage, $actor);
             }
+        } elseif ($hasHandler) {
+            if (!in_array($usage->status, [AlloUsageService::STATUS_PENDING, AlloUsageService::STATUS_ACCEPTED], true)) {
+                return response()->json(['message' => 'Impossible d’attribuer cette demande.'], 422);
+            }
+            $this->assignUsage($usage, (int) $validated['handled_by_id']);
         }
 
         $usage->load(['allo', 'user', 'handledBy', 'doneBy']);
@@ -281,6 +318,47 @@ class AlloApiController extends Controller
         $usage->save();
     }
 
+    private function assignUsage(AlloUsage $usage, int $handlerId): void
+    {
+        $wasPending = $usage->status === AlloUsageService::STATUS_PENDING;
+
+        $usage->status = AlloUsageService::STATUS_ACCEPTED;
+        $usage->handled_by_id = $handlerId;
+
+        if ($wasPending || $usage->accepted_at === null) {
+            $usage->accepted_at = Carbon::now();
+        }
+
+        $usage->save();
+    }
+
+    private function ensureHandlerIsAllowed(AlloUsage $usage, int $handlerId): void
+    {
+        $usage->loadMissing('allo.admins');
+        $alloAdmins = $usage->allo?->admins;
+
+        if ($alloAdmins !== null && $alloAdmins->isNotEmpty()) {
+            if (!$alloAdmins->pluck('id')->contains($handlerId)) {
+                abort(422, 'Cet admin ne fait pas partie des responsables de cet allo.');
+            }
+
+            return;
+        }
+
+        if (!$this->userHasAnyAdminRole($handlerId)) {
+            abort(422, 'Cet admin ne fait pas partie des responsables de cet allo.');
+        }
+    }
+
+    private function userHasAnyAdminRole(int $userId): bool
+    {
+        return DB::table('user_roles')
+            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+            ->where('user_roles.user_id', $userId)
+            ->whereIn('roles.name', self::ADMIN_ROLES)
+            ->exists();
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -338,6 +416,7 @@ class AlloApiController extends Controller
             'user_id' => (int) $row->user_id,
             'user_name' => $row->user_name,
             'user_email' => $row->user_email,
+            'handled_by_id' => $row->handled_by_id ? (int) $row->handled_by_id : null,
             'handled_by_name' => $row->handled_by_name,
             'done_by_name' => $row->done_by_name,
         ];
@@ -362,6 +441,7 @@ class AlloApiController extends Controller
             'user_id' => $usage->user_id,
             'user_name' => $usage->user?->display_name ?? $usage->user?->university_email,
             'user_email' => $usage->user?->university_email,
+            'handled_by_id' => $usage->handled_by_id,
             'handled_by_name' => $usage->handledBy?->display_name ?? $usage->handledBy?->university_email,
             'done_by_name' => $usage->doneBy?->display_name ?? $usage->doneBy?->university_email,
         ];
