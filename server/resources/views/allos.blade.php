@@ -56,6 +56,7 @@
 @push('end_scripts')
     <script>
         const isAuthenticated = @json(auth()->check());
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
         const catalogElement = document.getElementById('allos-catalog');
         const statusElement = document.getElementById('allos-status');
         const filterButtons = document.querySelectorAll('.allo-filter-btn');
@@ -374,11 +375,18 @@
                 const userBooking = userBookings[0];
                 const hasBooking = Boolean(userBooking);
                 const canBookNew = allo.can_book_new ?? true;
+                const hasAvailableSlots = allo.has_available_slots ?? true;
+                const hasAlternativeSlots = allo.has_alternative_slots ?? hasAvailableSlots;
+                const isPending = userBooking?.status === 'PENDING';
                 const showBookingStatus = hasBooking && !isEnded;
                 const bookingStatusLabel = userBooking?.status
                     ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
                     : '';
-                const showSlotsButton = !isDisabled && canBookNew;
+                const showModifyButton = !isDisabled && hasBooking && isAuthenticated && isPending && hasAlternativeSlots;
+                const showDesistButton = !isDisabled && hasBooking && isAuthenticated && isPending && !hasAlternativeSlots;
+                const showSlotsButton = !isDisabled && !hasBooking && canBookNew && hasAvailableSlots;
+                const showLimitMessage = !isDisabled && !hasBooking && !canBookNew;
+                const showNoSlotsMessage = !isDisabled && !hasBooking && canBookNew && !hasAvailableSlots;
                 const bookingButtonLabel = userBookings.length > 1
                     ? 'Modifier mes réservations'
                     : 'Modifier ma réservation';
@@ -409,21 +417,31 @@
                             ${bookingStatusLabel}
                         </div>
                     ` : ''}
-                    ${isDisabled ? '' : (hasBooking && isAuthenticated) ? `
+                    ${isDisabled ? '' : (showModifyButton ? `
                         <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
                             ${bookingButtonLabel}
                         </a>
+                    ` : (showDesistButton ? `
+                        <button type="button"
+                                data-cancel-booking-id="${userBooking?.id ?? ''}"
+                                class="text-center bg-white text-passion-red font-display font-black uppercase py-3 border-2 border-passion-red shadow-[4px_4px_0_#000] hover:bg-passion-pink-100 transition-colors">
+                            Se désister
+                        </button>
                     ` : (showSlotsButton ? `
                         <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                             Voir les créneaux
                         </a>
-                    ` : `
+                    ` : (showLimitMessage ? `
                         <span class="text-center text-sm font-semibold text-slate-500">
                             Limite quotidienne atteinte.
                         </span>
-                    `)}
+                    ` : (showNoSlotsMessage ? `
+                        <span class="text-center text-sm font-semibold text-slate-500">
+                            Plus de place disponible.
+                        </span>
+                    ` : ''))))}
                     <div class="allo-form hidden space-y-4 border-t border-passion-red/30 pt-4">
                         <div class="space-y-3">
                             <label class="text-xs font-bold uppercase text-passion-red">Choisis un créneau</label>
@@ -456,12 +474,57 @@
             });
         }
 
+        function showToast(message, type = 'error') {
+            const showToastFn = window.PassionToast?.show;
+            if (!showToastFn || !message) return;
+            showToastFn({ message, type, duration: 4000 });
+        }
+
+        async function cancelBooking(bookingId, button) {
+            if (!bookingId) return;
+            if (button) {
+                button.disabled = true;
+            }
+
+            try {
+                const response = await fetch(`/api/allos/bookings/${bookingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    showToast(data.message || 'Impossible de se désister.');
+                    return;
+                }
+
+                showToast('Réservation annulée.', 'success');
+                await loadAllos();
+            } catch (error) {
+                showToast('Impossible de se désister.');
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                }
+            }
+        }
+
         filterButtons.forEach((btn) => {
             btn.addEventListener('click', () => {
                 activeFilter = btn.dataset.filter;
                 setFilterButtons();
                 renderAllos();
             });
+        });
+
+        catalogElement.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-cancel-booking-id]');
+            if (!button) return;
+            event.preventDefault();
+            cancelBooking(button.dataset.cancelBookingId, button);
         });
 
         async function loadAllos() {

@@ -162,6 +162,16 @@ class AlloApiController extends Controller
                     ->all();
             }
 
+            $userSlotIds = $allo->slots
+                ->pluck('id')
+                ->filter(fn ($slotId) => $bookingsBySlotId->has($slotId))
+                ->values()
+                ->all();
+            $hasAvailableSlots = $this->hasAvailableSlots($allo, $now);
+            $hasAlternativeSlots = $userSlotIds !== []
+                ? $this->hasAvailableSlots($allo, $now, $userSlotIds)
+                : $hasAvailableSlots;
+
             $slots = $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo): array {
                 /** @var AlloUsage|null $booking */
                 $booking = $bookingsBySlotId->get($slot->id);
@@ -236,6 +246,8 @@ class AlloApiController extends Controller
                     && $now->lessThanOrEqualTo($windowEnd),
                 'is_window_ended' => $windowEnd !== null && $now->greaterThan($windowEnd),
                 'can_book_new' => $canBookNew,
+                'has_available_slots' => $hasAvailableSlots,
+                'has_alternative_slots' => $hasAlternativeSlots,
                 'disabled_dates' => $slotsOnly ? $disabledDates : [],
                 'slots' => ($slotsOnly ? $selectableSlots : $allo->slots)->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo, $slotCapacityFallback): array {
                     /** @var AlloUsage|null $booking */
@@ -449,6 +461,9 @@ class AlloApiController extends Controller
                     'allo_description' => $usage->allo?->description,
                     'slot_id' => $usage->allo_slot_id,
                     'can_edit' => $this->canEditBooking($usage, $now),
+                    'has_available_slots' => $usage->allo
+                        ? $this->hasAvailableSlots($usage->allo, $now, [$usage->allo_slot_id])
+                        : false,
                 ];
             })
             ->values();
@@ -651,6 +666,64 @@ class AlloApiController extends Controller
                 'user_note' => $updatedBooking->user_note,
             ],
         ]);
+    }
+
+    public function cancelBooking(Request $request, AlloUsage $booking, AlloUsageService $usageService): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return response()->json(['message' => 'Unauthorized.'], 401);
+        }
+
+        if ($booking->user_id !== $user->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($booking->status !== AlloUsageService::STATUS_PENDING) {
+            return response()->json(['message' => "Cette réservation ne peut pas être annulée."], 422);
+        }
+
+        $updatedBooking = $usageService->cancel($booking, $user);
+
+        return response()->json([
+            'booking' => [
+                'id' => $updatedBooking->id,
+                'status' => $updatedBooking->status,
+                'cancelled_at' => $updatedBooking->cancelled_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
+    private function hasAvailableSlots(Allo $allo, Carbon $now, array $excludeSlotIds = []): bool
+    {
+        if (! $allo->relationLoaded('slots')) {
+            return false;
+        }
+
+        $securityMargin = max((int) ($allo->security_margin_minutes ?? 0), 0);
+        $availabilityThreshold = $now->copy()->addMinutes($securityMargin);
+        $slotCapacityFallback = (int) ($allo->admins_count ?? 0);
+
+        return $allo->slots->contains(function (AlloSlot $slot) use ($availabilityThreshold, $slotCapacityFallback, $excludeSlotIds): bool {
+            if (in_array($slot->id, $excludeSlotIds, true)) {
+                return false;
+            }
+
+            if (! $slot->slot_start_at || $slot->slot_start_at->lessThan($availabilityThreshold)) {
+                return false;
+            }
+
+            if (! in_array($slot->status, ['available', 'partial'], true)) {
+                return false;
+            }
+
+            $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
+            $bookingsCount = (int) ($slot->bookings_count ?? 0);
+            $remaining = max($capacity - $bookingsCount, 0);
+
+            return $remaining > 0;
+        });
     }
 
     /**

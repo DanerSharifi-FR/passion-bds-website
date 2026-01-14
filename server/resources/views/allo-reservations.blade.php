@@ -44,6 +44,7 @@
 @push('end_scripts')
     <script>
         const isAuthenticated = @json(auth()->check());
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
         const statusElement = document.getElementById('allo-reservations-status');
         const listElement = document.getElementById('allo-reservations-list');
 
@@ -93,6 +94,7 @@
             reservations.forEach((reservation) => {
                 const statusLabel = statusLabels[reservation.status] || reservation.status;
                 const statusClass = statusClasses[reservation.status] || 'bg-slate-100 text-slate-600 border-slate-200';
+                const canDesist = reservation.status === 'PENDING' && !reservation.has_available_slots;
                 const card = document.createElement('div');
 
                 card.className = 'bg-white border-2 border-passion-red shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4';
@@ -123,6 +125,12 @@
                                class="bg-passion-red text-white font-display font-black uppercase px-5 py-2 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                                 Modifier mon créneau
                             </a>
+                        ` : canDesist ? `
+                            <button type="button"
+                                    data-cancel-booking-id="${reservation.id}"
+                                    class="bg-white text-passion-red font-display font-black uppercase px-5 py-2 border-2 border-passion-red shadow-[4px_4px_0_#000] hover:bg-passion-pink-100 transition-colors">
+                                Se désister
+                            </button>
                         ` : `
                             <span class="text-sm font-semibold text-slate-500">Modification indisponible.</span>
                         `}
@@ -151,6 +159,51 @@
                 listElement.innerHTML = '';
             }
         }
+
+        function showToast(message, type = 'error') {
+            const showToastFn = window.PassionToast?.show;
+            if (!showToastFn || !message) return;
+            showToastFn({ message, type, duration: 4000 });
+        }
+
+        async function cancelBooking(bookingId, button) {
+            if (!bookingId) return;
+            if (button) {
+                button.disabled = true;
+            }
+
+            try {
+                const response = await fetch(`/api/allos/bookings/${bookingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    showToast(data.message || 'Impossible de se désister.');
+                    return;
+                }
+
+                showToast('Réservation annulée.', 'success');
+                await loadReservations();
+            } catch (error) {
+                showToast('Impossible de se désister.');
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                }
+            }
+        }
+
+        listElement.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-cancel-booking-id]');
+            if (!button) return;
+            event.preventDefault();
+            cancelBooking(button.dataset.cancelBookingId, button);
+        });
 
         loadReservations();
     </script>
