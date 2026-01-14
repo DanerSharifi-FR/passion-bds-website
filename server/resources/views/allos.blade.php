@@ -373,10 +373,15 @@
                     .filter((booking) => booking !== null);
                 const userBooking = userBookings[0];
                 const hasBooking = Boolean(userBooking);
+                const canBookNew = allo.can_book_new ?? true;
                 const showBookingStatus = hasBooking && !isEnded;
                 const bookingStatusLabel = userBooking?.status
                     ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
                     : '';
+                const showSlotsButton = !isDisabled && canBookNew;
+                const bookingButtonLabel = userBookings.length > 1
+                    ? 'Modifier mes réservations'
+                    : 'Modifier ma réservation';
 
                 const card = document.createElement('div');
                 card.className = `relative border-2 shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4 ${
@@ -407,14 +412,18 @@
                     ${isDisabled ? '' : (hasBooking && isAuthenticated) ? `
                         <a href="/allos/reservations?allo_id=${allo.id}"
                            class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
-                            Modifier ma réservation
+                            ${bookingButtonLabel}
                         </a>
-                    ` : `
+                    ` : (showSlotsButton ? `
                         <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                             Voir les créneaux
                         </a>
-                    `}
+                    ` : `
+                        <span class="text-center text-sm font-semibold text-slate-500">
+                            Limite quotidienne atteinte.
+                        </span>
+                    `)}
                     <div class="allo-form hidden space-y-4 border-t border-passion-red/30 pt-4">
                         <div class="space-y-3">
                             <label class="text-xs font-bold uppercase text-passion-red">Choisis un créneau</label>
