@@ -18,7 +18,7 @@
                 Catalogue <span class="text-passion-fire-orange">Allos</span>
             </h1>
             <p class="text-passion-pink-500 font-medium mt-2 text-sm md:text-base">
-                Des allos tentants à réserver. Choisis ton créneau et laisse-nous un petit mot 💌
+                Rappel : ne commandez pas un allo pour quelqu'un d'autre que vous-même.
             </p>
         </div>
 
