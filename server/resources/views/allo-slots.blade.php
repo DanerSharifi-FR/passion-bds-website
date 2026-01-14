@@ -76,8 +76,6 @@
         const isAuthenticated = @json(auth()->check());
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
         const alloId = Number(document.querySelector('[data-allo-id]')?.dataset?.alloId ?? 0);
-        const bookingId = Number(new URLSearchParams(window.location.search).get('booking') ?? 0);
-        const isEditing = bookingId > 0;
 
         const statusElement = document.getElementById('allo-slot-status');
         const titleElement = document.getElementById('allo-slot-title');
@@ -96,8 +94,6 @@
         let alloData = null;
         let selectedSlots = [];
         let currentBooking = null;
-        let canEditBooking = false;
-        let currentBookingSlot = null;
 
         function formatDateLabel(date) {
             return new Intl.DateTimeFormat('fr-FR', {
@@ -286,7 +282,7 @@
                 .map((input) => alloData.slots.find((slot) => slot.id === Number(input.value)))
                 .filter((slot) => {
                     if (!slot) return false;
-                    if (!isEditing && slot.user_booking) {
+                    if (slot.user_booking) {
                         return false;
                     }
                     return true;
@@ -312,10 +308,6 @@
                     return acc;
                 }
 
-                if (isEditing && currentBooking && slot.user_booking.id === currentBooking.id) {
-                    return acc;
-                }
-
                 const slotDate = slot.slot_start_at ? toDateKey(new Date(slot.slot_start_at)) : null;
                 if (!slotDate) {
                     return acc;
@@ -328,10 +320,6 @@
 
         function getSelectedSlotsByDate(slots) {
             return slots.reduce((acc, slot) => {
-                if (isEditing && isCurrentBookingSlot(slot)) {
-                    return acc;
-                }
-
                 const slotDate = slot.slot_start_at ? toDateKey(new Date(slot.slot_start_at)) : null;
                 if (!slotDate) {
                     return acc;
@@ -399,8 +387,7 @@
                 return availableSlotStatuses.includes(slot.status)
                     && (remaining === null || remaining > 0)
                     && alloData.status === 'OPEN'
-                    && slotStart >= threshold
-                    && (!isEditing || canEditBooking);
+                    && slotStart >= threshold;
             };
 
             const disabledDates = Array.isArray(alloData.disabled_dates) ? alloData.disabled_dates : [];
@@ -520,10 +507,6 @@
 
             selectedSlots = getSelectedSlots();
 
-            if (!selectedSlots.length && currentBookingSlot && isEditing) {
-                selectedSlots = [currentBookingSlot];
-            }
-
             if (!selectedSlots.length) {
                 setFeedback('');
                 selectedSlotElement.textContent = 'Sélectionne un créneau';
@@ -569,7 +552,6 @@
                 || isEnded
                 || !windowOpen
                 || !hasSelection
-                || (isEditing && !canEditBooking)
                 || !limitValidation.ok;
         }
 
@@ -582,11 +564,6 @@
         async function bookSelectedSlot() {
             if (!selectedSlots.length || !alloData) {
                 setFeedback('Choisis un créneau disponible.');
-                return;
-            }
-
-            if (isEditing && !currentBooking) {
-                setFeedback("Impossible de modifier cette réservation.");
                 return;
             }
 
@@ -617,17 +594,29 @@
             setFeedback('Réservation en cours...');
 
             try {
-                const bookingRequests = isEditing
-                    ? [{
-                        slot: selectedSlots[0],
-                        endpoint: `/api/allos/bookings/${currentBooking.id}`,
+                const pendingBookings = alloData.slots
+                    .filter((slot) => slot.user_booking && slot.user_booking.status === 'PENDING')
+                    .map((slot) => slot.user_booking);
+                const bookingRequests = [];
+                const updateTargets = selectedSlots.slice(0, pendingBookings.length);
+
+                updateTargets.forEach((slot, index) => {
+                    const booking = pendingBookings[index];
+                    if (!booking) return;
+                    bookingRequests.push({
+                        slot,
+                        endpoint: `/api/allos/bookings/${booking.id}`,
                         method: 'PUT',
-                    }]
-                    : selectedSlots.map((slot) => ({
+                    });
+                });
+
+                selectedSlots.slice(updateTargets.length).forEach((slot) => {
+                    bookingRequests.push({
                         slot,
                         endpoint: '/api/allos/bookings',
                         method: 'POST',
-                    }));
+                    });
+                });
 
                 for (const request of bookingRequests) {
                     const response = await fetch(request.endpoint, {
@@ -668,10 +657,7 @@
                     }
                 }
 
-                const successMessage = isEditing
-                    ? 'Réservation mise à jour !'
-                    : 'Réservation confirmée !';
-                setFeedback(successMessage, true);
+                setFeedback('Réservation confirmée !', true);
                 await loadAllo();
                 window.location.href = '/allos/reservations?allo_id=' + alloData.id;
             } catch (error) {
@@ -684,54 +670,34 @@
         function resolveCurrentBooking() {
             if (!alloData?.slots?.length) {
                 currentBooking = null;
-                canEditBooking = true;
                 return null;
             }
 
             const slotWithBooking = alloData.slots.find((slot) => slot.user_booking);
             currentBooking = slotWithBooking?.user_booking || null;
-            currentBookingSlot = slotWithBooking || null;
-            canEditBooking = !currentBooking || currentBooking.status === 'PENDING';
             return slotWithBooking || null;
         }
 
         function updateBookingUI(slotWithBooking) {
             if (!intentElement) return;
 
-            if (currentBooking && isEditing) {
-                titleElement.textContent = 'Modifier ton créneau';
-                intentElement.textContent = canEditBooking
-                    ? 'Tu as déjà réservé un créneau. Choisis-en un nouveau pour modifier ta réservation.'
-                    : 'Ta réservation est en cours de traitement. La modification est indisponible.';
-                bookingTitleElement.textContent = canEditBooking ? 'Ton créneau actuel' : 'Ton créneau réservé';
-                bookingButton.textContent = canEditBooking ? 'Modifier ma réservation' : 'Modification indisponible';
-                bookingButton.disabled = !canEditBooking;
-                if (slotWithBooking) {
-                    const slotLabel = `${formatTime(new Date(slotWithBooking.slot_start_at))} → ${formatTime(new Date(slotWithBooking.slot_end_at))}`;
-                    selectedSlots = [slotWithBooking];
-                    selectedSlotElement.textContent = slotLabel;
-                    noteInput.value = currentBooking.user_note || '';
-                }
-            } else {
-                titleElement.textContent = alloData?.title || 'Créneaux Allo';
-                intentElement.textContent = 'Choisis un créneau pour réserver ton allo.';
-                bookingTitleElement.textContent = shouldAllowMultipleSelections()
-                    ? 'Tes créneaux choisis'
-                    : 'Ton créneau choisi';
-                bookingButton.textContent = shouldAllowMultipleSelections()
-                    ? 'Réserver ces créneaux'
-                    : 'Réserver cet allo';
-                bookingButton.disabled = false;
-                noteInput.value = '';
-                selectedSlots = [];
-                selectedSlotElement.textContent = 'Sélectionne un créneau';
-            }
+            titleElement.textContent = alloData?.title || 'Créneaux Allo';
+            intentElement.textContent = 'Choisis un créneau pour réserver ton allo.';
+            bookingTitleElement.textContent = shouldAllowMultipleSelections()
+                ? 'Tes créneaux choisis'
+                : 'Ton créneau choisi';
+            bookingButton.textContent = shouldAllowMultipleSelections()
+                ? 'Réserver ces créneaux'
+                : 'Réserver cet allo';
+            bookingButton.disabled = false;
+            noteInput.value = currentBooking?.user_note || '';
+            selectedSlots = [];
+            selectedSlotElement.textContent = 'Sélectionne un créneau';
         }
 
         async function loadAllo() {
             try {
-                const bookingQuery = bookingId ? `&booking_id=${bookingId}` : '';
-                const response = await fetch(`/api/allos?allo_id=${alloId}&slots_only=1${bookingQuery}`);
+                const response = await fetch(`/api/allos?allo_id=${alloId}&slots_only=1`);
                 const data = await response.json();
                 const allos = data.allos || [];
                 alloData = allos.find((allo) => allo.id === alloId) || null;
@@ -759,23 +725,8 @@
 
                 const slotWithBooking = resolveCurrentBooking();
 
-                if (bookingId && (!currentBooking || currentBooking.id !== bookingId)) {
-                    window.location.href = `/allos/reservations?allo_id=${alloId}`;
-                    return;
-                }
-                if (!bookingId && currentBooking && alloData.can_book_new === false) {
-                    window.location.href = `/allos/${alloId}/creneaux?booking=${currentBooking.id}`;
-                    return;
-                }
-
                 updateBookingUI(slotWithBooking);
                 renderTimetable();
-                if (slotWithBooking && isEditing) {
-                    const bookingInput = document.querySelector(`input[name=\"allo-slot\"][value=\"${slotWithBooking.id}\"]`);
-                    if (bookingInput) {
-                        bookingInput.checked = true;
-                    }
-                }
                 updateSelectedSlot();
             } catch (error) {
                 statusElement.textContent = 'Impossible de charger les créneaux.';

@@ -45,8 +45,9 @@ class PageController extends Controller
 
         $now = now();
         $user = $request->user();
-        $bookingId = (int) $request->query('booking', 0);
         $canBookNew = $user instanceof User ? $this->canBookNew($allo, $user, $now) : true;
+
+        $existingBooking = null;
 
         if ($user !== null) {
             $existingBooking = AlloUsage::query()
@@ -60,15 +61,8 @@ class PageController extends Controller
                 ->orderByDesc('slot_start_at')
                 ->first();
 
-            if ($existingBooking !== null && $existingBooking->id !== $bookingId) {
-                if (! $canBookNew) {
-                    if ($existingBooking->status === AlloUsageService::STATUS_PENDING) {
-                        return redirect()->route('allos.slots', [
-                            'alloId' => $alloId,
-                            'booking' => $existingBooking->id,
-                        ]);
-                    }
-
+            if ($existingBooking !== null && ! $canBookNew) {
+                if ($existingBooking->status !== AlloUsageService::STATUS_PENDING) {
                     return redirect()->route('allos.reservations', [
                         'allo_id' => $alloId,
                     ]);
@@ -76,7 +70,7 @@ class PageController extends Controller
             }
         }
 
-        if ($user !== null && $bookingId === 0 && ! $canBookNew) {
+        if ($user !== null && ! $canBookNew && $existingBooking === null) {
             abort(404);
         }
 
