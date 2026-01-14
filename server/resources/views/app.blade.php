@@ -463,6 +463,22 @@
         };
     })();
 </script>
+@if (session()->has('toast'))
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const toast = @json(session('toast'));
+            const showToast = window.PassionToast?.show;
+            if (!showToast || !toast?.message) {
+                return;
+            }
+            showToast({
+                message: toast.message,
+                type: toast.type || 'error',
+                duration: toast.duration || 4000,
+            });
+        });
+    </script>
+@endif
 
 <!-- MOBILE BOTTOM NAVIGATION (Fixed) -->
 <nav
