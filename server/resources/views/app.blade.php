@@ -383,13 +383,21 @@
         const toastError = document.getElementById('toast-error');
         let activeToast = null;
         let activeTimeout = null;
+        const hideTimeouts = new WeakMap();
 
         function hideToast(toast) {
             if (!toast) return;
+            const existingTimeout = hideTimeouts.get(toast);
+            if (existingTimeout) {
+                clearTimeout(existingTimeout);
+                hideTimeouts.delete(toast);
+            }
             toast.classList.add('opacity-0', 'translate-y-2');
-            window.setTimeout(() => {
+            const timeout = window.setTimeout(() => {
                 toast.classList.add('hidden');
+                hideTimeouts.delete(toast);
             }, 200);
+            hideTimeouts.set(toast, timeout);
         }
 
         function showToast({ message, type = 'error', duration = 4000 } = {}) {
@@ -424,6 +432,11 @@
             toastProgress.style.animation = `toast-progress ${duration}ms linear forwards`;
 
             requestAnimationFrame(() => {
+                const existingTimeout = hideTimeouts.get(toast);
+                if (existingTimeout) {
+                    clearTimeout(existingTimeout);
+                    hideTimeouts.delete(toast);
+                }
                 toast.classList.remove('hidden');
                 toast.classList.remove('opacity-0', 'translate-y-2');
             });
