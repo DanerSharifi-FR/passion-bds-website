@@ -16,7 +16,6 @@
                     class="font-display font-black text-3xl md:text-5xl text-passion-red uppercase tracking-tighter leading-none">
                     Créneaux Allo
                 </h1>
-                <p id="allo-slot-description" class="text-passion-pink-500 font-medium mt-2 text-sm md:text-base whitespace-pre-line"></p>
                 <p id="allo-slot-intent" class="text-sm text-slate-600 mt-3"></p>
             </div>
         </div>
@@ -91,7 +90,6 @@
 
         const statusElement = document.getElementById('allo-slot-status');
         const titleElement = document.getElementById('allo-slot-title');
-        const descriptionElement = document.getElementById('allo-slot-description');
         const intentElement = document.getElementById('allo-slot-intent');
         const windowCard = document.getElementById('allo-window-card');
         const timetableElement = document.getElementById('allo-timetable');
@@ -720,7 +718,6 @@
                 }
 
                 titleElement.textContent = alloData.title || 'Créneaux Allo';
-                descriptionElement.textContent = alloData.description || '';
                 if (alloData.description) {
                     descriptionReminder.querySelector('p').textContent = alloData.description;
                     descriptionReminder.classList.remove('hidden');
