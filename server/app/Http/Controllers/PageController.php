@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\AlloUsageService;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class PageController extends Controller
         return view('allo-reservations');
     }
 
-    public function alloSlots(Request $request, int $alloId): Factory|View
+    public function alloSlots(Request $request, int $alloId): Factory|View|RedirectResponse
     {
         /** @var Allo $allo */
         $allo = Allo::query()
