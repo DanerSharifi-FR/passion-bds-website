@@ -432,7 +432,7 @@
                             </select>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-xs font-bold uppercase text-passion-red">Ta note pour nous</label>
+                            <label class="text-xs font-bold uppercase text-passion-red"></label>
                             <textarea class="allo-note w-full border-2 border-passion-red px-3 py-2 text-sm" rows="2" ${isEnded ? 'disabled' : ''} placeholder="Ex: sieste après 15h, merci !"></textarea>
                         </div>
                         <button class="allo-book-btn bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
