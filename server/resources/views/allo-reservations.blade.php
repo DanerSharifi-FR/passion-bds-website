@@ -119,7 +119,7 @@
                     ` : ''}
                     <div class="flex flex-wrap items-center gap-3">
                         ${reservation.can_edit ? `
-                            <a href="/allos/${reservation.allo_id}/creneaux?booking=${reservation.id}"
+                            <a href="/allos/${reservation.allo_id}/creneaux"
                                class="bg-passion-red text-white font-display font-black uppercase px-5 py-2 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                                 Modifier mon créneau
                             </a>
