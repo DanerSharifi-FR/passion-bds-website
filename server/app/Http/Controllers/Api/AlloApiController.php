@@ -492,7 +492,34 @@ class AlloApiController extends Controller
             return false;
         }
 
-        return true;
+        $securityMargin = max((int) ($allo->security_margin_minutes ?? 0), 0);
+        $availabilityThreshold = $now->copy()->addMinutes($securityMargin);
+        $slotCapacityFallback = (int) ($allo->admins_count ?? 0);
+        $currentSlotId = $usage->allo_slot_id;
+
+        if (! $allo->relationLoaded('slots')) {
+            return false;
+        }
+
+        return $allo->slots->contains(function (AlloSlot $slot) use ($availabilityThreshold, $slotCapacityFallback, $currentSlotId): bool {
+            if ($slot->id === $currentSlotId) {
+                return false;
+            }
+
+            if (! $slot->slot_start_at || $slot->slot_start_at->lessThan($availabilityThreshold)) {
+                return false;
+            }
+
+            if (! in_array($slot->status, ['available', 'partial'], true)) {
+                return false;
+            }
+
+            $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
+            $bookingsCount = (int) ($slot->bookings_count ?? 0);
+            $remaining = max($capacity - $bookingsCount, 0);
+
+            return $remaining > 0;
+        });
     }
 
     public function updateBooking(Request $request, AlloUsage $booking): JsonResponse

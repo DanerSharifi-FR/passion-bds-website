@@ -383,7 +383,7 @@
                 const bookingStatusLabel = userBooking?.status
                     ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
                     : '';
-                const showModifyButton = !isDisabled && hasBooking && isAuthenticated && isPending;
+                const showModifyButton = !isDisabled && hasBooking && isAuthenticated && isPending && hasAlternativeSlots;
                 const showDesistButton = !isDisabled && hasBooking && isAuthenticated && isPending && !hasAlternativeSlots;
                 const showSlotsButton = !isDisabled && !hasBooking && canBookNew && hasAvailableSlots;
                 const showLimitMessage = !isDisabled && !hasBooking && !canBookNew;
@@ -408,9 +408,7 @@
                             ${bookingButtonLabel}
                         </a>
                     `);
-                }
-
-                if (showDesistButton) {
+                } else if (showDesistButton) {
                     actionItems.push(`
                         <button type="button"
                                 data-cancel-booking-id="${userBooking?.id ?? ''}"

@@ -322,38 +322,6 @@
             }, {});
         }
 
-        function getUserBookingCountsByDate() {
-            if (!alloData) return {};
-            return alloData.slots.reduce((acc, slot) => {
-                const booking = slot.user_booking;
-                if (!booking) {
-                    return acc;
-                }
-                if (!['PENDING', 'ACCEPTED', 'DONE'].includes(booking.status)) {
-                    return acc;
-                }
-                const slotDate = slot.slot_start_at ? toDateKey(new Date(slot.slot_start_at)) : null;
-                if (!slotDate) {
-                    return acc;
-                }
-                acc[slotDate] = (acc[slotDate] ?? 0) + 1;
-                return acc;
-            }, {});
-        }
-
-        function isDailyLimitReachedForSlot(slot) {
-            const dailyLimit = getDailyLimitValue();
-            if (!dailyLimit || dailyLimit <= 0) {
-                return false;
-            }
-            const slotDate = slot.slot_start_at ? toDateKey(new Date(slot.slot_start_at)) : null;
-            if (!slotDate) {
-                return false;
-            }
-            const countsByDate = getUserBookingCountsByDate();
-            return (countsByDate[slotDate] ?? 0) >= dailyLimit;
-        }
-
         function getDailyLimitValidation(slots) {
             const dailyLimit = getDailyLimitValue();
 
@@ -506,17 +474,7 @@
                         const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
                         const bookingStatus = slot.user_booking?.status ?? '';
                         const isPendingBooking = bookingStatus === 'PENDING';
-                        const canDesist = isPendingBooking && isDailyLimitReachedForSlot(slot);
                         const shouldDisableInput = (hasUserBooking && !isPendingBooking) || !isSelectable || !isAuthenticated;
-                        const slotAction = canDesist
-                            ? `
-                                <button type="button"
-                                        data-desist-slot-id="${slot.id}"
-                                        class="text-xs font-semibold text-passion-red border border-passion-red/40 px-2 py-1 hover:bg-passion-pink-100 transition-colors">
-                                    Se désister
-                                </button>
-                            `
-                            : `<span class="text-xs text-passion-red">${remainingLabel}</span>`;
 
                         const label = document.createElement('label');
                         label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
@@ -525,7 +483,7 @@
                                 <input type="${inputType}" name="allo-slot" value="${slot.id}" ${hasUserBooking ? 'checked' : ''} ${shouldDisableInput ? 'disabled' : ''} />
                                 <span>${timeLabel}</span>
                             </div>
-                            ${slotAction}
+                            <span class="text-xs text-passion-red">${remainingLabel}</span>
                         `;
                         list.appendChild(label);
                     });
@@ -789,19 +747,6 @@
             if (event.target && event.target.matches('input[name="allo-slot"]')) {
                 updateSelectedSlot();
             }
-        });
-
-        timetableElement.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-desist-slot-id]');
-            if (!button) return;
-            event.preventDefault();
-            event.stopPropagation();
-            const slotId = Number(button.dataset.desistSlotId);
-            const input = timetableElement.querySelector(`input[name="allo-slot"][value="${slotId}"]`);
-            if (input) {
-                input.checked = false;
-            }
-            updateSelectedSlot();
         });
 
         bookingButton.addEventListener('click', () => {
