@@ -1114,10 +1114,13 @@
         function getAssignableAdmins(alloId) {
             const allo = allos.find(item => item.id === alloId);
             const alloAdmins = Array.isArray(allo?.admins) ? allo.admins : [];
-            if (alloAdmins.length > 0) {
+            if (!admins || admins.length === 0) {
                 return alloAdmins;
             }
-            return admins;
+            const combined = new Map();
+            admins.forEach(admin => combined.set(String(admin.id), admin));
+            alloAdmins.forEach(admin => combined.set(String(admin.id), admin));
+            return Array.from(combined.values());
         }
 
         function renderAssignControls(request, isLoading) {
