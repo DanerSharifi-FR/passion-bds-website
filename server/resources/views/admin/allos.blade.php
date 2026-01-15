@@ -1179,9 +1179,12 @@
                 `;
             }
             if (request.status === 'ACCEPTED') {
-                const primaryDisabled = isLoading || isOwnedByOther;
+                const canOverrideOwnership = isSuperAdmin && isOwnedByOther;
+                const primaryDisabled = isLoading || (isOwnedByOther && !isSuperAdmin);
                 const primaryTitle = isOwnedByOther
-                    ? `Attribué à ${ownershipLabel}`
+                    ? (canOverrideOwnership
+                        ? `Attribué à ${ownershipLabel} — terminer en tant que super admin`
+                        : `Attribué à ${ownershipLabel}`)
                     : (isLoading ? 'Action en cours' : 'Terminer la demande');
                 return `
                     <button onclick="updateStatus(${request.id}, 'DONE')" class="text-xs px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${primaryDisabled ? 'opacity-50 cursor-not-allowed' : ''}" ${primaryDisabled ? 'disabled' : ''} title="${primaryTitle}">${loadingLabel || 'Terminer'}</button>
