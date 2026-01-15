@@ -552,7 +552,7 @@
         }
 
         const defaultRequestFilters = {
-            statuses: ['PENDING', 'ACCEPTED'],
+            statuses: ['PENDING', 'ACCEPTED', 'DONE', 'CANCELLED'],
             alloId: '',
             assignee: 'all',
             dateRange: 'all',
