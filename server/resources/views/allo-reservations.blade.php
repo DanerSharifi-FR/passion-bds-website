@@ -94,7 +94,7 @@
             reservations.forEach((reservation) => {
                 const statusLabel = statusLabels[reservation.status] || reservation.status;
                 const statusClass = statusClasses[reservation.status] || 'bg-slate-100 text-slate-600 border-slate-200';
-                const canDesist = reservation.status === 'PENDING' && !reservation.has_available_slots;
+                const canDesist = reservation.status === 'PENDING';
                 const card = document.createElement('div');
 
                 card.className = 'bg-white border-2 border-passion-red shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4';
@@ -125,15 +125,16 @@
                                class="bg-passion-red text-white font-display font-black uppercase px-5 py-2 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                                 Modifier mon créneau
                             </a>
-                        ` : canDesist ? `
+                        ` : ''}
+                        ${canDesist ? `
                             <button type="button"
                                     data-cancel-booking-id="${reservation.id}"
                                     class="bg-white text-passion-red font-display font-black uppercase px-5 py-2 border-2 border-passion-red shadow-[4px_4px_0_#000] hover:bg-passion-pink-100 transition-colors">
                                 Se désister
                             </button>
-                        ` : `
+                        ` : (!reservation.can_edit ? `
                             <span class="text-sm font-semibold text-slate-500">Modification indisponible.</span>
-                        `}
+                        ` : '')}
                     </div>
                 `;
 
