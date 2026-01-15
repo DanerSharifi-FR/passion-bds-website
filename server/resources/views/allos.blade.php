@@ -446,15 +446,6 @@
                     `);
                 }
 
-                if (showLimitActions && !showModifyButton && !showDesistButton) {
-                    actionItems.push(`
-                        <a href="/allos/${allo.id}/creneaux"
-                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
-                            Voir les créneaux
-                        </a>
-                    `);
-                }
-
                 if (showLimitMessage) {
                     actionItems.push(`
                         <span class="text-center text-sm font-semibold text-slate-500">
