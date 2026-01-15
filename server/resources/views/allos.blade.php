@@ -393,8 +393,7 @@
                 const showAdditionalSlotButton = !isDisabled
                     && hasBooking
                     && isAuthenticated
-                    && isAccepted
-                    && canBookNew
+                    && (canBookNew || isPending)
                     && hasAlternativeSlots;
                 const bookingButtonLabel = userBookings.length > 1
                     ? 'Modifier mes réservations'
