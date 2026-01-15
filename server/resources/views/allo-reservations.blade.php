@@ -125,15 +125,16 @@
                                class="bg-passion-red text-white font-display font-black uppercase px-5 py-2 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                                 Modifier mon créneau
                             </a>
-                        ` : canDesist ? `
+                        ` : ''}
+                        ${canDesist ? `
                             <button type="button"
                                     data-cancel-booking-id="${reservation.id}"
                                     class="bg-white text-passion-red font-display font-black uppercase px-5 py-2 border-2 border-passion-red shadow-[4px_4px_0_#000] hover:bg-passion-pink-100 transition-colors">
                                 Se désister
                             </button>
-                        ` : `
+                        ` : (!reservation.can_edit ? `
                             <span class="text-sm font-semibold text-slate-500">Modification indisponible.</span>
-                        `}
+                        ` : '')}
                     </div>
                 `;
 
