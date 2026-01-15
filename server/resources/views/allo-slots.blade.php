@@ -670,7 +670,7 @@
 
                 setFeedback('Réservation confirmée !', true);
                 await loadAllo();
-                window.location.href = '/allos/reservations?allo_id=' + alloData.id;
+                window.location.href = '/allos/reservations';
             } catch (error) {
                 setFeedback('Impossible de réserver pour le moment.');
             } finally {
