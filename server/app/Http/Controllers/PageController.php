@@ -65,9 +65,7 @@ class PageController extends Controller
             if ($existingBooking !== null && ! $canBookNew) {
                 if ($existingBooking->status !== AlloUsageService::STATUS_PENDING) {
                     return redirect()
-                        ->route('allos.reservations', [
-                            'allo_id' => $alloId,
-                        ])
+                        ->route('allos.reservations')
                         ->with('toast', [
                             'type' => 'error',
                             'message' => 'Tu as atteint ta limite de réservations pour cet allo.',
