@@ -104,6 +104,12 @@
         let selectedSlots = [];
         let currentBooking = null;
 
+        function showToast(message, type = 'error') {
+            const showToastFn = window.PassionToast?.show;
+            if (!showToastFn || !message) return;
+            showToastFn({ message, type, duration: 4000 });
+        }
+
         function formatDateLabel(date) {
             return new Intl.DateTimeFormat('fr-FR', {
                 weekday: 'long',
@@ -355,6 +361,25 @@
             };
         }
 
+        function getUserBookingCountsByDate() {
+            if (!alloData?.slots?.length) {
+                return {};
+            }
+
+            return alloData.slots.reduce((acc, slot) => {
+                if (!slot?.slot_start_at || !slot.user_booking) {
+                    return acc;
+                }
+                const status = slot.user_booking.status;
+                if (!['PENDING', 'ACCEPTED'].includes(status)) {
+                    return acc;
+                }
+                const dateKey = toDateKey(new Date(slot.slot_start_at));
+                acc[dateKey] = (acc[dateKey] ?? 0) + 1;
+                return acc;
+            }, {});
+        }
+
         function renderTimetable() {
             if (!alloData) return;
 
@@ -370,6 +395,8 @@
             const availableSlotStatuses = ['available', 'partial'];
             const allowMultipleSelections = shouldAllowMultipleSelections();
             const inputType = allowMultipleSelections ? 'checkbox' : 'radio';
+            const dailyLimit = getDailyLimitValue();
+            const userBookingCounts = getUserBookingCountsByDate();
             const isSelectableSlot = (slot) => {
                 if (!slot?.slot_start_at || !slot?.slot_end_at) return false;
                 if (slot.user_booking) {
@@ -468,22 +495,40 @@
                         const slotStart = new Date(slot.slot_start_at);
                         const slotEnd = new Date(slot.slot_end_at);
                         const hasUserBooking = Boolean(slot.user_booking);
+                        const slotDateKey = toDateKey(slotStart);
                         const remaining = slot.remaining ?? slot.remaining_capacity ?? null;
-                        const remainingLabel = hasUserBooking ? 'Réservé par toi' : formatRemainingLabel(remaining);
                         const isSelectable = isSelectableSlot(slot);
                         const timeLabel = `${formatTime(slotStart)} → ${formatTime(slotEnd)}`;
                         const bookingStatus = slot.user_booking?.status ?? '';
                         const isPendingBooking = bookingStatus === 'PENDING';
-                        const shouldDisableInput = (hasUserBooking && !isPendingBooking) || !isSelectable || !isAuthenticated;
+                        const isLimitReached = Number.isFinite(dailyLimit) && (userBookingCounts[slotDateKey] ?? 0) >= dailyLimit;
+                        const isLimitBlocked = !hasUserBooking && isLimitReached;
+                        const shouldDisableInput = (hasUserBooking && !isPendingBooking)
+                            || !isSelectable
+                            || !isAuthenticated
+                            || isLimitBlocked;
+                        const remainingLabel = hasUserBooking
+                            ? (isPendingBooking ? 'En attente' : 'Réservé par toi')
+                            : (isLimitBlocked ? 'Limite atteinte' : formatRemainingLabel(remaining));
 
                         const label = document.createElement('label');
-                        label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
+                        label.className = `flex items-center justify-between gap-3 border border-passion-red/30 px-3 py-2 text-sm font-semibold ${isSelectable && !isLimitBlocked ? 'hover:bg-passion-pink-100' : 'opacity-50'}`;
+                        label.dataset.limitBlocked = isLimitBlocked ? '1' : '0';
                         label.innerHTML = `
                             <div class="flex items-center gap-2">
                                 <input type="${inputType}" name="allo-slot" value="${slot.id}" ${hasUserBooking ? 'checked' : ''} ${shouldDisableInput ? 'disabled' : ''} />
                                 <span>${timeLabel}</span>
                             </div>
-                            <span class="text-xs text-passion-red">${remainingLabel}</span>
+                            <div class="flex items-center gap-2 text-xs text-passion-red">
+                                <span>${remainingLabel}</span>
+                                ${hasUserBooking && isPendingBooking ? `
+                                    <button type="button"
+                                            class="inline-flex items-center gap-1 rounded-full border border-passion-red/40 px-2 py-0.5 text-[11px] font-bold uppercase text-passion-red hover:bg-passion-pink-100"
+                                            data-cancel-booking-id="${slot.user_booking?.id ?? ''}">
+                                        Se désister
+                                    </button>
+                                ` : ''}
+                            </div>
                         `;
                         list.appendChild(label);
                     });
@@ -525,19 +570,14 @@
         }
 
         function showLimitToast(state, message) {
-            const showToast = window.PassionToast?.show;
-            if (!showToast) return;
+            if (!window.PassionToast?.show) return;
             if (!message) {
                 return;
             }
             if (state !== 'over') {
                 return;
             }
-            showToast({
-                message,
-                type: 'error',
-                duration: 4000,
-            });
+            showToast(message, 'error');
         }
 
         function updateBookingButtonState() {
@@ -573,6 +613,38 @@
             feedbackElement.textContent = message;
             feedbackElement.classList.toggle('text-passion-red', !isSuccess);
             feedbackElement.classList.toggle('text-green-600', isSuccess);
+        }
+
+        async function cancelBooking(bookingId, button) {
+            if (!bookingId) return;
+            if (button) {
+                button.disabled = true;
+            }
+
+            try {
+                const response = await fetch(`/api/allos/bookings/${bookingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    showToast(data.message || 'Impossible de se désister.');
+                    return;
+                }
+
+                showToast('Réservation annulée.', 'success');
+                await loadAllo();
+            } catch (error) {
+                showToast('Impossible de se désister.');
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                }
+            }
         }
 
         async function bookSelectedSlot() {
@@ -746,6 +818,22 @@
         timetableElement.addEventListener('change', (event) => {
             if (event.target && event.target.matches('input[name="allo-slot"]')) {
                 updateSelectedSlot();
+            }
+        });
+
+        timetableElement.addEventListener('click', (event) => {
+            const cancelButton = event.target.closest('[data-cancel-booking-id]');
+            if (cancelButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                cancelBooking(cancelButton.dataset.cancelBookingId, cancelButton);
+                return;
+            }
+
+            const limitBlocked = event.target.closest('[data-limit-blocked="1"]');
+            if (limitBlocked) {
+                event.preventDefault();
+                showLimitToast('over', 'Tu as atteint la limite de réservations pour cet allo ce jour-là. Désiste-toi pour choisir un autre créneau.');
             }
         });
 
