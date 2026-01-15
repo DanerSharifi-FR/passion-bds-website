@@ -395,17 +395,18 @@
                     && isAuthenticated
                     && (canBookNew || isPending)
                     && hasAlternativeSlots;
+                const showManageReservationsButton = showModifyButton || showAdditionalSlotButton;
                 const bookingButtonLabel = userBookings.length > 1
                     ? 'Modifier mes réservations'
                     : 'Modifier ma réservation';
 
                 const actionItems = [];
 
-                if (showModifyButton) {
+                if (showManageReservationsButton) {
                     actionItems.push(`
                         <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
-                            ${bookingButtonLabel}
+                            Gérer mes réservations
                         </a>
                     `);
                 } else if (showDesistButton) {
@@ -436,11 +437,11 @@
                     `);
                 }
 
-                if (showAdditionalSlotButton) {
+                if (showLimitActions && !showManageReservationsButton && !showDesistButton) {
                     actionItems.push(`
                         <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
-                            Réserver un autre créneau
+                            Voir les créneaux
                         </a>
                     `);
                 }
