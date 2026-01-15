@@ -391,7 +391,7 @@ class AlloApiController extends Controller
                 abort(422, 'Ce créneau est déjà réservé.');
             }
 
-            $slotCapacity = $allo->admins()->count();
+            $slotCapacity = (int) ($slot->capacity ?? $allo->resolveSlotCapacity());
 
             if ($slotCapacity <= 0) {
                 abort(422, 'Ce créneau est indisponible.');
@@ -645,7 +645,7 @@ class AlloApiController extends Controller
                 abort(422, 'Vous avez atteint la limite de réservations pour cet allo ce jour-là.');
             }
 
-            $slotCapacity = $allo->admins()->count();
+            $slotCapacity = (int) ($lockedSlot->capacity ?? $allo->resolveSlotCapacity());
 
             if ($slotCapacity <= 0) {
                 abort(422, 'Ce créneau est indisponible.');
@@ -678,7 +678,7 @@ class AlloApiController extends Controller
             $lockedSlot->save();
 
             if ($originalSlotId !== $lockedSlot->id) {
-                $this->updateSlotStatus($originalSlotId, $slotCapacity);
+                $this->updateSlotStatus($originalSlotId);
             }
 
             return $booking;
@@ -712,13 +712,11 @@ class AlloApiController extends Controller
 
         $booking->loadMissing(['slot', 'allo']);
         $slotId = $booking->allo_slot_id;
-        $slotCapacityFallback = $booking->allo?->resolveSlotCapacity((int) ($booking->allo?->admins_count ?? 0)) ?? 0;
-        $slotCapacity = (int) ($booking->slot?->capacity ?? $slotCapacityFallback);
 
         $booking->delete();
 
         if ($slotId !== null) {
-            $this->updateSlotStatus($slotId, $slotCapacity);
+            $this->updateSlotStatus($slotId);
         }
 
         return response()->json([
@@ -810,15 +808,24 @@ class AlloApiController extends Controller
         return [$minStart, $maxEnd];
     }
 
-    private function updateSlotStatus(int $slotId, int $slotCapacity): void
+    private function updateSlotStatus(int $slotId): void
     {
-        $slot = AlloSlot::query()->find($slotId);
+        $slot = AlloSlot::query()
+            ->with('allo')
+            ->find($slotId);
 
         if ($slot === null) {
             return;
         }
 
         if ($slot->status === 'blocked') {
+            return;
+        }
+
+        $slotCapacityFallback = $slot->allo?->resolveSlotCapacity() ?? 0;
+        $slotCapacity = (int) ($slot->capacity ?? $slotCapacityFallback);
+
+        if ($slotCapacity <= 0) {
             return;
         }
 
