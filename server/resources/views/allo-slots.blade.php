@@ -826,6 +826,10 @@
             if (cancelButton) {
                 event.preventDefault();
                 event.stopPropagation();
+                const wantsCancel = window.confirm('Es-tu sûr·e de vouloir te désister de ce créneau ?');
+                if (!wantsCancel) {
+                    return;
+                }
                 cancelBooking(cancelButton.dataset.cancelBookingId, cancelButton);
                 return;
             }
