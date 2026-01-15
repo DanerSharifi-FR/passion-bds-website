@@ -378,6 +378,7 @@
                 const hasAvailableSlots = allo.has_available_slots ?? true;
                 const hasAlternativeSlots = allo.has_alternative_slots ?? hasAvailableSlots;
                 const isPending = userBooking?.status === 'PENDING';
+                const isAccepted = userBooking?.status === 'ACCEPTED';
                 const showBookingStatus = hasBooking && !isEnded;
                 const bookingStatusLabel = userBooking?.status
                     ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
@@ -387,9 +388,78 @@
                 const showSlotsButton = !isDisabled && !hasBooking && canBookNew && hasAvailableSlots;
                 const showLimitMessage = !isDisabled && !hasBooking && !canBookNew;
                 const showNoSlotsMessage = !isDisabled && !hasBooking && canBookNew && !hasAvailableSlots;
+                const showReservationsButton = !isDisabled && hasBooking && isAuthenticated && isAccepted;
+                const showAdditionalSlotButton = !isDisabled
+                    && hasBooking
+                    && isAuthenticated
+                    && isAccepted
+                    && canBookNew
+                    && hasAlternativeSlots;
                 const bookingButtonLabel = userBookings.length > 1
                     ? 'Modifier mes réservations'
                     : 'Modifier ma réservation';
+
+                const actionItems = [];
+
+                if (showModifyButton) {
+                    actionItems.push(`
+                        <a href="/allos/${allo.id}/creneaux"
+                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
+                            ${bookingButtonLabel}
+                        </a>
+                    `);
+                } else if (showDesistButton) {
+                    actionItems.push(`
+                        <button type="button"
+                                data-cancel-booking-id="${userBooking?.id ?? ''}"
+                                class="text-center bg-white text-passion-red font-display font-black uppercase py-3 border-2 border-passion-red shadow-[4px_4px_0_#000] hover:bg-passion-pink-100 transition-colors">
+                            Se désister
+                        </button>
+                    `);
+                }
+
+                if (showSlotsButton) {
+                    actionItems.push(`
+                        <a href="/allos/${allo.id}/creneaux"
+                           class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
+                            Voir les créneaux
+                        </a>
+                    `);
+                }
+
+                if (showReservationsButton) {
+                    actionItems.push(`
+                        <a href="/allos/reservations?allo_id=${allo.id}"
+                           class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
+                            Voir mes réservations
+                        </a>
+                    `);
+                }
+
+                if (showAdditionalSlotButton) {
+                    actionItems.push(`
+                        <a href="/allos/${allo.id}/creneaux"
+                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
+                            Réserver un autre créneau
+                        </a>
+                    `);
+                }
+
+                if (showLimitMessage) {
+                    actionItems.push(`
+                        <span class="text-center text-sm font-semibold text-slate-500">
+                            Limite quotidienne atteinte.
+                        </span>
+                    `);
+                }
+
+                if (showNoSlotsMessage) {
+                    actionItems.push(`
+                        <span class="text-center text-sm font-semibold text-slate-500">
+                            Plus de place disponible.
+                        </span>
+                    `);
+                }
 
                 const card = document.createElement('div');
                 card.className = `relative border-2 shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4 ${
@@ -417,31 +487,7 @@
                             ${bookingStatusLabel}
                         </div>
                     ` : ''}
-                    ${isDisabled ? '' : (showModifyButton ? `
-                        <a href="/allos/${allo.id}/creneaux"
-                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
-                            ${bookingButtonLabel}
-                        </a>
-                    ` : (showDesistButton ? `
-                        <button type="button"
-                                data-cancel-booking-id="${userBooking?.id ?? ''}"
-                                class="text-center bg-white text-passion-red font-display font-black uppercase py-3 border-2 border-passion-red shadow-[4px_4px_0_#000] hover:bg-passion-pink-100 transition-colors">
-                            Se désister
-                        </button>
-                    ` : (showSlotsButton ? `
-                        <a href="/allos/${allo.id}/creneaux"
-                           class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
-                            Voir les créneaux
-                        </a>
-                    ` : (showLimitMessage ? `
-                        <span class="text-center text-sm font-semibold text-slate-500">
-                            Limite quotidienne atteinte.
-                        </span>
-                    ` : (showNoSlotsMessage ? `
-                        <span class="text-center text-sm font-semibold text-slate-500">
-                            Plus de place disponible.
-                        </span>
-                    ` : '')))))}
+                    ${isDisabled ? '' : actionItems.join('')}
                     <div class="allo-form hidden space-y-4 border-t border-passion-red/30 pt-4">
                         <div class="space-y-3">
                             <label class="text-xs font-bold uppercase text-passion-red">Choisis un créneau</label>
