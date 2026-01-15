@@ -18,29 +18,24 @@
 @section('content')
     <!-- VIEW: REQUESTS -->
     <div id="viewRequests" class="{{ $activeView === 'requests' ? '' : 'hidden' }}">
-        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
-            <h2 class="text-xl font-bold text-white min-w-fit">Suivi des Allos</h2>
-            <div class="flex flex-wrap gap-2 w-full">
-                <select id="filterStatus" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500" onchange="renderRequests()">
-                    <option value="ACTIVE" selected>En cours</option>
-                    <option value="ALL">Tout l'historique</option>
-                    <option value="PENDING">En attente</option>
-                    <option value="ACCEPTED">Acceptés</option>
-                    <option value="DONE">Terminés</option>
-                    <option value="CANCELLED">Annulés</option>
-                </select>
-                <select id="filterAllo" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 max-w-[200px]" onchange="renderRequests()">
-                    <option value="">Tous les allos</option>
-                </select>
-                <div class="relative w-full md:w-64">
-                    <input type="text" id="filterUser" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 pl-8 focus:ring-indigo-500" placeholder="Chercher un étudiant..." autocomplete="off">
-                    <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
-                    <button id="clearUserFilter" onclick="clearUserFilter()" class="absolute right-2 top-2 text-slate-500 hover:text-white hidden"><i class="fa-solid fa-xmark"></i></button>
-                    <div id="userSuggestions" class="absolute z-10 w-full bg-slate-800 border border-slate-600 rounded-lg mt-1 hidden max-h-48 overflow-y-auto shadow-xl"></div>
+        <div class="flex flex-col gap-4 mb-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-white min-w-fit">Suivi des Allos</h2>
+                    <p id="requestsCount" class="text-xs text-slate-400 mt-1">0 allos</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="inline-flex bg-slate-900 border border-slate-700 p-1 rounded-lg" role="group" aria-label="Portée des demandes">
+                        <button id="scopeMineButton" type="button" class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">Mes allos</button>
+                        <button id="scopeAllButton" type="button" class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">Tous les allos</button>
+                    </div>
+                    <button id="resetFiltersButton" type="button" class="px-3 py-2 rounded-lg border border-slate-600 text-slate-200 text-sm font-medium hover:text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed">
+                        Réinitialiser
+                    </button>
                 </div>
             </div>
             <div class="bg-slate-900/70 border border-slate-700 rounded-2xl p-4 flex flex-col gap-4 shadow-sm">
-                <div class="flex flex-col md:flex-row md:items-center gap-3">
+                <div class="flex flex-col lg:flex-row lg:items-center gap-3">
                     <div class="relative flex-1">
                         <input type="text" id="filterSearch" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 pl-9 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Chercher un étudiant, un allo, une note..." autocomplete="off">
                         <i class="fa-solid fa-search absolute left-3 top-3.5 text-slate-500 text-sm"></i>
@@ -48,7 +43,7 @@
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
-                    <div class="md:w-64">
+                    <div class="w-full lg:w-64">
                         <label class="sr-only" for="filterSort">Trier par</label>
                         <select id="filterSort" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="slot_soon">Créneau le plus proche</option>
@@ -57,19 +52,24 @@
                             <option value="student">Étudiant</option>
                         </select>
                     </div>
+                    <button id="openFiltersButton" type="button" class="lg:hidden inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-600 text-slate-200 text-sm hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                        <i class="fa-solid fa-sliders"></i> Filtres avancés
+                    </button>
                 </div>
-                <div id="filtersPanel" class="hidden md:flex flex-col gap-4">
+                <div id="filtersPanel" class="hidden lg:flex flex-col gap-4">
                     <div class="flex flex-wrap gap-3">
                         <div class="relative">
-                            <button id="statusFilterButton" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                                Statuts
-                                <span id="statusFilterCount" class="text-[10px] uppercase tracking-wide bg-indigo-500/20 text-indigo-200 px-2 py-0.5 rounded-full">2</span>
+                            <button id="statusFilterButton" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-expanded="false">
+                                <span id="statusFilterSummary">Statuts : Tous</span>
                                 <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
                             </button>
-                            <div id="statusFilterMenu" class="absolute z-20 mt-2 w-56 rounded-xl bg-slate-900 border border-slate-700 shadow-xl p-2 hidden">
+                            <div id="statusFilterMenu" class="absolute z-20 mt-2 w-64 rounded-xl bg-slate-900 border border-slate-700 shadow-xl p-2 hidden">
                                 <div class="flex items-center justify-between px-2 py-1 text-xs text-slate-400">
                                     <span>Sélection rapide</span>
-                                    <button id="statusSelectAll" type="button" class="text-indigo-300 hover:text-indigo-200">Tout</button>
+                                    <div class="flex items-center gap-2">
+                                        <button id="statusSelectAll" type="button" class="text-indigo-300 hover:text-indigo-200">Tout sélectionner</button>
+                                        <button id="statusSelectNone" type="button" class="text-slate-400 hover:text-slate-200">Tout désélectionner</button>
+                                    </div>
                                 </div>
                                 <div class="flex flex-col gap-1 p-2">
                                     <label class="flex items-center gap-2 text-sm text-slate-200">
@@ -97,11 +97,14 @@
                         <select id="filterAllo" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500 max-w-[220px]">
                             <option value="">Tous les allos</option>
                         </select>
-                        <select id="filterAssignee" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="all">Tous les agents</option>
-                            <option value="unassigned">Non attribués</option>
-                            <option value="me">Moi</option>
-                        </select>
+                        <div id="assigneeFilterGroup" class="hidden">
+                            <label class="sr-only" for="filterAssignee">Assigné à</label>
+                            <select id="filterAssignee" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">Un admin…</option>
+                                <option value="unassigned">Non attribués</option>
+                                <option value="me">Moi</option>
+                            </select>
+                        </div>
                         <select id="filterDateRange" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="all">Tous les créneaux</option>
                             <option value="today">Aujourd’hui</option>
@@ -114,17 +117,6 @@
                             <span class="text-slate-500 text-xs">→</span>
                             <input type="date" id="filterDateTo" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button type="button" class="quick-filter inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700 text-xs text-slate-300 hover:text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" data-quick="mine">
-                            <i class="fa-solid fa-user-check text-indigo-300"></i> Mes allos
-                        </button>
-                        <button type="button" class="quick-filter inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700 text-xs text-slate-300 hover:text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" data-quick="unassigned">
-                            <i class="fa-solid fa-user-slash text-amber-300"></i> Non attribués
-                        </button>
-                        <button type="button" class="quick-filter inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700 text-xs text-slate-300 hover:text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" data-quick="upcoming">
-                            <i class="fa-regular fa-calendar text-emerald-300"></i> À venir (aujourd’hui/demain)
-                        </button>
                     </div>
                 </div>
                 <div id="activeFilters" class="flex flex-wrap gap-2"></div>
@@ -313,6 +305,7 @@
         };
 
         const isSuperAdmin = @json(auth()->user()->hasRole('ROLE_SUPER_ADMIN'));
+        const currentUserId = @json(auth()->id());
         const activeView = @json($activeView ?? 'requests');
 
         let allos = [];
@@ -320,6 +313,18 @@
         let admins = [];
         let requestActionState = {};
         let filtersPanelOpen = false;
+        const defaultRequestFilters = {
+            statuses: ['PENDING', 'ACCEPTED', 'DONE', 'CANCELLED'],
+            scope: 'mine',
+            assignee: 'all',
+            alloId: '',
+            dateRange: 'all',
+            dateFrom: '',
+            dateTo: '',
+            search: '',
+            sort: 'slot_soon',
+        };
+        let requestFilters = { ...defaultRequestFilters };
         let catalogFilters = {
             title: '',
             status: 'ALL',
@@ -377,6 +382,14 @@
             return diffDays >= 0 ? `dans ${diffDays} j` : `il y a ${Math.abs(diffDays)} j`;
         }
 
+        function debounce(fn, delay = 300) {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => fn(...args), delay);
+            };
+        }
+
         function formatDateLabel(date) {
             return new Intl.DateTimeFormat('fr-FR', {
                 weekday: 'short',
@@ -390,6 +403,41 @@
                 hour: '2-digit',
                 minute: '2-digit',
             }).format(date);
+        }
+
+        function requestStatusConfig(status) {
+            switch (status) {
+                case 'PENDING':
+                    return {
+                        label: 'En attente',
+                        icon: 'fa-hourglass-half',
+                        classes: 'bg-amber-500/15 text-amber-200 border-amber-400/40',
+                    };
+                case 'ACCEPTED':
+                    return {
+                        label: 'En cours',
+                        icon: 'fa-circle-play',
+                        classes: 'bg-sky-500/15 text-sky-200 border-sky-400/40',
+                    };
+                case 'DONE':
+                    return {
+                        label: 'Terminé',
+                        icon: 'fa-circle-check',
+                        classes: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/40',
+                    };
+                case 'CANCELLED':
+                    return {
+                        label: 'Annulé',
+                        icon: 'fa-circle-xmark',
+                        classes: 'bg-rose-500/15 text-rose-200 border-rose-400/40',
+                    };
+                default:
+                    return {
+                        label: 'Inconnu',
+                        icon: 'fa-circle-question',
+                        classes: 'bg-slate-500/20 text-slate-300 border-slate-500/40',
+                    };
+            }
         }
 
         function statusBadgeClasses(status) {
@@ -540,6 +588,137 @@
             }
         }
 
+        function statusLabelForFilter(status) {
+            const labels = {
+                PENDING: 'En attente',
+                ACCEPTED: 'En cours',
+                DONE: 'Terminé',
+                CANCELLED: 'Annulé',
+            };
+            return labels[status] || status;
+        }
+
+        function normalizeStatuses(values) {
+            return defaultRequestFilters.statuses.filter(status => values.includes(status));
+        }
+
+        function updateStatusFilterSummary() {
+            const total = defaultRequestFilters.statuses.length;
+            const selectedCount = requestFilters.statuses.length;
+            const summary = selectedCount === 0
+                ? 'Statuts : Aucun'
+                : selectedCount === total
+                    ? 'Statuts : Tous'
+                    : `Statuts : ${selectedCount}/${total}`;
+            const summaryEl = document.getElementById('statusFilterSummary');
+            if (summaryEl) summaryEl.innerText = summary;
+        }
+
+        function isDefaultFilters() {
+            return JSON.stringify(requestFilters) === JSON.stringify(defaultRequestFilters);
+        }
+
+        function updateQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            params.delete('status');
+            params.delete('scope');
+            params.delete('assignee');
+            params.delete('allo_id');
+            params.delete('date_range');
+            params.delete('date_from');
+            params.delete('date_to');
+            params.delete('q');
+            params.delete('sort');
+
+            const statuses = requestFilters.statuses;
+            if (statuses.length === 0) {
+                params.set('status', 'none');
+            } else if (statuses.length !== defaultRequestFilters.statuses.length) {
+                params.set('status', statuses.join(','));
+            }
+            if (requestFilters.scope !== defaultRequestFilters.scope) {
+                params.set('scope', requestFilters.scope);
+            }
+            if (requestFilters.assignee !== defaultRequestFilters.assignee && requestFilters.scope === 'all') {
+                params.set('assignee', requestFilters.assignee);
+            }
+            if (requestFilters.alloId) {
+                params.set('allo_id', requestFilters.alloId);
+            }
+            if (requestFilters.dateRange !== defaultRequestFilters.dateRange) {
+                params.set('date_range', requestFilters.dateRange);
+            }
+            if (requestFilters.dateFrom) {
+                params.set('date_from', requestFilters.dateFrom);
+            }
+            if (requestFilters.dateTo) {
+                params.set('date_to', requestFilters.dateTo);
+            }
+            if (requestFilters.search) {
+                params.set('q', requestFilters.search);
+            }
+            if (requestFilters.sort !== defaultRequestFilters.sort) {
+                params.set('sort', requestFilters.sort);
+            }
+
+            const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        function parseQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            const statusesParam = params.get('status');
+            const scopeParam = params.get('scope');
+            const assigneeParam = params.get('assignee');
+            const alloIdParam = params.get('allo_id');
+            const dateRangeParam = params.get('date_range');
+            const dateFromParam = params.get('date_from');
+            const dateToParam = params.get('date_to');
+            const searchParam = params.get('q');
+            const sortParam = params.get('sort');
+
+            const nextFilters = { ...defaultRequestFilters };
+
+            if (statusesParam) {
+                if (statusesParam === 'none') {
+                    nextFilters.statuses = [];
+                } else {
+                    const parsedStatuses = statusesParam.split(',').map(value => value.trim()).filter(Boolean);
+                    nextFilters.statuses = normalizeStatuses(parsedStatuses);
+                }
+            }
+            if (scopeParam === 'all' || scopeParam === 'mine') {
+                nextFilters.scope = scopeParam;
+            }
+            if (assigneeParam) {
+                nextFilters.assignee = assigneeParam;
+            }
+            if (alloIdParam) {
+                nextFilters.alloId = alloIdParam;
+            }
+            if (dateRangeParam) {
+                nextFilters.dateRange = dateRangeParam;
+            }
+            if (dateFromParam) {
+                nextFilters.dateFrom = dateFromParam;
+            }
+            if (dateToParam) {
+                nextFilters.dateTo = dateToParam;
+            }
+            if (searchParam) {
+                nextFilters.search = searchParam;
+            }
+            if (sortParam) {
+                nextFilters.sort = sortParam;
+            }
+
+            if (nextFilters.scope !== 'all') {
+                nextFilters.assignee = defaultRequestFilters.assignee;
+            }
+
+            requestFilters = nextFilters;
+        }
+
         // --- CORE FUNCTIONS ---
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
@@ -587,6 +766,7 @@
                 const payload = await parseJsonResponse(response);
                 if (!response.ok) throw new Error(payload.message || 'Impossible de charger la liste des admins.');
                 admins = payload.data || [];
+                populateAssignees();
             } catch (error) {
                 showToast(error.message || 'Erreur lors du chargement des admins.', 'error');
             }
@@ -780,7 +960,11 @@
                 const statusMatch = requestFilters.statuses.length === 0
                     || requestFilters.statuses.includes(r.status);
                 const alloMatch = !requestFilters.alloId || r.allo_id == requestFilters.alloId;
+                const scopeMatch = requestFilters.scope === 'all'
+                    ? true
+                    : r.handled_by_id === currentUserId;
                 const assigneeMatch = (() => {
+                    if (requestFilters.scope !== 'all') return true;
                     if (requestFilters.assignee === 'all') return true;
                     if (requestFilters.assignee === 'unassigned') return !r.handled_by_id;
                     if (requestFilters.assignee === 'me') return r.handled_by_id === currentUserId;
@@ -823,11 +1007,8 @@
                     }
                     return true;
                 })();
-                const quickMineMatch = !requestFilters.quickMine || r.handled_by_id === currentUserId;
-                const quickUnassignedMatch = !requestFilters.quickUnassigned || !r.handled_by_id;
-                const quickUpcomingMatch = !requestFilters.quickUpcoming || (slotDate && isWithinUpcomingWindow(slotDate));
 
-                return statusMatch && alloMatch && assigneeMatch && searchMatch && dateMatch && quickMineMatch && quickUnassignedMatch && quickUpcomingMatch;
+                return statusMatch && alloMatch && scopeMatch && assigneeMatch && searchMatch && dateMatch;
             });
 
             const pendingCount = requests.filter(r => r.status === 'PENDING').length;
@@ -835,8 +1016,10 @@
             badge.innerText = pendingCount;
             badge.classList.toggle('hidden', pendingCount === 0);
 
-            const resultsCount = document.getElementById('resultsCount');
-            resultsCount.innerText = `${filtered.length} allos`;
+            const resultsCount = document.getElementById('requestsCount');
+            if (resultsCount) {
+                resultsCount.innerText = `${filtered.length} allos`;
+            }
 
             filtered = sortRequests(filtered);
 
@@ -866,11 +1049,15 @@
                 const assignControls = renderAssignControls(r, isLoading);
                 const handlerLine = r.handled_by_name ? `Assigné à ${r.handled_by_name}` : 'Non attribué';
                 const relativeTime = formatRelativeTime(r.slot_start_at);
+                const relativeTimeBadge = relativeTime
+                    ? `<span class="text-xs text-slate-300 bg-slate-700/60 px-2 py-0.5 rounded-full">${relativeTime}</span>`
+                    : '';
                 const noteText = r.user_note || 'Aucune note.';
                 const noteId = `note_${r.id}`;
                 const canReopen = isSuperAdmin && r.status === 'DONE';
 
-                const actions = renderActions(r, isLoading, canReopen);
+                const isOwnedByOther = r.handled_by_id && r.handled_by_id !== currentUserId;
+                const actions = renderActions(r, isLoading, canReopen, isOwnedByOther);
 
                 container.innerHTML += `
                     <div class="bg-slate-800 rounded-2xl p-4 border ${cardBorder} flex flex-col gap-4 transition-all">
@@ -887,8 +1074,12 @@
                                     <p class="text-sm text-slate-400 flex flex-wrap items-center gap-2">
                                         <span class="inline-flex items-center gap-1"><i class="fa-solid fa-user text-slate-500"></i> ${r.user_name}</span>
                                         <span class="text-slate-500">•</span>
-                                        <span class="inline-flex items-center gap-1"><i class="fa-regular fa-clock text-slate-500"></i> <span class="text-white font-mono">${formatDateTime(r.slot_start_at)}</span></span>
-                                        <span class="text-xs text-slate-400 bg-slate-700/60 px-2 py-0.5 rounded-full">${relativeTime}</span>
+                                        <span class="inline-flex items-center gap-2">
+                                            <i class="fa-regular fa-clock text-slate-500"></i>
+                                            <span class="text-slate-400">Créneau :</span>
+                                            <span class="text-white font-mono">${formatDateTime(r.slot_start_at)}</span>
+                                        </span>
+                                        ${relativeTimeBadge}
                                     </p>
                                     <p class="text-xs uppercase tracking-wide text-slate-500">${handlerLine}</p>
                                 </div>
@@ -972,19 +1163,28 @@
             await updateUsage(id, { status: 'ACCEPTED', handled_by_id: handlerId });
         }
 
-        function renderActions(request, isLoading, canReopen) {
+        function renderActions(request, isLoading, canReopen, isOwnedByOther) {
             const disabledAttrs = isLoading ? 'disabled' : '';
             const disabledClass = isLoading ? 'opacity-50 cursor-not-allowed' : '';
             const loadingLabel = isLoading ? '<i class="fa-solid fa-spinner fa-spin mr-2"></i> En cours...' : '';
+            const ownershipLabel = request.handled_by_name || 'un autre admin';
             if (request.status === 'PENDING') {
+                const primaryDisabled = isLoading || isOwnedByOther;
+                const primaryTitle = isOwnedByOther
+                    ? `Déjà attribué à ${ownershipLabel}`
+                    : (isLoading ? 'Action en cours' : 'Prendre en charge');
                 return `
                     <button onclick="updateStatus(${request.id}, 'CANCELLED')" class="text-xs px-3 py-1.5 rounded border border-slate-600 text-slate-300 hover:text-rose-200 hover:border-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}" ${disabledAttrs} title="${isLoading ? 'Action en cours' : 'Annuler la demande'}">Annuler</button>
-                    <button onclick="updateStatus(${request.id}, 'ACCEPTED')" class="text-xs px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}" ${disabledAttrs}>${loadingLabel || 'Prendre en charge'}</button>
+                    <button onclick="updateStatus(${request.id}, 'ACCEPTED')" class="text-xs px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${primaryDisabled ? 'opacity-50 cursor-not-allowed' : ''}" ${primaryDisabled ? 'disabled' : ''} title="${primaryTitle}">${loadingLabel || 'Prendre en charge'}</button>
                 `;
             }
             if (request.status === 'ACCEPTED') {
+                const primaryDisabled = isLoading || isOwnedByOther;
+                const primaryTitle = isOwnedByOther
+                    ? `Attribué à ${ownershipLabel}`
+                    : (isLoading ? 'Action en cours' : 'Terminer la demande');
                 return `
-                    <button onclick="updateStatus(${request.id}, 'DONE')" class="text-xs px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${disabledClass}" ${disabledAttrs}>${loadingLabel || 'Terminer'}</button>
+                    <button onclick="updateStatus(${request.id}, 'DONE')" class="text-xs px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${primaryDisabled ? 'opacity-50 cursor-not-allowed' : ''}" ${primaryDisabled ? 'disabled' : ''} title="${primaryTitle}">${loadingLabel || 'Terminer'}</button>
                 `;
             }
             if (request.status === 'DONE') {
@@ -1065,9 +1265,15 @@
             }
             const isDefaultStatuses = JSON.stringify(requestFilters.statuses) === JSON.stringify(defaultRequestFilters.statuses);
             if (!isDefaultStatuses) {
-                chips.push({ label: `Statuts : ${requestFilters.statuses.join(', ')}`, key: 'statuses' });
+                const labels = requestFilters.statuses.length
+                    ? requestFilters.statuses.map(statusLabelForFilter)
+                    : ['Aucun'];
+                chips.push({ label: `Statuts : ${labels.join(', ')}`, key: 'statuses' });
             }
-            if (requestFilters.assignee !== 'all') {
+            if (requestFilters.scope !== defaultRequestFilters.scope) {
+                chips.push({ label: requestFilters.scope === 'all' ? 'Tous les allos' : 'Mes allos', key: 'scope' });
+            }
+            if (requestFilters.scope === 'all' && requestFilters.assignee !== 'all') {
                 const label = requestFilters.assignee === 'unassigned'
                     ? 'Non attribués'
                     : requestFilters.assignee === 'me'
@@ -1085,10 +1291,6 @@
                             : `Créneau : ${requestFilters.dateFrom || '...'} → ${requestFilters.dateTo || '...'}`;
                 chips.push({ label, key: 'dateRange' });
             }
-            if (requestFilters.quickMine) chips.push({ label: 'Mes allos', key: 'quickMine' });
-            if (requestFilters.quickUnassigned) chips.push({ label: 'Non attribués', key: 'quickUnassigned' });
-            if (requestFilters.quickUpcoming) chips.push({ label: 'À venir', key: 'quickUpcoming' });
-
             chips.forEach(chip => {
                 const button = document.createElement('button');
                 button.type = 'button';
@@ -1103,15 +1305,16 @@
             if (key === 'search') requestFilters.search = '';
             if (key === 'alloId') requestFilters.alloId = '';
             if (key === 'statuses') requestFilters.statuses = [...defaultRequestFilters.statuses];
+            if (key === 'scope') {
+                requestFilters.scope = defaultRequestFilters.scope;
+                requestFilters.assignee = defaultRequestFilters.assignee;
+            }
             if (key === 'assignee') requestFilters.assignee = 'all';
             if (key === 'dateRange') {
                 requestFilters.dateRange = 'all';
                 requestFilters.dateFrom = '';
                 requestFilters.dateTo = '';
             }
-            if (key === 'quickMine') requestFilters.quickMine = false;
-            if (key === 'quickUnassigned') requestFilters.quickUnassigned = false;
-            if (key === 'quickUpcoming') requestFilters.quickUpcoming = false;
             syncFilterInputs();
             updateQueryParams();
             renderRequests();
@@ -1119,6 +1322,7 @@
 
         function updateResetButtonState() {
             const resetButton = document.getElementById('resetFiltersButton');
+            if (!resetButton) return;
             resetButton.disabled = isDefaultFilters();
         }
 
@@ -1135,16 +1339,13 @@
             document.querySelectorAll('.status-checkbox').forEach(cb => {
                 cb.checked = requestFilters.statuses.includes(cb.value);
             });
-            document.getElementById('statusFilterCount').innerText = `${requestFilters.statuses.length}`;
-            document.querySelectorAll('.quick-filter').forEach(button => {
-                const quick = button.dataset.quick;
-                const isActive = (quick === 'mine' && requestFilters.quickMine)
-                    || (quick === 'unassigned' && requestFilters.quickUnassigned)
-                    || (quick === 'upcoming' && requestFilters.quickUpcoming);
-                button.classList.toggle('bg-indigo-500/20', isActive);
-                button.classList.toggle('border-indigo-400/50', isActive);
-                button.classList.toggle('text-indigo-100', isActive);
-            });
+            updateStatusFilterSummary();
+            const scopeMineButton = document.getElementById('scopeMineButton');
+            const scopeAllButton = document.getElementById('scopeAllButton');
+            const isMine = requestFilters.scope === 'mine';
+            scopeMineButton.className = `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isMine ? 'bg-indigo-600 text-white shadow' : 'text-slate-300 hover:text-white'}`;
+            scopeAllButton.className = `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${!isMine ? 'bg-indigo-600 text-white shadow' : 'text-slate-300 hover:text-white'}`;
+            document.getElementById('assigneeFilterGroup').classList.toggle('hidden', isMine);
         }
 
         function bindFilterControls() {
@@ -1157,6 +1358,8 @@
             const dateTo = document.getElementById('filterDateTo');
             const sortSelect = document.getElementById('filterSort');
             const resetButton = document.getElementById('resetFiltersButton');
+            const scopeMineButton = document.getElementById('scopeMineButton');
+            const scopeAllButton = document.getElementById('scopeAllButton');
 
             const applySearch = debounce(() => {
                 requestFilters.search = searchInput.value.trim();
@@ -1179,6 +1382,19 @@
             });
             assigneeSelect.addEventListener('change', () => {
                 requestFilters.assignee = assigneeSelect.value;
+                updateQueryParams();
+                renderRequests();
+            });
+            scopeMineButton.addEventListener('click', () => {
+                requestFilters.scope = 'mine';
+                requestFilters.assignee = 'all';
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
+            });
+            scopeAllButton.addEventListener('click', () => {
+                requestFilters.scope = 'all';
+                syncFilterInputs();
                 updateQueryParams();
                 renderRequests();
             });
@@ -1216,7 +1432,8 @@
 
             document.querySelectorAll('.status-checkbox').forEach(cb => {
                 cb.addEventListener('change', () => {
-                    requestFilters.statuses = Array.from(document.querySelectorAll('.status-checkbox:checked')).map(input => input.value);
+                    const selected = Array.from(document.querySelectorAll('.status-checkbox:checked')).map(input => input.value);
+                    requestFilters.statuses = normalizeStatuses(selected);
                     syncFilterInputs();
                     updateQueryParams();
                     renderRequests();
@@ -1229,27 +1446,23 @@
                 updateQueryParams();
                 renderRequests();
             });
-
-            document.querySelectorAll('.quick-filter').forEach(button => {
-                button.addEventListener('click', () => {
-                    const quick = button.dataset.quick;
-                    if (quick === 'mine') requestFilters.quickMine = !requestFilters.quickMine;
-                    if (quick === 'unassigned') requestFilters.quickUnassigned = !requestFilters.quickUnassigned;
-                    if (quick === 'upcoming') requestFilters.quickUpcoming = !requestFilters.quickUpcoming;
-                    syncFilterInputs();
-                    updateQueryParams();
-                    renderRequests();
-                });
+            document.getElementById('statusSelectNone').addEventListener('click', () => {
+                requestFilters.statuses = [];
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
             });
 
             const statusButton = document.getElementById('statusFilterButton');
             const statusMenu = document.getElementById('statusFilterMenu');
             statusButton.addEventListener('click', () => {
                 statusMenu.classList.toggle('hidden');
+                statusButton.setAttribute('aria-expanded', statusMenu.classList.contains('hidden') ? 'false' : 'true');
             });
             document.addEventListener('click', (event) => {
                 if (!statusButton.contains(event.target) && !statusMenu.contains(event.target)) {
                     statusMenu.classList.add('hidden');
+                    statusButton.setAttribute('aria-expanded', 'false');
                 }
             });
 
@@ -1693,6 +1906,9 @@
             });
             loadAllos();
         } else {
+            parseQueryParams();
+            syncFilterInputs();
+            bindFilterControls();
             loadAdmins().then(() => {
                 populateAdminList();
                 renderRequests();
