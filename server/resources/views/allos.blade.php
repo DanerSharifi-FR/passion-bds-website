@@ -372,16 +372,18 @@
                 const userBookings = allo.slots
                     .map((slot) => slot.user_booking)
                     .filter((booking) => booking !== null);
-                const userBooking = userBookings[0];
-                const hasBooking = Boolean(userBooking);
+                const pendingBooking = userBookings.find((booking) => booking?.status === 'PENDING') || null;
+                const acceptedBooking = userBookings.find((booking) => booking?.status === 'ACCEPTED') || null;
+                const primaryBooking = pendingBooking || acceptedBooking || userBookings[0] || null;
+                const hasBooking = userBookings.length > 0;
                 const canBookNew = allo.can_book_new ?? true;
                 const hasAvailableSlots = allo.has_available_slots ?? true;
                 const hasAlternativeSlots = allo.has_alternative_slots ?? hasAvailableSlots;
-                const isPending = userBooking?.status === 'PENDING';
-                const isAccepted = userBooking?.status === 'ACCEPTED';
+                const isPending = Boolean(pendingBooking);
+                const isAccepted = Boolean(acceptedBooking);
                 const showBookingStatus = hasBooking && !isEnded;
-                const bookingStatusLabel = userBooking?.status
-                    ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
+                const bookingStatusLabel = primaryBooking?.status
+                    ? `Réservation : ${bookingStatusLabels[primaryBooking.status] || primaryBooking.status}`
                     : '';
                 const showModifyButton = !isDisabled && hasBooking && isAuthenticated && isPending;
                 const showDesistButton = !isDisabled && hasBooking && isAuthenticated && isPending && !hasAlternativeSlots;
@@ -413,7 +415,7 @@
                 if (showDesistButton) {
                     actionItems.push(`
                         <button type="button"
-                                data-cancel-booking-id="${userBooking?.id ?? ''}"
+                                data-cancel-booking-id="${pendingBooking?.id ?? ''}"
                                 class="text-center bg-white text-passion-red font-display font-black uppercase py-3 border-2 border-passion-red shadow-[4px_4px_0_#000] hover:bg-passion-pink-100 transition-colors">
                             Se désister
                         </button>
