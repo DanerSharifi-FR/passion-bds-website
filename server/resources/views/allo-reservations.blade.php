@@ -94,7 +94,7 @@
             reservations.forEach((reservation) => {
                 const statusLabel = statusLabels[reservation.status] || reservation.status;
                 const statusClass = statusClasses[reservation.status] || 'bg-slate-100 text-slate-600 border-slate-200';
-                const canDesist = reservation.status === 'PENDING' && !reservation.has_available_slots;
+                const canDesist = reservation.status === 'PENDING';
                 const card = document.createElement('div');
 
                 card.className = 'bg-white border-2 border-passion-red shadow-[6px_6px_0_#000] p-6 flex flex-col gap-4';
