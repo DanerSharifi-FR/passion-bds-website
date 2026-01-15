@@ -1,177 +1,3 @@
-@extends('admin.layout')
-
-@section('title', "Gestion des Allos - P'AS'SION BDS")
-
-@php($activeView = $activeView ?? 'requests')
-
-@section('top_bar_buttons')
-    <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700 ml-4">
-        <a href="{{ route('admin.allos.requests') }}" id="tabRequests" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all {{ $activeView === 'requests' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white' }}">
-            <i class="fa-solid fa-bell mr-2"></i> Demandes <span class="ml-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full" id="pendingCount">3</span>
-        </a>
-        <a href="{{ route('admin.allos.catalog') }}" id="tabCatalog" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all {{ $activeView === 'catalog' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white' }}">
-            <i class="fa-solid fa-store mr-2"></i> Catalogue & Créneaux
-        </a>
-    </div>
-@endsection
-
-@section('content')
-    <!-- VIEW: REQUESTS -->
-    <div id="viewRequests" class="{{ $activeView === 'requests' ? '' : 'hidden' }}">
-        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
-            <h2 class="text-xl font-bold text-white min-w-fit">Suivi des Allos</h2>
-            <div class="flex flex-wrap gap-2 w-full">
-                <select id="filterStatus" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500" onchange="renderRequests()">
-                    <option value="ACTIVE" selected>En cours</option>
-                    <option value="ALL">Tout l'historique</option>
-                    <option value="PENDING">En attente</option>
-                    <option value="ACCEPTED">Acceptés</option>
-                    <option value="DONE">Terminés</option>
-                    <option value="CANCELLED">Annulés</option>
-                </select>
-                <select id="filterAllo" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 max-w-[200px]" onchange="renderRequests()">
-                    <option value="">Tous les allos</option>
-                </select>
-                <div class="relative w-full md:w-64">
-                    <input type="text" id="filterUser" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 pl-8 focus:ring-indigo-500" placeholder="Chercher un étudiant..." autocomplete="off">
-                    <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
-                    <button id="clearUserFilter" onclick="clearUserFilter()" class="absolute right-2 top-2 text-slate-500 hover:text-white hidden"><i class="fa-solid fa-xmark"></i></button>
-                    <div id="userSuggestions" class="absolute z-10 w-full bg-slate-800 border border-slate-600 rounded-lg mt-1 hidden max-h-48 overflow-y-auto shadow-xl"></div>
-                </div>
-            </div>
-            <div class="bg-slate-900/70 border border-slate-700 rounded-2xl p-4 flex flex-col gap-4 shadow-sm">
-                <div class="flex flex-col md:flex-row md:items-center gap-3">
-                    <div class="relative flex-1">
-                        <input type="text" id="filterSearch" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 pl-9 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Chercher un étudiant, un allo, une note..." autocomplete="off">
-                        <i class="fa-solid fa-search absolute left-3 top-3.5 text-slate-500 text-sm"></i>
-                        <button id="clearSearch" type="button" class="absolute right-3 top-3 text-slate-500 hover:text-white hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-                    <div class="md:w-64">
-                        <label class="sr-only" for="filterSort">Trier par</label>
-                        <select id="filterSort" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="slot_soon">Créneau le plus proche</option>
-                            <option value="recent">Plus récent</option>
-                            <option value="status">Statut</option>
-                            <option value="student">Étudiant</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="filtersPanel" class="hidden md:flex flex-col gap-4">
-                    <div class="flex flex-wrap gap-3">
-                        <div class="relative">
-                            <button id="statusFilterButton" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                                Statuts
-                                <span id="statusFilterCount" class="text-[10px] uppercase tracking-wide bg-indigo-500/20 text-indigo-200 px-2 py-0.5 rounded-full">2</span>
-                                <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
-                            </button>
-                            <div id="statusFilterMenu" class="absolute z-20 mt-2 w-56 rounded-xl bg-slate-900 border border-slate-700 shadow-xl p-2 hidden">
-                                <div class="flex items-center justify-between px-2 py-1 text-xs text-slate-400">
-                                    <span>Sélection rapide</span>
-                                    <button id="statusSelectAll" type="button" class="text-indigo-300 hover:text-indigo-200">Tout</button>
-                                </div>
-                                <div class="flex flex-col gap-1 p-2">
-                                    <label class="flex items-center gap-2 text-sm text-slate-200">
-                                        <input type="checkbox" value="PENDING" class="status-checkbox text-indigo-500 focus:ring-indigo-500 rounded">
-                                        En attente
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-slate-200">
-                                        <input type="checkbox" value="ACCEPTED" class="status-checkbox text-indigo-500 focus:ring-indigo-500 rounded">
-                                        En cours
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-slate-200">
-                                        <input type="checkbox" value="DONE" class="status-checkbox text-indigo-500 focus:ring-indigo-500 rounded">
-                                        Terminés
-                                    </label>
-                                    <label class="flex items-center gap-2 text-sm text-slate-200">
-                                        <input type="checkbox" value="CANCELLED" class="status-checkbox text-indigo-500 focus:ring-indigo-500 rounded">
-                                        Annulés
-                                    </label>
-                                </div>
-                                <div class="px-2 py-1 text-xs text-slate-500 border-t border-slate-700">
-                                    Sélection multiple autorisée
-                                </div>
-                            </div>
-                        </div>
-                        <select id="filterAllo" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500 max-w-[220px]">
-                            <option value="">Tous les allos</option>
-                        </select>
-                        <select id="filterAssignee" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="all">Tous les agents</option>
-                            <option value="unassigned">Non attribués</option>
-                            <option value="me">Moi</option>
-                        </select>
-                        <select id="filterDateRange" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="all">Tous les créneaux</option>
-                            <option value="today">Aujourd’hui</option>
-                            <option value="tomorrow">Demain</option>
-                            <option value="week">Semaine</option>
-                            <option value="custom">Plage personnalisée</option>
-                        </select>
-                        <div id="customDateRange" class="hidden flex items-center gap-2">
-                            <input type="date" id="filterDateFrom" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
-                            <span class="text-slate-500 text-xs">→</span>
-                            <input type="date" id="filterDateTo" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button type="button" class="quick-filter inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700 text-xs text-slate-300 hover:text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" data-quick="mine">
-                            <i class="fa-solid fa-user-check text-indigo-300"></i> Mes allos
-                        </button>
-                        <button type="button" class="quick-filter inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700 text-xs text-slate-300 hover:text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" data-quick="unassigned">
-                            <i class="fa-solid fa-user-slash text-amber-300"></i> Non attribués
-                        </button>
-                        <button type="button" class="quick-filter inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700 text-xs text-slate-300 hover:text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" data-quick="upcoming">
-                            <i class="fa-regular fa-calendar text-emerald-300"></i> À venir (aujourd’hui/demain)
-                        </button>
-                    </div>
-                </div>
-                <div id="activeFilters" class="flex flex-wrap gap-2"></div>
-            </div>
-        </div>
-        <div class="space-y-4" id="requestsContainer"></div>
-    </div>
-
-    <!-- VIEW: CATALOG -->
-    <div id="viewCatalog" class="{{ $activeView === 'catalog' ? '' : 'hidden' }}">
-        <div class="flex flex-col gap-4 mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                    <h2 class="text-xl font-bold text-white">Catalogue des Allos</h2>
-                    <p id="resultsCount" class="text-xs text-slate-400 mt-1">0 allos</p>
-                </div>
-                <button onclick="openAlloModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow">
-                    <i class="fa-solid fa-plus mr-2"></i> Nouvel Allo
-                </button>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-3">
-                <div class="flex-1">
-                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogTitleFilter">Filtrer par titre</label>
-                    <input id="catalogTitleFilter" type="text" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500" placeholder="Ex: petit dej, massage...">
-                </div>
-                <div class="sm:w-56">
-                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogStatusFilter">Statut</label>
-                    <select id="catalogStatusFilter" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
-                        <option value="ALL">Tous les statuts</option>
-                        <option value="DRAFT">Brouillon</option>
-                        <option value="OPEN">Ouvert</option>
-                        <option value="CLOSED">Fermé</option>
-                        <option value="DISABLED">Désactivé</option>
-                    </select>
-                </div>
-                <div class="sm:w-40 sm:flex sm:items-end">
-                    <button id="catalogResetFilters" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg px-3 py-2 transition-colors">
-                        Réinitialiser
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="catalogGrid"></div>
-    </div>
-@endsection
-
-@push('end_scripts')
     <style>
         .clamp-3 {
             display: -webkit-box;
@@ -594,6 +420,7 @@
 
         function populateFilters() {
             const alloSelect = document.getElementById('filterAllo');
+            if (!alloSelect) return;
             alloSelect.innerHTML = '<option value="">Tous les allos</option>';
             allos.forEach(a => {
                 const opt = document.createElement('option');
@@ -647,18 +474,26 @@
             const dateFields = document.getElementById('scheduleDateFields');
             const rangeFields = document.getElementById('scheduleRangeFields');
 
+            if (!windowFields || !dateFields || !rangeFields) return;
+
             windowFields.classList.toggle('hidden', scheduleMode !== 'window');
             dateFields.classList.toggle('hidden', scheduleMode !== 'date');
             rangeFields.classList.toggle('hidden', scheduleMode !== 'range');
         }
 
         function updateAlloRequirements() {
-            const statusValue = document.getElementById('alloStatus').value;
+            const statusElement = document.getElementById('alloStatus');
             const durationInput = document.getElementById('alloDuration');
             const windowStartInput = document.getElementById('alloStart');
             const windowEndInput = document.getElementById('alloEnd');
             const dateSlotsContainer = document.getElementById('dateSlotsContainer');
             const rangeSlotsContainer = document.getElementById('rangeSlotsContainer');
+
+            if (!statusElement || !durationInput || !windowStartInput || !windowEndInput || !dateSlotsContainer || !rangeSlotsContainer) {
+                return;
+            }
+
+            const statusValue = statusElement.value;
 
             isDraftMode = statusValue === 'DRAFT';
             durationInput.required = !isDraftMode;
@@ -676,6 +511,7 @@
         function updateCapacityVisibility() {
             const fixedFields = document.getElementById('fixedCapacityFields');
             const fixedCapacityInput = document.getElementById('alloFixedCapacity');
+            if (!fixedFields || !fixedCapacityInput) return;
             const isFixed = document.querySelector('input[name="capacityMode"]:checked')?.value === 'fixed';
             fixedFields.classList.toggle('hidden', !isFixed);
             fixedCapacityInput.required = isFixed;
@@ -683,6 +519,7 @@
 
         function renderDateSlots() {
             const container = document.getElementById('dateSlotsContainer');
+            if (!container) return;
             container.innerHTML = '';
 
             if (dateSpecificSlots.length === 0) {
@@ -720,6 +557,7 @@
 
         function renderRangeSlots() {
             const container = document.getElementById('rangeSlotsContainer');
+            if (!container) return;
             container.innerHTML = '';
 
             if (rangeTimeSlots.length === 0) {
@@ -755,6 +593,9 @@
         }
 
         function resetScheduleState() {
+            const rangeStart = document.getElementById('rangeStartDate');
+            const rangeEnd = document.getElementById('rangeEndDate');
+            if (!rangeStart || !rangeEnd) return;
             scheduleMode = 'window';
             dateSpecificSlots = [];
             rangeTimeSlots = [];
@@ -763,8 +604,8 @@
             document.querySelectorAll('input[name="scheduleMode"]').forEach((input) => {
                 input.checked = input.value === scheduleMode;
             });
-            document.getElementById('rangeStartDate').value = '';
-            document.getElementById('rangeEndDate').value = '';
+            rangeStart.value = '';
+            rangeEnd.value = '';
             updateScheduleVisibility();
             renderDateSlots();
             renderRangeSlots();
@@ -836,7 +677,9 @@
             badge.classList.toggle('hidden', pendingCount === 0);
 
             const resultsCount = document.getElementById('resultsCount');
-            resultsCount.innerText = `${filtered.length} allos`;
+            if (resultsCount) {
+                resultsCount.innerText = `${filtered.length} allos`;
+            }
 
             filtered = sortRequests(filtered);
 
@@ -1119,6 +962,7 @@
 
         function updateResetButtonState() {
             const resetButton = document.getElementById('resetFiltersButton');
+            if (!resetButton) return;
             resetButton.disabled = isDefaultFilters();
         }
 
@@ -1158,61 +1002,77 @@
             const sortSelect = document.getElementById('filterSort');
             const resetButton = document.getElementById('resetFiltersButton');
 
-            const applySearch = debounce(() => {
-                requestFilters.search = searchInput.value.trim();
-                syncFilterInputs();
-                updateQueryParams();
-                renderRequests();
-            }, 300);
+            if (searchInput && clearSearch) {
+                const applySearch = debounce(() => {
+                    requestFilters.search = searchInput.value.trim();
+                    syncFilterInputs();
+                    updateQueryParams();
+                    renderRequests();
+                }, 300);
 
-            searchInput.addEventListener('input', applySearch);
-            clearSearch.addEventListener('click', () => {
-                requestFilters.search = '';
-                syncFilterInputs();
-                updateQueryParams();
-                renderRequests();
-            });
-            alloSelect.addEventListener('change', () => {
-                requestFilters.alloId = alloSelect.value;
-                updateQueryParams();
-                renderRequests();
-            });
-            assigneeSelect.addEventListener('change', () => {
-                requestFilters.assignee = assigneeSelect.value;
-                updateQueryParams();
-                renderRequests();
-            });
-            dateRangeSelect.addEventListener('change', () => {
-                requestFilters.dateRange = dateRangeSelect.value;
-                if (requestFilters.dateRange !== 'custom') {
-                    requestFilters.dateFrom = '';
-                    requestFilters.dateTo = '';
-                }
-                syncFilterInputs();
-                updateQueryParams();
-                renderRequests();
-            });
-            dateFrom.addEventListener('change', () => {
-                requestFilters.dateFrom = dateFrom.value;
-                updateQueryParams();
-                renderRequests();
-            });
-            dateTo.addEventListener('change', () => {
-                requestFilters.dateTo = dateTo.value;
-                updateQueryParams();
-                renderRequests();
-            });
-            sortSelect.addEventListener('change', () => {
-                requestFilters.sort = sortSelect.value;
-                updateQueryParams();
-                renderRequests();
-            });
-            resetButton.addEventListener('click', () => {
-                requestFilters = { ...defaultRequestFilters };
-                syncFilterInputs();
-                updateQueryParams();
-                renderRequests();
-            });
+                searchInput.addEventListener('input', applySearch);
+                clearSearch.addEventListener('click', () => {
+                    requestFilters.search = '';
+                    syncFilterInputs();
+                    updateQueryParams();
+                    renderRequests();
+                });
+            }
+            if (alloSelect) {
+                alloSelect.addEventListener('change', () => {
+                    requestFilters.alloId = alloSelect.value;
+                    updateQueryParams();
+                    renderRequests();
+                });
+            }
+            if (assigneeSelect) {
+                assigneeSelect.addEventListener('change', () => {
+                    requestFilters.assignee = assigneeSelect.value;
+                    updateQueryParams();
+                    renderRequests();
+                });
+            }
+            if (dateRangeSelect) {
+                dateRangeSelect.addEventListener('change', () => {
+                    requestFilters.dateRange = dateRangeSelect.value;
+                    if (requestFilters.dateRange !== 'custom') {
+                        requestFilters.dateFrom = '';
+                        requestFilters.dateTo = '';
+                    }
+                    syncFilterInputs();
+                    updateQueryParams();
+                    renderRequests();
+                });
+            }
+            if (dateFrom) {
+                dateFrom.addEventListener('change', () => {
+                    requestFilters.dateFrom = dateFrom.value;
+                    updateQueryParams();
+                    renderRequests();
+                });
+            }
+            if (dateTo) {
+                dateTo.addEventListener('change', () => {
+                    requestFilters.dateTo = dateTo.value;
+                    updateQueryParams();
+                    renderRequests();
+                });
+            }
+            if (sortSelect) {
+                sortSelect.addEventListener('change', () => {
+                    requestFilters.sort = sortSelect.value;
+                    updateQueryParams();
+                    renderRequests();
+                });
+            }
+            if (resetButton) {
+                resetButton.addEventListener('click', () => {
+                    requestFilters = { ...defaultRequestFilters };
+                    syncFilterInputs();
+                    updateQueryParams();
+                    renderRequests();
+                });
+            }
 
             document.querySelectorAll('.status-checkbox').forEach(cb => {
                 cb.addEventListener('change', () => {
@@ -1244,19 +1104,24 @@
 
             const statusButton = document.getElementById('statusFilterButton');
             const statusMenu = document.getElementById('statusFilterMenu');
-            statusButton.addEventListener('click', () => {
-                statusMenu.classList.toggle('hidden');
-            });
-            document.addEventListener('click', (event) => {
-                if (!statusButton.contains(event.target) && !statusMenu.contains(event.target)) {
-                    statusMenu.classList.add('hidden');
-                }
-            });
+            if (statusButton && statusMenu) {
+                statusButton.addEventListener('click', () => {
+                    statusMenu.classList.toggle('hidden');
+                });
+                document.addEventListener('click', (event) => {
+                    if (!statusButton.contains(event.target) && !statusMenu.contains(event.target)) {
+                        statusMenu.classList.add('hidden');
+                    }
+                });
+            }
 
-            document.getElementById('openFiltersButton').addEventListener('click', () => {
-                filtersPanelOpen = !filtersPanelOpen;
-                document.getElementById('filtersPanel').classList.toggle('hidden', !filtersPanelOpen);
-            });
+            const openFiltersButton = document.getElementById('openFiltersButton');
+            if (openFiltersButton) {
+                openFiltersButton.addEventListener('click', () => {
+                    filtersPanelOpen = !filtersPanelOpen;
+                    document.getElementById('filtersPanel').classList.toggle('hidden', !filtersPanelOpen);
+                });
+            }
         }
 
         // --- CATALOG ---
@@ -1657,35 +1522,50 @@
         // Init
         window.deleteAllo = deleteAllo;
         window.openEditAllo = openEditAllo;
-        document.querySelectorAll('input[name="scheduleMode"]').forEach(input => {
-            input.addEventListener('change', (event) => setScheduleMode(event.target.value));
-        });
-        document.getElementById('alloStatus').addEventListener('change', () => {
-            updateAlloRequirements();
-        });
-        document.querySelectorAll('input[name="capacityMode"]').forEach(input => {
-            input.addEventListener('change', updateCapacityVisibility);
-        });
-        document.getElementById('addDateSlot').addEventListener('click', () => {
-            dateSpecificSlots.push({ date: '', start_time: '', end_time: '' });
-            renderDateSlots();
-        });
-        document.getElementById('addRangeSlot').addEventListener('click', () => {
-            rangeTimeSlots.push({ start_time: '', end_time: '' });
-            renderRangeSlots();
-        });
-        document.getElementById('rangeStartDate').addEventListener('change', (event) => {
-            rangeDateStart = event.target.value;
-        });
-        document.getElementById('rangeEndDate').addEventListener('change', (event) => {
-            rangeDateEnd = event.target.value;
-        });
-        updateScheduleVisibility();
-        renderDateSlots();
-        renderRangeSlots();
-        updateCapacityVisibility();
-        updateAlloRequirements();
         if (activeView === 'catalog') {
+            document.querySelectorAll('input[name="scheduleMode"]').forEach(input => {
+                input.addEventListener('change', (event) => setScheduleMode(event.target.value));
+            });
+            const alloStatus = document.getElementById('alloStatus');
+            if (alloStatus) {
+                alloStatus.addEventListener('change', () => {
+                    updateAlloRequirements();
+                });
+            }
+            document.querySelectorAll('input[name="capacityMode"]').forEach(input => {
+                input.addEventListener('change', updateCapacityVisibility);
+            });
+            const addDateSlot = document.getElementById('addDateSlot');
+            if (addDateSlot) {
+                addDateSlot.addEventListener('click', () => {
+                    dateSpecificSlots.push({ date: '', start_time: '', end_time: '' });
+                    renderDateSlots();
+                });
+            }
+            const addRangeSlot = document.getElementById('addRangeSlot');
+            if (addRangeSlot) {
+                addRangeSlot.addEventListener('click', () => {
+                    rangeTimeSlots.push({ start_time: '', end_time: '' });
+                    renderRangeSlots();
+                });
+            }
+            const rangeStartInput = document.getElementById('rangeStartDate');
+            if (rangeStartInput) {
+                rangeStartInput.addEventListener('change', (event) => {
+                    rangeDateStart = event.target.value;
+                });
+            }
+            const rangeEndInput = document.getElementById('rangeEndDate');
+            if (rangeEndInput) {
+                rangeEndInput.addEventListener('change', (event) => {
+                    rangeDateEnd = event.target.value;
+                });
+            }
+            updateScheduleVisibility();
+            renderDateSlots();
+            renderRangeSlots();
+            updateCapacityVisibility();
+            updateAlloRequirements();
             bindCatalogFilters();
             loadAdmins().then(() => {
                 populateAdminList();
@@ -1718,4 +1598,3 @@
             </div>
         </div>
     </div>
-@endpush
