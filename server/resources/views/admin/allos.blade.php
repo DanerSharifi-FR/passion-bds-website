@@ -137,7 +137,10 @@
     <div id="viewCatalog" class="{{ $activeView === 'catalog' ? '' : 'hidden' }}">
         <div class="flex flex-col gap-4 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 class="text-xl font-bold text-white">Catalogue des Allos</h2>
+                <div>
+                    <h2 class="text-xl font-bold text-white">Catalogue des Allos</h2>
+                    <p id="resultsCount" class="text-xs text-slate-400 mt-1">0 allos</p>
+                </div>
                 <button onclick="openAlloModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow">
                     <i class="fa-solid fa-plus mr-2"></i> Nouvel Allo
                 </button>
@@ -535,88 +538,6 @@
                 default:
                     return 'Brouillon';
             }
-        }
-
-        function requestStatusConfig(status) {
-            switch (status) {
-                case 'PENDING':
-                    return { label: 'En attente', icon: 'fa-circle-pause', classes: 'bg-amber-500/15 text-amber-200 border-amber-400/30' };
-                case 'ACCEPTED':
-                    return { label: 'En cours', icon: 'fa-circle-play', classes: 'bg-sky-500/15 text-sky-200 border-sky-400/30' };
-                case 'DONE':
-                    return { label: 'Terminé', icon: 'fa-circle-check', classes: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30' };
-                default:
-                    return { label: 'Annulé', icon: 'fa-circle-xmark', classes: 'bg-rose-500/15 text-rose-200 border-rose-400/30' };
-            }
-        }
-
-        function isWithinUpcomingWindow(date) {
-            if (!date) return false;
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const end = new Date(start);
-            end.setDate(end.getDate() + 2);
-            return date >= start && date < end;
-        }
-
-        const defaultRequestFilters = {
-            statuses: ['PENDING', 'ACCEPTED', 'DONE', 'CANCELLED'],
-            alloId: '',
-            assignee: 'all',
-            dateRange: 'all',
-            dateFrom: '',
-            dateTo: '',
-            search: '',
-            sort: 'slot_soon',
-            quickMine: false,
-            quickUnassigned: false,
-            quickUpcoming: false,
-        };
-        let requestFilters = { ...defaultRequestFilters };
-
-        function debounce(fn, delay = 300) {
-            let timer;
-            return (...args) => {
-                clearTimeout(timer);
-                timer = setTimeout(() => fn(...args), delay);
-            };
-        }
-
-        function updateQueryParams() {
-            const params = new URLSearchParams(window.location.search);
-            params.set('statuses', requestFilters.statuses.join(','));
-            params.set('allo_id', requestFilters.alloId || '');
-            params.set('assignee', requestFilters.assignee);
-            params.set('date_range', requestFilters.dateRange);
-            params.set('date_from', requestFilters.dateFrom || '');
-            params.set('date_to', requestFilters.dateTo || '');
-            params.set('q', requestFilters.search || '');
-            params.set('sort', requestFilters.sort);
-            params.set('quick_mine', requestFilters.quickMine ? '1' : '0');
-            params.set('quick_unassigned', requestFilters.quickUnassigned ? '1' : '0');
-            params.set('quick_upcoming', requestFilters.quickUpcoming ? '1' : '0');
-            const url = `${window.location.pathname}?${params.toString()}`;
-            window.history.replaceState({}, '', url);
-        }
-
-        function applyFiltersFromQuery() {
-            const params = new URLSearchParams(window.location.search);
-            const statusParam = params.get('statuses');
-            requestFilters.statuses = statusParam ? statusParam.split(',').filter(Boolean) : [...defaultRequestFilters.statuses];
-            requestFilters.alloId = params.get('allo_id') || '';
-            requestFilters.assignee = params.get('assignee') || 'all';
-            requestFilters.dateRange = params.get('date_range') || 'all';
-            requestFilters.dateFrom = params.get('date_from') || '';
-            requestFilters.dateTo = params.get('date_to') || '';
-            requestFilters.search = params.get('q') || '';
-            requestFilters.sort = params.get('sort') || 'slot_soon';
-            requestFilters.quickMine = params.get('quick_mine') === '1';
-            requestFilters.quickUnassigned = params.get('quick_unassigned') === '1';
-            requestFilters.quickUpcoming = params.get('quick_upcoming') === '1';
-        }
-
-        function isDefaultFilters() {
-            return JSON.stringify(requestFilters) === JSON.stringify(defaultRequestFilters);
         }
 
         // --- CORE FUNCTIONS ---
@@ -1354,7 +1275,11 @@
 
         function renderCatalog() {
             const grid = document.getElementById('catalogGrid');
+            const resultsCount = document.getElementById('resultsCount');
             const filteredAllos = getFilteredAllos();
+            if (resultsCount) {
+                resultsCount.innerText = `${filteredAllos.length} allos`;
+            }
             if (filteredAllos.length === 0) {
                 grid.innerHTML = `
                     <div class="col-span-full text-center py-12 text-slate-500">
