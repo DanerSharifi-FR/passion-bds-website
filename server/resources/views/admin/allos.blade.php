@@ -1153,7 +1153,8 @@
                 const allo = allos.find(item => String(item.id) === String(requestFilters.alloId));
                 chips.push({ label: `Allo : ${allo?.title || 'Filtre'}`, key: 'alloId' });
             }
-            if (requestFilters.statuses.length && requestFilters.statuses.length < 4) {
+            const isDefaultStatuses = JSON.stringify(requestFilters.statuses) === JSON.stringify(defaultRequestFilters.statuses);
+            if (!isDefaultStatuses) {
                 chips.push({ label: `Statuts : ${requestFilters.statuses.join(', ')}`, key: 'statuses' });
             }
             if (requestFilters.assignee !== 'all') {
@@ -1191,7 +1192,7 @@
         function removeFilterChip(key) {
             if (key === 'search') requestFilters.search = '';
             if (key === 'alloId') requestFilters.alloId = '';
-            if (key === 'statuses') requestFilters.statuses = [...defaultRequestFilters.statuses];
+            if (key === 'statuses') requestFilters.statuses = ['PENDING', 'ACCEPTED', 'DONE', 'CANCELLED'];
             if (key === 'assignee') requestFilters.assignee = 'all';
             if (key === 'dateRange') {
                 requestFilters.dateRange = 'all';
