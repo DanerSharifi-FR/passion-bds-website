@@ -111,7 +111,7 @@ class PageController extends Controller
         }
 
         $availabilityThreshold = $now->copy()->addMinutes(max((int) ($allo->security_margin_minutes ?? 0), 0));
-        $slotCapacityFallback = $allo->admins()->count();
+        $slotCapacityFallback = $allo->resolveSlotCapacity();
 
         $bookingCountsByDate = AlloUsage::query()
             ->selectRaw('DATE(slot_start_at) as slot_date, COUNT(*) as bookings_count')
