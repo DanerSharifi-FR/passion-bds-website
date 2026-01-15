@@ -342,26 +342,13 @@ class AlloApiController extends Controller
         }
 
         $dailyLimit = $allo->daily_booking_limit;
-        $slotDate = $slot->slot_start_at?->toDateString();
-        $dailyLimitReached = $slotDate !== null
-            && $dailyLimit !== null
-            && $dailyLimit > 0
-            && AlloUsage::query()
-                ->where('user_id', $user->id)
-                ->where('allo_id', $allo->id)
-                ->whereDate('slot_start_at', $slotDate)
-                ->whereIn('status', [
-                    AlloUsageService::STATUS_PENDING,
-                    AlloUsageService::STATUS_ACCEPTED,
-                    AlloUsageService::STATUS_DONE,
-                ])
-                ->count() >= $dailyLimit;
 
-        if ($dailyLimitReached) {
-            return response()->json(['message' => 'Vous avez atteint la limite de réservations pour cet allo ce jour-là.'], 422);
-        }
+        $booking = DB::transaction(function () use ($user, $allo, $slot, $validated, $dailyLimit): AlloUsage {
+            $user->newQuery()
+                ->whereKey($user->id)
+                ->lockForUpdate()
+                ->first();
 
-        $booking = DB::transaction(function () use ($user, $allo, $slot, $validated): AlloUsage {
             $slot = AlloSlot::query()
                 ->where('id', $slot->id)
                 ->lockForUpdate()
@@ -369,6 +356,39 @@ class AlloApiController extends Controller
 
             if ($slot->status === 'blocked') {
                 abort(422, 'Ce créneau est bloqué.');
+            }
+
+            $slotDate = $slot->slot_start_at?->toDateString();
+            $dailyLimitReached = $slotDate !== null
+                && $dailyLimit !== null
+                && $dailyLimit > 0
+                && AlloUsage::query()
+                    ->where('user_id', $user->id)
+                    ->where('allo_id', $allo->id)
+                    ->whereDate('slot_start_at', $slotDate)
+                    ->whereIn('status', [
+                        AlloUsageService::STATUS_PENDING,
+                        AlloUsageService::STATUS_ACCEPTED,
+                        AlloUsageService::STATUS_DONE,
+                    ])
+                    ->count() >= $dailyLimit;
+
+            if ($dailyLimitReached) {
+                abort(422, 'Vous avez atteint la limite de réservations pour cet allo ce jour-là.');
+            }
+
+            $existingBooking = AlloUsage::query()
+                ->where('user_id', $user->id)
+                ->where('allo_slot_id', $slot->id)
+                ->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ])
+                ->exists();
+
+            if ($existingBooking) {
+                abort(422, 'Ce créneau est déjà réservé.');
             }
 
             $slotCapacity = $allo->admins()->count();
@@ -407,7 +427,7 @@ class AlloApiController extends Controller
             $slot->save();
 
             return $usage;
-        });
+        }, 5);
 
         return response()->json([
             'message' => 'Réservation enregistrée.',
@@ -580,27 +600,13 @@ class AlloApiController extends Controller
         }
 
         $dailyLimit = $allo->daily_booking_limit;
-        $slotDate = $slot->slot_start_at?->toDateString();
-        $dailyLimitReached = $slotDate !== null
-            && $dailyLimit !== null
-            && $dailyLimit > 0
-            && AlloUsage::query()
-                ->where('user_id', $user->id)
-                ->where('allo_id', $allo->id)
-                ->whereDate('slot_start_at', $slotDate)
-                ->whereIn('status', [
-                    AlloUsageService::STATUS_PENDING,
-                    AlloUsageService::STATUS_ACCEPTED,
-                    AlloUsageService::STATUS_DONE,
-                ])
-                ->where('id', '!=', $booking->id)
-                ->count() >= $dailyLimit;
 
-        if ($dailyLimitReached) {
-            return response()->json(['message' => 'Vous avez atteint la limite de réservations pour cet allo ce jour-là.'], 422);
-        }
+        $updatedBooking = DB::transaction(function () use ($allo, $booking, $slot, $validated, $dailyLimit, $user): AlloUsage {
+            $user->newQuery()
+                ->whereKey($user->id)
+                ->lockForUpdate()
+                ->first();
 
-        $updatedBooking = DB::transaction(function () use ($allo, $booking, $slot, $validated): AlloUsage {
             $originalSlotId = $booking->allo_slot_id;
 
             $lockedSlots = AlloSlot::query()
@@ -617,6 +623,26 @@ class AlloApiController extends Controller
 
             if ($lockedSlot->status === 'blocked') {
                 abort(422, 'Ce créneau est bloqué.');
+            }
+
+            $slotDate = $lockedSlot->slot_start_at?->toDateString();
+            $dailyLimitReached = $slotDate !== null
+                && $dailyLimit !== null
+                && $dailyLimit > 0
+                && AlloUsage::query()
+                    ->where('user_id', $user->id)
+                    ->where('allo_id', $allo->id)
+                    ->whereDate('slot_start_at', $slotDate)
+                    ->whereIn('status', [
+                        AlloUsageService::STATUS_PENDING,
+                        AlloUsageService::STATUS_ACCEPTED,
+                        AlloUsageService::STATUS_DONE,
+                    ])
+                    ->where('id', '!=', $booking->id)
+                    ->count() >= $dailyLimit;
+
+            if ($dailyLimitReached) {
+                abort(422, 'Vous avez atteint la limite de réservations pour cet allo ce jour-là.');
             }
 
             $slotCapacity = $allo->admins()->count();
@@ -656,7 +682,7 @@ class AlloApiController extends Controller
             }
 
             return $booking;
-        });
+        }, 5);
 
         return response()->json([
             'message' => 'Réservation mise à jour.',
