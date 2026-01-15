@@ -169,6 +169,8 @@
 
         async function cancelBooking(bookingId, button) {
             if (!bookingId) return;
+            const shouldCancel = window.confirm('Souhaites-tu vraiment te désister de cette réservation ?');
+            if (!shouldCancel) return;
             if (button) {
                 button.disabled = true;
             }
