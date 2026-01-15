@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use App\Models\Allo;
+use App\Models\AlloPageView;
 use App\Models\AlloSlot;
 use App\Models\AlloUsage;
 use App\Models\User;
@@ -96,6 +97,23 @@ class PageController extends Controller
             || $slotsPassed;
 
         abort_if($isEnded, 404);
+
+        if ($user !== null) {
+            try {
+                // Journalise la visite d'un utilisateur authentifié sans bloquer le chargement.
+                AlloPageView::create([
+                    'allo_id' => $allo->id,
+                    'user_id' => $user->id,
+                    'viewed_at' => now(),
+                ]);
+            } catch (\Throwable $exception) {
+                logger()->warning('Impossible de tracer la visite allo.', [
+                    'allo_id' => $allo->id,
+                    'user_id' => $user->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
 
         return view('allo-slots', [
             'alloId' => $alloId,

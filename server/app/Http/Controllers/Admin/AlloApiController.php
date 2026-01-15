@@ -139,6 +139,78 @@ class AlloApiController extends Controller
         return response()->json(['data' => $requests]);
     }
 
+    public function visits(Request $request)
+    {
+        $mode = strtolower(trim((string) $request->query('mode', 'hours')));
+        $maxHours = 168;
+        $maxDays = 365;
+
+        if (!in_array($mode, ['hours', 'days', 'range'], true)) {
+            return response()->json(['message' => 'Mode de fenêtre invalide.'], 422);
+        }
+
+        if ($mode === 'hours' || $mode === 'days') {
+            $rawN = $request->query('n', 24);
+            if (!is_numeric($rawN)) {
+                return response()->json(['message' => 'Valeur numérique invalide pour la fenêtre.'], 422);
+            }
+            $n = (int) $rawN;
+            if ($n < 1) {
+                return response()->json(['message' => 'La fenêtre doit être supérieure ou égale à 1.'], 422);
+            }
+
+            if ($mode === 'hours') {
+                $n = min($n, $maxHours);
+                $start = Carbon::now()->subHours($n);
+            } else {
+                $n = min($n, $maxDays);
+                $start = Carbon::now()->subDays($n);
+            }
+
+            $end = Carbon::now();
+            $counts = $this->fetchVisitsCounts($start, $end);
+
+            return response()->json([
+                'data' => $counts,
+                'meta' => [
+                    'mode' => $mode,
+                    'n' => $n,
+                    'from' => $start->toDateTimeString(),
+                    'to' => $end->toDateTimeString(),
+                ],
+            ]);
+        }
+
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        if (!$from || !$to) {
+            return response()->json(['message' => 'Les dates de début et de fin sont requises.'], 422);
+        }
+
+        try {
+            $start = Carbon::createFromFormat('Y-m-d', $from)->startOfDay();
+            $end = Carbon::createFromFormat('Y-m-d', $to)->endOfDay();
+        } catch (\Throwable $exception) {
+            return response()->json(['message' => 'Format de date invalide.'], 422);
+        }
+
+        if ($start->greaterThan($end)) {
+            return response()->json(['message' => 'La date de début doit précéder la date de fin.'], 422);
+        }
+
+        $counts = $this->fetchVisitsCounts($start, $end);
+
+        return response()->json([
+            'data' => $counts,
+            'meta' => [
+                'mode' => $mode,
+                'from' => $start->toDateString(),
+                'to' => $end->toDateString(),
+            ],
+        ]);
+    }
+
     public function updateUsage(Request $request, AlloUsage $usage, AlloUsageService $usageService)
     {
         $validated = $request->validate([
@@ -385,6 +457,7 @@ class AlloApiController extends Controller
             'title' => $allo->title,
             'description' => $allo->description,
             'status' => $allo->status,
+            'created_at' => $allo->created_at?->toIso8601String(),
             'capacity' => $capacity,
             'booked_count' => $bookedCount,
             'remaining' => max($capacity - $bookedCount, 0),
@@ -402,6 +475,23 @@ class AlloApiController extends Controller
             ])->values(),
             'admin_ids' => $allo->admins->pluck('id')->values(),
         ];
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function fetchVisitsCounts(Carbon $start, Carbon $end): array
+    {
+        return DB::table('allo_page_views')
+            ->select([
+                'allo_id',
+                DB::raw('COUNT(DISTINCT user_id) as visitors'),
+            ])
+            ->whereBetween('viewed_at', [$start, $end])
+            ->groupBy('allo_id')
+            ->get()
+            ->mapWithKeys(fn ($row) => [(int) $row->allo_id => (int) $row->visitors])
+            ->all();
     }
 
     /**

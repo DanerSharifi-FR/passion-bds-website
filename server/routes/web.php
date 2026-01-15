@@ -171,6 +171,7 @@ Route::prefix('admin')->as('admin.')->group(function () {
                 Route::delete('/allos/{allo}', [AlloApiController::class, 'destroy'])->name('allos.delete');
                 Route::get('/allo-admins', [AlloApiController::class, 'listAdmins'])->name('allos.admins.index');
                 Route::get('/allo-usages', [AlloApiController::class, 'usages'])->name('allos.usages.index');
+                Route::get('/allo-visits', [AlloApiController::class, 'visits'])->name('allos.visits.index');
                 Route::put('/allo-usages/{usage}', [AlloApiController::class, 'updateUsage'])->name('allos.usages.update');
             });
 

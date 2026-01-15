@@ -7,7 +7,7 @@
 @section('top_bar_buttons')
     <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700 ml-4">
         <a href="{{ route('admin.allos.requests') }}" id="tabRequests" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all {{ $activeView === 'requests' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white' }}">
-            <i class="fa-solid fa-bell mr-2"></i> Demandes <span class="ml-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full" id="pendingCount">3</span>
+            <i class="fa-solid fa-bell mr-2"></i> Demandes <span class="ml-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full hidden" id="pendingCount">0</span>
         </a>
         <a href="{{ route('admin.allos.catalog') }}" id="tabCatalog" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all {{ $activeView === 'catalog' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white' }}">
             <i class="fa-solid fa-store mr-2"></i> Catalogue & Créneaux
@@ -158,6 +158,38 @@
                     </button>
                 </div>
             </div>
+            <div class="flex flex-col sm:flex-row flex-wrap gap-3">
+                <div class="sm:w-48">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogWindowMode">Fenêtre</label>
+                    <select id="catalogWindowMode" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                        <option value="hours">Dernières heures</option>
+                        <option value="days">Derniers jours</option>
+                        <option value="range">Plage personnalisée</option>
+                    </select>
+                </div>
+                <div class="sm:w-40" id="catalogWindowNumber">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogWindowValue" id="catalogWindowValueLabel">Dernières heures</label>
+                    <input id="catalogWindowValue" type="number" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500" min="1" max="168" value="24">
+                </div>
+                <div class="flex flex-wrap items-end gap-2 hidden" id="catalogWindowRange">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogWindowFrom">Du</label>
+                        <input id="catalogWindowFrom" type="date" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogWindowTo">Au</label>
+                        <input id="catalogWindowTo" type="date" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div class="sm:w-48">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogSort">Ordonner par</label>
+                    <select id="catalogSort" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                        <option value="visits_window_desc">Visites (fenêtre)</option>
+                        <option value="recent">Création (récent)</option>
+                        <option value="title">Titre (A → Z)</option>
+                    </select>
+                </div>
+            </div>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="catalogGrid"></div>
     </div>
@@ -302,6 +334,7 @@
             allos: '/admin/api/allos',
             admins: '/admin/api/allo-admins',
             usages: '/admin/api/allo-usages',
+            visits: '/admin/api/allo-visits',
         };
 
         const isSuperAdmin = @json(auth()->user()->hasRole('ROLE_SUPER_ADMIN'));
@@ -313,6 +346,7 @@
         let admins = [];
         let requestActionState = {};
         let filtersPanelOpen = false;
+        let visitsByAlloId = {};
         const defaultRequestFilters = {
             statuses: ['PENDING', 'ACCEPTED', 'DONE', 'CANCELLED'],
             scope: 'mine',
@@ -328,6 +362,13 @@
         let catalogFilters = {
             title: '',
             status: 'ALL',
+            sort: 'visits_window_desc',
+        };
+        let catalogAnalyticsWindow = {
+            mode: 'hours',
+            n: 24,
+            from: '',
+            to: '',
         };
         let scheduleMode = 'window';
         let dateSpecificSlots = [];
@@ -463,6 +504,26 @@
         function formatTimeOnly(timeString) {
             if (!timeString) return '';
             return timeString.slice(0, 5);
+        }
+
+        function setPendingBadge(count) {
+            const badge = document.getElementById('pendingCount');
+            if (!badge) return;
+            badge.innerText = count;
+            badge.classList.toggle('hidden', count === 0);
+        }
+
+        function formatAnalyticsWindowLabel(windowState) {
+            if (windowState.mode === 'hours') {
+                return `${windowState.n}h`;
+            }
+            if (windowState.mode === 'days') {
+                return `${windowState.n}j`;
+            }
+            if (windowState.from && windowState.to) {
+                return `du ${formatDateOnly(windowState.from)} au ${formatDateOnly(windowState.to)}`;
+            }
+            return 'plage';
         }
 
         function formatWindowInfo(startAt, endAt) {
@@ -1012,9 +1073,7 @@
             });
 
             const pendingCount = requests.filter(r => r.status === 'PENDING').length;
-            const badge = document.getElementById('pendingCount');
-            badge.innerText = pendingCount;
-            badge.classList.toggle('hidden', pendingCount === 0);
+            setPendingBadge(pendingCount);
 
             const resultsCount = document.getElementById('requestsCount');
             if (resultsCount) {
@@ -1483,13 +1542,47 @@
             const titleFilter = catalogFilters.title.trim().toLowerCase();
             const statusFilter = catalogFilters.status;
 
-            return allos.filter((allo) => {
+            const filtered = allos.filter((allo) => {
                 const matchesTitle = !titleFilter
                     || allo.title.toLowerCase().includes(titleFilter);
                 const matchesStatus = statusFilter === 'ALL'
                     || allo.status === statusFilter;
                 return matchesTitle && matchesStatus;
             });
+
+            return sortCatalogAllos(filtered);
+        }
+
+        function sortCatalogAllos(items) {
+            const sorted = [...items];
+            const sortMode = catalogFilters.sort;
+
+            if (sortMode === 'title') {
+                sorted.sort((a, b) => a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' }));
+                return sorted;
+            }
+
+            if (sortMode === 'visits_window_desc') {
+                sorted.sort((a, b) => {
+                    const visitsA = visitsByAlloId[a.id] ?? 0;
+                    const visitsB = visitsByAlloId[b.id] ?? 0;
+                    if (visitsA !== visitsB) {
+                        return visitsB - visitsA;
+                    }
+                    return a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' });
+                });
+                return sorted;
+            }
+
+            if (sortMode === 'recent') {
+                sorted.sort((a, b) => {
+                    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                    return dateB - dateA;
+                });
+            }
+
+            return sorted;
         }
 
         function renderCatalog() {
@@ -1512,12 +1605,18 @@
             const html = filteredAllos.map(a => {
                 const windowInfo = formatScheduleInfo(a);
                 const adminsStr = a.admins && a.admins.length > 0 ? a.admins.map(admin => admin.name).join(', ') : "Tous";
+                const visitsCount = visitsByAlloId[a.id] ?? 0;
+                const visitsLabel = formatAnalyticsWindowLabel(catalogAnalyticsWindow);
                 return `
                     <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow flex flex-col">
                         <div class="flex justify-between items-start mb-2 gap-2">
                             <div>
                                 <h3 class="text-lg font-bold text-white">${a.title}</h3>
                                 <span class="inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wide rounded border ${statusBadgeClasses(a.status)}">${statusLabel(a.status)}</span>
+                            </div>
+                            <div class="text-xs text-slate-200 bg-slate-900/60 border border-slate-700 rounded-full px-2 py-1 flex items-center gap-1">
+                                <span>👁 ${visitsCount}</span>
+                                <span class="text-[10px] text-slate-400">${visitsLabel}</span>
                             </div>
                         </div>
                         <p class="text-sm text-slate-400 mb-2 flex-1">${a.description || 'Pas de description.'}</p>
@@ -1642,22 +1741,124 @@
             const titleFilter = document.getElementById('catalogTitleFilter');
             const statusFilter = document.getElementById('catalogStatusFilter');
             const resetButton = document.getElementById('catalogResetFilters');
+            const windowMode = document.getElementById('catalogWindowMode');
+            const windowValue = document.getElementById('catalogWindowValue');
+            const windowValueLabel = document.getElementById('catalogWindowValueLabel');
+            const windowNumberWrapper = document.getElementById('catalogWindowNumber');
+            const windowRangeWrapper = document.getElementById('catalogWindowRange');
+            const windowFrom = document.getElementById('catalogWindowFrom');
+            const windowTo = document.getElementById('catalogWindowTo');
+            const sortSelect = document.getElementById('catalogSort');
 
             const applyFilters = () => {
                 catalogFilters = {
                     title: titleFilter.value,
                     status: statusFilter.value,
+                    sort: sortSelect.value,
                 };
                 renderCatalog();
             };
 
+            const applyWindowMode = () => {
+                catalogAnalyticsWindow.mode = windowMode.value;
+                const isRange = catalogAnalyticsWindow.mode === 'range';
+                windowNumberWrapper.classList.toggle('hidden', isRange);
+                windowRangeWrapper.classList.toggle('hidden', !isRange);
+                if (catalogAnalyticsWindow.mode === 'hours') {
+                    windowValueLabel.innerText = 'Dernières heures';
+                    windowValue.min = '1';
+                    windowValue.max = '168';
+                } else if (catalogAnalyticsWindow.mode === 'days') {
+                    windowValueLabel.innerText = 'Derniers jours';
+                    windowValue.min = '1';
+                    windowValue.max = '365';
+                }
+                refreshCatalogAnalytics();
+            };
+
             titleFilter.addEventListener('input', applyFilters);
             statusFilter.addEventListener('change', applyFilters);
+            sortSelect.addEventListener('change', applyFilters);
             resetButton.addEventListener('click', () => {
                 titleFilter.value = '';
                 statusFilter.value = 'ALL';
+                sortSelect.value = 'visits_window_desc';
                 applyFilters();
             });
+
+            windowMode.addEventListener('change', applyWindowMode);
+            const applyWindowValue = debounce(() => {
+                const nextValue = parseInt(windowValue.value, 10);
+                catalogAnalyticsWindow.n = Number.isNaN(nextValue) ? 1 : nextValue;
+                refreshCatalogAnalytics();
+            }, 400);
+            windowValue.addEventListener('input', applyWindowValue);
+            windowFrom.addEventListener('change', () => {
+                catalogAnalyticsWindow.from = windowFrom.value;
+                refreshCatalogAnalytics();
+            });
+            windowTo.addEventListener('change', () => {
+                catalogAnalyticsWindow.to = windowTo.value;
+                refreshCatalogAnalytics();
+            });
+
+            windowMode.value = catalogAnalyticsWindow.mode;
+            windowValue.value = catalogAnalyticsWindow.n;
+            windowFrom.value = catalogAnalyticsWindow.from;
+            windowTo.value = catalogAnalyticsWindow.to;
+            applyWindowMode();
+        }
+
+        async function refreshPendingCount() {
+            try {
+                const response = await fetch(`${API.usages}?status=PENDING`, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger les demandes.');
+                const pending = Array.isArray(payload.data) ? payload.data.length : 0;
+                setPendingBadge(pending);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function refreshCatalogAnalytics() {
+            try {
+                const params = new URLSearchParams();
+                params.set('mode', catalogAnalyticsWindow.mode);
+
+                if (catalogAnalyticsWindow.mode === 'hours' || catalogAnalyticsWindow.mode === 'days') {
+                    const max = catalogAnalyticsWindow.mode === 'hours' ? 168 : 365;
+                    const n = Math.min(Math.max(catalogAnalyticsWindow.n || 1, 1), max);
+                    catalogAnalyticsWindow.n = n;
+                    const windowValueInput = document.getElementById('catalogWindowValue');
+                    if (windowValueInput) {
+                        windowValueInput.value = n;
+                    }
+                    params.set('n', String(n));
+                } else {
+                    if (!catalogAnalyticsWindow.from || !catalogAnalyticsWindow.to) {
+                        renderCatalog();
+                        return;
+                    }
+                    params.set('from', catalogAnalyticsWindow.from);
+                    params.set('to', catalogAnalyticsWindow.to);
+                }
+
+                const response = await fetch(`${API.visits}?${params.toString()}`, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger les visites.');
+                visitsByAlloId = payload.data || {};
+                renderCatalog();
+            } catch (error) {
+                console.error(error);
+                renderCatalog();
+            }
         }
 
         async function submitAllo() {
@@ -1904,6 +2105,7 @@
         renderRangeSlots();
         updateCapacityVisibility();
         updateAlloRequirements();
+        refreshPendingCount();
         if (activeView === 'catalog') {
             bindCatalogFilters();
             loadAdmins().then(() => {
