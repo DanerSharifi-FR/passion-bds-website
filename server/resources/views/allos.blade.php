@@ -377,12 +377,14 @@
                 const canBookNew = allo.can_book_new ?? true;
                 const hasAvailableSlots = allo.has_available_slots ?? true;
                 const hasAlternativeSlots = allo.has_alternative_slots ?? hasAvailableSlots;
+                const isDone = userBooking?.status === 'DONE';
                 const isPending = userBooking?.status === 'PENDING';
                 const isAccepted = userBooking?.status === 'ACCEPTED';
                 const showBookingStatus = hasBooking && !isEnded;
-                const bookingStatusLabel = userBooking?.status
-                    ? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
-                    : '';
+                const bookingStatusLabel = '';
+                //const bookingStatusLabel = userBooking?.status
+                    //? `Réservation : ${bookingStatusLabels[userBooking.status] || userBooking.status}`
+                    //: '';
                 const showModifyButton = !isDisabled && hasBooking && isAuthenticated && isPending && hasAlternativeSlots;
                 const showDesistButton = !isDisabled && hasBooking && isAuthenticated && isPending && !hasAlternativeSlots;
                 const showSlotsButton = !isDisabled && !hasBooking && canBookNew && hasAvailableSlots;
@@ -401,6 +403,16 @@
                     : 'Modifier ma réservation';
 
                 const actionItems = [];
+
+
+                if (showLimitActions && !showManageReservationsButton && !showDesistButton && !isAccepted && !isDone) {
+                    actionItems.push(`
+                        <a href="/allos/${allo.id}/creneaux"
+                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
+                            Gérer mes réservations
+                        </a>
+                    `);
+                }
 
                 if (showManageReservationsButton) {
                     actionItems.push(`
@@ -433,15 +445,6 @@
                         <a href="/allos/reservations"
                            class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                             Voir mes réservations
-                        </a>
-                    `);
-                }
-
-                if (showLimitActions && !showManageReservationsButton && !showDesistButton) {
-                    actionItems.push(`
-                        <a href="/allos/${allo.id}/creneaux"
-                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
-                            Voir les créneaux
                         </a>
                     `);
                 }
@@ -567,12 +570,26 @@
             });
         });
 
-        catalogElement.addEventListener('click', (event) => {
+        catalogElement.addEventListener('click', async (event) => {
             const button = event.target.closest('[data-cancel-booking-id]');
             if (!button) return;
+
             event.preventDefault();
-            cancelBooking(button.dataset.cancelBookingId, button);
+
+            const bookingId = button.dataset.cancelBookingId;
+            if (!bookingId) return;
+
+            // 1) first confirm
+            const ok1 = window.confirm("Tu veux vraiment te désister ? Cette action supprime ta réservation.");
+            if (!ok1) return;
+
+            // 2) second confirm (stronger wording)
+            const ok2 = window.confirm("Dernière confirmation : tu es sûr(e) à 100% ? Tu perds ce créneau.");
+            if (!ok2) return;
+
+            await cancelBooking(bookingId, button);
         });
+
 
         async function loadAllos() {
             try {

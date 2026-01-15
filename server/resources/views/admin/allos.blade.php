@@ -1170,24 +1170,26 @@
             await updateUsage(id, payload, status);
         }
 
-        function getAssignableAdmins(alloId) {
+        function getAssignableAdmins(alloId, currentHandlerId = null) {
             const allo = allos.find(item => item.id === alloId);
             const alloAdmins = Array.isArray(allo?.admins) ? allo.admins : [];
-            if (!admins || admins.length === 0) {
-                return alloAdmins;
+
+            // Safety: if current handler exists but is not in allo.admins, keep it selectable (legacy data)
+            if (currentHandlerId && !alloAdmins.some(a => String(a.id) === String(currentHandlerId))) {
+                const fallback = admins.find(a => String(a.id) === String(currentHandlerId));
+                if (fallback) return [...alloAdmins, fallback];
             }
-            const combined = new Map();
-            admins.forEach(admin => combined.set(String(admin.id), admin));
-            alloAdmins.forEach(admin => combined.set(String(admin.id), admin));
-            return Array.from(combined.values());
+
+            return alloAdmins;
         }
+
 
         function renderAssignControls(request, isLoading) {
             if (request.status !== 'PENDING' && request.status !== 'ACCEPTED') {
                 return '';
             }
 
-            const availableAdmins = getAssignableAdmins(request.allo_id);
+            const availableAdmins = getAssignableAdmins(request.allo_id, request.handled_by_id);
             if (!availableAdmins || availableAdmins.length === 0) {
                 return '<span class="text-xs text-slate-500 mr-2">Aucun responsable.</span>';
             }
@@ -1207,7 +1209,17 @@
                         <option value="" ${noneSelected}>Personne</option>
                         ${options}
                     </select>
-                    <button onclick="assignUsage(${request.id})" data-assign-button="${request.id}" data-current-handler="${request.handled_by_id || ''}" class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}" ${isDisabled ? 'disabled' : ''} title="${isDisabled ? 'Action en cours' : 'Sélectionnez un agent pour attribuer'}">${buttonLabel}</button>
+                    <button
+                      onclick="assignUsage(${request.id})"
+                      data-assign-button="${request.id}"
+                      data-current-handler="${request.handled_by_id || ''}"
+                      data-loading="${isLoading ? '1' : '0'}"
+                      class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}"
+                      ${isDisabled ? 'disabled' : ''}
+                    >
+                      ${buttonLabel}
+                    </button>
+
                     ${request.status === 'ACCEPTED' ? `<button onclick="updateStatus(${request.id}, 'PENDING')" class="text-xs px-3 py-1.5 rounded border border-slate-600 text-slate-200 hover:text-yellow-200 hover:border-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}" ${isDisabled ? 'disabled' : ''} title="${isDisabled ? 'Action en cours' : 'Relâcher la demande'}">Relâcher</button>` : ''}
                 </div>
             `;
@@ -1282,12 +1294,13 @@
                 const requestId = select.dataset.assignSelect;
                 const button = document.querySelector(`[data-assign-button="${requestId}"]`);
                 if (!button) return;
-                const currentHandler = button.dataset.currentHandler;
+                const currentHandler = String(button.dataset.currentHandler || '');
                 const updateState = () => {
-                    const selected = select.value;
-                    const isLoading = button.hasAttribute('disabled') && button.classList.contains('cursor-not-allowed');
-                    const isNoChange = selected === currentHandler || (!selected && !currentHandler);
+                    const selected = String(select.value || '');
+                    const isLoading = button.dataset.loading === '1';
+                    const isNoChange = selected === currentHandler;
                     const shouldDisable = isLoading || isNoChange;
+
                     button.disabled = shouldDisable;
                     button.classList.toggle('opacity-50', shouldDisable);
                     button.classList.toggle('cursor-not-allowed', shouldDisable);

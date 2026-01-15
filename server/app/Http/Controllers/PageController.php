@@ -100,12 +100,24 @@ class PageController extends Controller
 
         if ($user !== null) {
             try {
-                // Journalise la visite d'un utilisateur authentifié sans bloquer le chargement.
-                AlloPageView::create([
-                    'allo_id' => $allo->id,
-                    'user_id' => $user->id,
-                    'viewed_at' => now(),
-                ]);
+                $startOfToday = now()->startOfDay();
+                $startOfTomorrow = $startOfToday->copy()->addDay();
+
+                $alreadyLoggedToday = AlloPageView::query()
+                    ->where('allo_id', $allo->id)
+                    ->where('user_id', $user->id)
+                    ->where('viewed_at', '>=', $startOfToday)
+                    ->where('viewed_at', '<', $startOfTomorrow)
+                    ->exists();
+
+                if (! $alreadyLoggedToday) {
+                    // Journalise 1 visite / jour (jour calendaire).
+                    AlloPageView::create([
+                        'allo_id' => $allo->id,
+                        'user_id' => $user->id,
+                        'viewed_at' => now(),
+                    ]);
+                }
             } catch (\Throwable $exception) {
                 logger()->warning('Impossible de tracer la visite allo.', [
                     'allo_id' => $allo->id,
@@ -114,6 +126,7 @@ class PageController extends Controller
                 ]);
             }
         }
+
 
         return view('allo-slots', [
             'alloId' => $alloId,
