@@ -84,9 +84,14 @@ Route::prefix('admin')->as('admin.')->group(function () {
             Route::get('/activities/{activity}/players', [ActivityPlayersController::class, 'index'])->name('activities.players');
         });
 
-        Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')->group(function () {
-            Route::get('/allos', [AlloController::class, 'index'])->name('allos');
-        });
+        Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')
+            ->prefix('allos')
+            ->name('allos.')
+            ->group(function () {
+                Route::get('/', [AlloController::class, 'index'])->name('index');
+                Route::get('/demandes', [AlloController::class, 'requests'])->name('requests');
+                Route::get('/catalogue-creneaux', [AlloController::class, 'catalog'])->name('catalog');
+            });
 
         // Admin API
         Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')

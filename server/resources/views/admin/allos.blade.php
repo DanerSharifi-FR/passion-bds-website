@@ -2,20 +2,22 @@
 
 @section('title', "Gestion des Allos - P'AS'SION BDS")
 
+@php($activeView = $activeView ?? 'requests')
+
 @section('top_bar_buttons')
     <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700 ml-4">
-        <button onclick="switchView('requests')" id="tabRequests" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-indigo-600 text-white shadow">
+        <a href="{{ route('admin.allos.requests') }}" id="tabRequests" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all {{ $activeView === 'requests' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white' }}">
             <i class="fa-solid fa-bell mr-2"></i> Demandes <span class="ml-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full" id="pendingCount">3</span>
-        </button>
-        <button onclick="switchView('catalog')" id="tabCatalog" class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
+        </a>
+        <a href="{{ route('admin.allos.catalog') }}" id="tabCatalog" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all {{ $activeView === 'catalog' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white' }}">
             <i class="fa-solid fa-store mr-2"></i> Catalogue & Créneaux
-        </button>
+        </a>
     </div>
 @endsection
 
 @section('content')
     <!-- VIEW: REQUESTS -->
-    <div id="viewRequests">
+    <div id="viewRequests" class="{{ $activeView === 'requests' ? '' : 'hidden' }}">
         <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
             <h2 class="text-xl font-bold text-white min-w-fit">Suivi des Allos</h2>
             <div class="flex flex-wrap gap-2 w-full">
@@ -43,7 +45,7 @@
     </div>
 
     <!-- VIEW: CATALOG -->
-    <div id="viewCatalog" class="hidden">
+    <div id="viewCatalog" class="{{ $activeView === 'catalog' ? '' : 'hidden' }}">
         <div class="flex flex-col gap-4 mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <h2 class="text-xl font-bold text-white">Catalogue des Allos</h2>
@@ -211,6 +213,7 @@
         };
 
         const isSuperAdmin = @json(auth()->user()->hasRole('ROLE_SUPER_ADMIN'));
+        const activeView = @json($activeView ?? 'requests');
 
         let allos = [];
         let requests = [];
@@ -418,25 +421,6 @@
         }
 
         // --- CORE FUNCTIONS ---
-        function switchView(view) {
-            const v1 = document.getElementById('viewRequests');
-            const v2 = document.getElementById('viewCatalog');
-            const t1 = document.getElementById('tabRequests');
-            const t2 = document.getElementById('tabCatalog');
-
-            if (view === 'requests') {
-                v1.classList.remove('hidden'); v2.classList.add('hidden');
-                t1.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-indigo-600 text-white shadow";
-                t2.className = "px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
-                renderRequests();
-            } else {
-                v1.classList.add('hidden'); v2.classList.remove('hidden');
-                t2.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-indigo-600 text-white shadow";
-                t1.className = "px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
-                renderCatalog();
-            }
-        }
-
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
             if (sb.classList.contains('-translate-x-full')) sb.classList.remove('-translate-x-full');
@@ -1213,13 +1197,21 @@
         renderRangeSlots();
         updateCapacityVisibility();
         updateAlloRequirements();
-        loadAdmins().then(() => {
-            populateAdminList();
-            renderRequests();
-        });
-        bindCatalogFilters();
-        loadAllos();
-        loadRequests();
+        if (activeView === 'catalog') {
+            bindCatalogFilters();
+            loadAdmins().then(() => {
+                populateAdminList();
+                renderCatalog();
+            });
+            loadAllos();
+        } else {
+            loadAdmins().then(() => {
+                populateAdminList();
+                renderRequests();
+            });
+            loadAllos();
+            loadRequests();
+        }
 
     </script>
 @endpush
