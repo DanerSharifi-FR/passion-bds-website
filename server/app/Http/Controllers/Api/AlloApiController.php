@@ -100,7 +100,7 @@ class AlloApiController extends Controller
             $windowBounds = $this->resolveWindowBounds($allo);
             $windowStart = $windowBounds[0] ?? null;
             $windowEnd = $windowBounds[1] ?? null;
-            $slotCapacityFallback = (int) $allo->admins_count;
+            $slotCapacityFallback = $allo->resolveSlotCapacity((int) $allo->admins_count);
             $securityMargin = max((int) ($allo->security_margin_minutes ?? 0), 0);
             $availabilityThreshold = $now->copy()->addMinutes($securityMargin);
             $editingSlotId = $slotsOnly && $editingBooking?->allo_id === $allo->id
@@ -172,10 +172,10 @@ class AlloApiController extends Controller
                 ? $this->hasAvailableSlots($allo, $now, $userSlotIds)
                 : $hasAvailableSlots;
 
-            $slots = $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo): array {
+            $slots = $allo->slots->map(function (AlloSlot $slot) use ($bookingsBySlotId, $allo, $slotCapacityFallback): array {
                 /** @var AlloUsage|null $booking */
                 $booking = $bookingsBySlotId->get($slot->id);
-                $capacity = (int) ($slot->capacity ?? $allo->admins_count);
+                $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
                 $bookingsCount = (int) ($slot->bookings_count ?? 0);
                 $remaining = max($capacity - $bookingsCount, 0);
 
@@ -240,7 +240,7 @@ class AlloApiController extends Controller
                 'slot_duration_minutes' => $allo->slot_duration_minutes,
                 'security_margin_minutes' => $securityMargin,
                 'daily_booking_limit' => $dailyLimit,
-                'slot_capacity' => (int) $allo->admins_count,
+                'slot_capacity' => $slotCapacityFallback,
                 'time_slots' => $allo->time_slots ?? [],
                 'is_window_open' => $windowEnd !== null
                     && $now->lessThanOrEqualTo($windowEnd),
@@ -514,7 +514,7 @@ class AlloApiController extends Controller
 
         $securityMargin = max((int) ($allo->security_margin_minutes ?? 0), 0);
         $availabilityThreshold = $now->copy()->addMinutes($securityMargin);
-        $slotCapacityFallback = (int) ($allo->admins_count ?? 0);
+        $slotCapacityFallback = $allo->resolveSlotCapacity((int) ($allo->admins_count ?? 0));
         $currentSlotId = $usage->allo_slot_id;
 
         if (! $allo->relationLoaded('slots')) {
@@ -712,7 +712,7 @@ class AlloApiController extends Controller
 
         $booking->loadMissing(['slot', 'allo']);
         $slotId = $booking->allo_slot_id;
-        $slotCapacityFallback = (int) ($booking->allo?->admins_count ?? 0);
+        $slotCapacityFallback = $booking->allo?->resolveSlotCapacity((int) ($booking->allo?->admins_count ?? 0)) ?? 0;
         $slotCapacity = (int) ($booking->slot?->capacity ?? $slotCapacityFallback);
 
         $booking->delete();
@@ -737,7 +737,7 @@ class AlloApiController extends Controller
 
         $securityMargin = max((int) ($allo->security_margin_minutes ?? 0), 0);
         $availabilityThreshold = $now->copy()->addMinutes($securityMargin);
-        $slotCapacityFallback = (int) ($allo->admins_count ?? 0);
+        $slotCapacityFallback = $allo->resolveSlotCapacity((int) ($allo->admins_count ?? 0));
 
         return $allo->slots->contains(function (AlloSlot $slot) use ($availabilityThreshold, $slotCapacityFallback, $excludeSlotIds): bool {
             if (in_array($slot->id, $excludeSlotIds, true)) {

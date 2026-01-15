@@ -28,7 +28,7 @@ class AlloSlotService
             return 0;
         }
 
-        $capacity = $allo->admins()->count();
+        $capacity = $allo->resolveSlotCapacity();
 
         $minuteKey = static function (Carbon $dateTime): string {
             return $dateTime->copy()->utc()->format('Y-m-d H:i');

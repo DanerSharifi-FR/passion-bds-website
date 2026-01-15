@@ -105,6 +105,23 @@
                             <input type="number" id="alloDailyLimit" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Aucune limite" min="1">
                             <p class="text-xs text-slate-500 mt-1">Laisse vide pour aucune limite. Sinon, indique un nombre &gt; 0.</p>
                         </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-slate-300">Capacité par créneau</label>
+                            <div class="flex items-center gap-3 text-xs text-slate-300">
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="capacityMode" value="admins" checked class="text-indigo-500 focus:ring-indigo-500">
+                                    Auto (nombre d'admins)
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="capacityMode" value="fixed" class="text-indigo-500 focus:ring-indigo-500">
+                                    Fixe
+                                </label>
+                            </div>
+                            <div id="fixedCapacityFields" class="hidden">
+                                <input type="number" id="alloFixedCapacity" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Ex: 80" min="1">
+                                <p class="text-xs text-slate-500 mt-1">Indique le nombre de places disponibles par créneau.</p>
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-1">Statut</label>
                             <select id="alloStatus" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5">
@@ -536,6 +553,14 @@
             });
         }
 
+        function updateCapacityVisibility() {
+            const fixedFields = document.getElementById('fixedCapacityFields');
+            const fixedCapacityInput = document.getElementById('alloFixedCapacity');
+            const isFixed = document.querySelector('input[name="capacityMode"]:checked')?.value === 'fixed';
+            fixedFields.classList.toggle('hidden', !isFixed);
+            fixedCapacityInput.required = isFixed;
+        }
+
         function renderDateSlots() {
             const container = document.getElementById('dateSlotsContainer');
             container.innerHTML = '';
@@ -839,6 +864,10 @@
             document.getElementById('alloDuration').value = "15";
             document.getElementById('alloSecurityMargin').value = "0";
             document.getElementById('alloDailyLimit').value = "";
+            document.querySelectorAll('input[name="capacityMode"]').forEach((input) => {
+                input.checked = input.value === 'admins';
+            });
+            document.getElementById('alloFixedCapacity').value = "";
             document.getElementById('alloStart').value = "";
             document.getElementById('alloEnd').value = "";
             document.getElementById('alloDesc').value = "";
@@ -846,6 +875,7 @@
             populateAdminList([]);
             resetScheduleState();
             updateAlloRequirements();
+            updateCapacityVisibility();
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
@@ -859,6 +889,10 @@
             document.getElementById('alloDuration').value = a.slot_duration_minutes;
             document.getElementById('alloSecurityMargin').value = a.security_margin_minutes ?? 0;
             document.getElementById('alloDailyLimit').value = a.daily_booking_limit ?? "";
+            document.querySelectorAll('input[name="capacityMode"]').forEach((input) => {
+                input.checked = (input.value === 'fixed') === (a.slot_capacity !== null && a.slot_capacity !== undefined);
+            });
+            document.getElementById('alloFixedCapacity').value = a.slot_capacity ?? "";
             document.getElementById('alloStart').value = toInputDateTime(a.window_start_at);
             document.getElementById('alloEnd').value = toInputDateTime(a.window_end_at);
             document.getElementById('alloDesc').value = a.description || "";
@@ -895,6 +929,7 @@
                 updateScheduleVisibility();
             }
             updateAlloRequirements();
+            updateCapacityVisibility();
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
@@ -937,6 +972,9 @@
             const securityMarginMinutes = securityMarginValue ? parseInt(securityMarginValue) : 0;
             const dailyLimitValue = document.getElementById('alloDailyLimit').value;
             const dailyLimit = dailyLimitValue ? parseInt(dailyLimitValue) : null;
+            const capacityMode = document.querySelector('input[name="capacityMode"]:checked')?.value || 'admins';
+            const fixedCapacityValue = document.getElementById('alloFixedCapacity').value;
+            const fixedCapacity = fixedCapacityValue ? parseInt(fixedCapacityValue) : null;
             const normalizeSlotValue = (value) => (value ? value : null);
             const descriptionValue = document.getElementById('alloDesc').value;
             const data = {
@@ -944,6 +982,7 @@
                 slot_duration_minutes: Number.isNaN(durationMinutes) ? null : durationMinutes,
                 security_margin_minutes: Number.isNaN(securityMarginMinutes) ? 0 : Math.max(securityMarginMinutes, 0),
                 daily_booking_limit: Number.isNaN(dailyLimit) ? null : dailyLimit,
+                slot_capacity: capacityMode === 'fixed' ? fixedCapacity : null,
                 window_start_at: document.getElementById('alloStart').value,
                 window_end_at: document.getElementById('alloEnd').value,
                 description: descriptionValue.trim(),
@@ -961,6 +1000,10 @@
             }
             if (dailyLimitValue && (Number.isNaN(dailyLimit) || dailyLimit <= 0)) {
                 showToast("La limite quotidienne doit être un nombre supérieur à 0.", 'error');
+                return;
+            }
+            if (capacityMode === 'fixed' && (fixedCapacity === null || Number.isNaN(fixedCapacity) || fixedCapacity <= 0)) {
+                showToast("La capacité fixe doit être un nombre supérieur à 0.", 'error');
                 return;
             }
             if (selectedMode === 'window') {
@@ -1148,6 +1191,9 @@
         document.getElementById('alloStatus').addEventListener('change', () => {
             updateAlloRequirements();
         });
+        document.querySelectorAll('input[name="capacityMode"]').forEach(input => {
+            input.addEventListener('change', updateCapacityVisibility);
+        });
         document.getElementById('addDateSlot').addEventListener('click', () => {
             dateSpecificSlots.push({ date: '', start_time: '', end_time: '' });
             renderDateSlots();
@@ -1165,6 +1211,7 @@
         updateScheduleVisibility();
         renderDateSlots();
         renderRangeSlots();
+        updateCapacityVisibility();
         updateAlloRequirements();
         loadAdmins().then(() => {
             populateAdminList();
