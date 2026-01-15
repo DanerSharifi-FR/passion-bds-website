@@ -386,14 +386,14 @@
                 const showModifyButton = !isDisabled && hasBooking && isAuthenticated && isPending && hasAlternativeSlots;
                 const showDesistButton = !isDisabled && hasBooking && isAuthenticated && isPending && !hasAlternativeSlots;
                 const showSlotsButton = !isDisabled && !hasBooking && canBookNew && hasAvailableSlots;
+                const showReservationsButton = !isDisabled && hasBooking && isAuthenticated;
+                const showLimitActions = !isDisabled && isAuthenticated && !canBookNew;
                 const showLimitMessage = !isDisabled && !hasBooking && !canBookNew;
                 const showNoSlotsMessage = !isDisabled && !hasBooking && canBookNew && !hasAvailableSlots;
-                const showReservationsButton = !isDisabled && hasBooking && isAuthenticated && isAccepted;
                 const showAdditionalSlotButton = !isDisabled
                     && hasBooking
                     && isAuthenticated
-                    && isAccepted
-                    && canBookNew
+                    && (canBookNew || isPending)
                     && hasAlternativeSlots;
                 const bookingButtonLabel = userBookings.length > 1
                     ? 'Modifier mes réservations'
@@ -429,7 +429,7 @@
 
                 if (showReservationsButton) {
                     actionItems.push(`
-                        <a href="/allos/reservations?allo_id=${allo.id}"
+                        <a href="/allos/reservations"
                            class="text-center bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors">
                             Voir mes réservations
                         </a>
@@ -441,6 +441,15 @@
                         <a href="/allos/${allo.id}/creneaux"
                            class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
                             Réserver un autre créneau
+                        </a>
+                    `);
+                }
+
+                if (showLimitActions && !showModifyButton && !showDesistButton) {
+                    actionItems.push(`
+                        <a href="/allos/${allo.id}/creneaux"
+                           class="text-center bg-passion-fire-orange text-passion-red font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-yellow transition-colors">
+                            Voir les créneaux
                         </a>
                     `);
                 }
