@@ -1192,7 +1192,7 @@
         function removeFilterChip(key) {
             if (key === 'search') requestFilters.search = '';
             if (key === 'alloId') requestFilters.alloId = '';
-            if (key === 'statuses') requestFilters.statuses = ['PENDING', 'ACCEPTED', 'DONE', 'CANCELLED'];
+            if (key === 'statuses') requestFilters.statuses = [...defaultRequestFilters.statuses];
             if (key === 'assignee') requestFilters.assignee = 'all';
             if (key === 'dateRange') {
                 requestFilters.dateRange = 'all';
