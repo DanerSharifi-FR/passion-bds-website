@@ -225,7 +225,7 @@ class AlloApiController extends Controller
         }
         $validator = Validator::make($payload, [
             'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => ['required', 'string'],
             'status' => ['required', Rule::in(['DRAFT', 'OPEN', 'CLOSED', 'DISABLED'])],
             'window_start_at' => ['nullable', 'date'],
             'window_end_at' => ['nullable', 'date', 'after:window_start_at'],
