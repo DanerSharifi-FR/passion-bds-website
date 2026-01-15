@@ -58,10 +58,10 @@
                 <p class="font-medium whitespace-pre-line"></p>
             </div>
             <div class="space-y-2">
-                <label class="text-xs font-bold uppercase text-passion-red"></label>
+                <label class="text-xs font-bold uppercase text-passion-red">Description <span class="text-passion-red">*</span></label>
                 <textarea id="allo-note" class="w-full border-2 border-passion-red px-3 py-2 text-sm" rows="2"
                           data-default-placeholder="Ex: sieste après 15h, merci !"
-                          placeholder="Ex: sieste après 15h, merci !"></textarea>
+                          placeholder="Ex: sieste après 15h, merci !" required></textarea>
             </div>
             <button id="allo-book-btn"
                     class="w-full bg-passion-red text-white font-display font-black uppercase py-3 shadow-[4px_4px_0_#000] hover:bg-passion-fire-orange hover:text-passion-red transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -596,6 +596,7 @@
             const isEnded = windowEnded || alloData.status !== 'OPEN';
 
             const hasSelection = selectedSlots.length > 0;
+            const hasNote = noteInput.value.trim().length > 0;
             const checkedSlots = getCheckedSlots();
             const limitValidation = getDailyLimitValidation(checkedSlots);
             if (hasSelection && limitValidation.state !== 'under' && limitValidation.state !== 'none') {
@@ -606,7 +607,8 @@
                 || isEnded
                 || !windowOpen
                 || !hasSelection
-                || !limitValidation.ok;
+                || !limitValidation.ok
+                || !hasNote;
         }
 
         function setFeedback(message, isSuccess = false) {
@@ -650,6 +652,10 @@
         async function bookSelectedSlot() {
             if (!selectedSlots.length || !alloData) {
                 setFeedback('Choisis un créneau disponible.');
+                return;
+            }
+            if (!noteInput.value.trim()) {
+                setFeedback('Merci de préciser une description pour ta réservation.');
                 return;
             }
 
@@ -711,7 +717,7 @@
                         body: JSON.stringify({
                             allo_id: alloData.id,
                             allo_slot_id: request.slot.id,
-                            user_note: noteInput.value.trim() || null,
+                            user_note: noteInput.value.trim(),
                         }),
                     });
 
@@ -844,6 +850,8 @@
         bookingButton.addEventListener('click', () => {
             bookSelectedSlot();
         });
+
+        noteInput.addEventListener('input', updateBookingButtonState);
 
         loadAllo();
     </script>

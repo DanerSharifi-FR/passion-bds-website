@@ -173,8 +173,8 @@
                             <div class="bg-slate-900 border border-slate-600 rounded-lg p-2 max-h-32 overflow-y-auto" id="adminList"></div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
-                            <textarea id="alloDesc" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Détails de l'allo..."></textarea>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Description <span class="text-passion-red">*</span></label>
+                            <textarea id="alloDesc" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Détails de l'allo..." required></textarea>
                         </div>
                     </form>
                 </div>
@@ -938,6 +938,7 @@
             const dailyLimitValue = document.getElementById('alloDailyLimit').value;
             const dailyLimit = dailyLimitValue ? parseInt(dailyLimitValue) : null;
             const normalizeSlotValue = (value) => (value ? value : null);
+            const descriptionValue = document.getElementById('alloDesc').value;
             const data = {
                 title: document.getElementById('alloTitle').value,
                 slot_duration_minutes: Number.isNaN(durationMinutes) ? null : durationMinutes,
@@ -945,11 +946,15 @@
                 daily_booking_limit: Number.isNaN(dailyLimit) ? null : dailyLimit,
                 window_start_at: document.getElementById('alloStart').value,
                 window_end_at: document.getElementById('alloEnd').value,
-                description: document.getElementById('alloDesc').value,
+                description: descriptionValue.trim(),
                 status: statusValue,
                 admin_ids: selectedAdmins.map(id => parseInt(id)),
             };
             if(!data.title) { showToast("Titre requis", 'error'); return; }
+            if (!data.description) {
+                showToast("Description requise", 'error');
+                return;
+            }
             if (!isDraft && !data.slot_duration_minutes) {
                 showToast("Durée du slot requise", 'error');
                 return;

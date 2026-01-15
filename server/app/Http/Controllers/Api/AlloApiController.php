@@ -297,7 +297,7 @@ class AlloApiController extends Controller
         $validated = $request->validate([
             'allo_id' => ['required', 'integer', Rule::exists('allos', 'id')],
             'allo_slot_id' => ['required', 'integer', Rule::exists('allo_slots', 'id')],
-            'user_note' => ['nullable', 'string', 'max:500'],
+            'user_note' => ['required', 'string', 'max:500'],
         ]);
 
         $now = now();
@@ -560,7 +560,7 @@ class AlloApiController extends Controller
 
         $validated = $request->validate([
             'allo_slot_id' => ['required', 'integer', Rule::exists('allo_slots', 'id')],
-            'user_note' => ['nullable', 'string', 'max:500'],
+            'user_note' => ['required', 'string', 'max:500'],
         ]);
 
         $now = now();
