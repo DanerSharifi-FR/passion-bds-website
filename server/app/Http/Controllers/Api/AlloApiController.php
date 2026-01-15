@@ -668,7 +668,7 @@ class AlloApiController extends Controller
         ]);
     }
 
-    public function cancelBooking(Request $request, AlloUsage $booking, AlloUsageService $usageService): JsonResponse
+    public function cancelBooking(Request $request, AlloUsage $booking): JsonResponse
     {
         $user = $request->user();
 
@@ -684,13 +684,21 @@ class AlloApiController extends Controller
             return response()->json(['message' => "Cette réservation ne peut pas être annulée."], 422);
         }
 
-        $updatedBooking = $usageService->cancel($booking, $user);
+        $booking->loadMissing(['slot', 'allo']);
+        $slotId = $booking->allo_slot_id;
+        $slotCapacityFallback = (int) ($booking->allo?->admins_count ?? 0);
+        $slotCapacity = (int) ($booking->slot?->capacity ?? $slotCapacityFallback);
+
+        $booking->delete();
+
+        if ($slotId !== null) {
+            $this->updateSlotStatus($slotId, $slotCapacity);
+        }
 
         return response()->json([
+            'message' => 'Réservation supprimée.',
             'booking' => [
-                'id' => $updatedBooking->id,
-                'status' => $updatedBooking->status,
-                'cancelled_at' => $updatedBooking->cancelled_at?->toIso8601String(),
+                'id' => $booking->id,
             ],
         ]);
     }

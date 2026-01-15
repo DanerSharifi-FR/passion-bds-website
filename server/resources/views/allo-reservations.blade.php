@@ -187,7 +187,7 @@
                     return;
                 }
 
-                showToast('Réservation annulée.', 'success');
+                showToast('Réservation supprimée.', 'success');
                 await loadReservations();
             } catch (error) {
                 showToast('Impossible de se désister.');
