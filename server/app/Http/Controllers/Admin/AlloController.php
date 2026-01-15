@@ -16,11 +16,11 @@ class AlloController extends Controller
 
     public function requests(): Factory|View
     {
-        return view('admin.allos', ['activeView' => 'requests']);
+        return view('admin.allos.requests', ['activeView' => 'requests']);
     }
 
     public function catalog(): Factory|View
     {
-        return view('admin.allos', ['activeView' => 'catalog']);
+        return view('admin.allos.catalog', ['activeView' => 'catalog']);
     }
 }
