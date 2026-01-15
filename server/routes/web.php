@@ -86,6 +86,8 @@ Route::prefix('admin')->as('admin.')->group(function () {
 
         Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')->group(function () {
             Route::get('/allos', [AlloController::class, 'index'])->name('allos');
+            Route::get('/allos/demandes', [AlloController::class, 'requests'])->name('allos.requests');
+            Route::get('/allos/catalogue', [AlloController::class, 'catalog'])->name('allos.catalog');
         });
 
         // Admin API
