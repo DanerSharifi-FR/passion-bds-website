@@ -83,6 +83,44 @@
             class="absolute -bottom-3 -left-3 w-8 h-8 bg-passion-pink-500 border-2 border-passion-red z-10 skew-box"></div>
     </div>
 
+    <!-- BDS BRUNCH EVENT -->
+    <div class="w-full max-w-4xl mb-12 relative z-20">
+        <div class="bg-gradient-to-r from-passion-fire-orange to-passion-fire-yellow p-1 rounded-sm shadow-[8px_8px_0px_#9B1237] transform hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0px_#9B1237] transition-all">
+            <div class="bg-white p-6 md:p-8 rounded-sm">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <!-- Left: Event Info -->
+                    <div class="flex items-center gap-4">
+                        <div class="text-5xl md:text-6xl animate-bounce-slow">🥐</div>
+                        <div>
+                            <span class="text-xs font-bold bg-passion-fire-orange text-white px-2 py-0.5 rounded-sm uppercase tracking-wider">Événement</span>
+                            <h3 class="font-display font-black text-2xl md:text-3xl text-passion-red uppercase tracking-tight mt-1">
+                                BDS Brunch
+                            </h3>
+                            <div class="flex flex-wrap gap-3 mt-2 text-sm font-medium text-passion-red">
+                                <span class="flex items-center gap-1">
+                                    <span class="text-lg">📅</span> Samedi 17 jan
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <span class="text-lg">🕙</span> 10h00
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right: CTA -->
+                    <div class="flex flex-col items-center md:items-end gap-2">
+                        <div class="skew-box bg-passion-red text-white px-4 py-2 md:px-6 md:py-3 font-display font-black uppercase tracking-wider text-sm md:text-base shadow-[3px_3px_0px_#FF914D] hover:shadow-[1px_1px_0px_#FF914D] hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer">
+                            <span class="unskew-text block">J'y serai ! 🎉</span>
+                        </div>
+                        <span class="text-xs text-passion-pink-400 font-mono">Petit-déj offert</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Decorative elements -->
+        <div class="absolute -top-2 -left-2 w-6 h-6 bg-passion-pink-500 border-2 border-passion-red rounded-full z-10 animate-pulse"></div>
+        <div class="absolute -bottom-2 -right-2 w-6 h-6 bg-passion-fire-yellow border-2 border-passion-red rounded-full z-10"></div>
+    </div>
+
     <!-- ARCADE ZONE (Games to Earn Points) -->
     <!-- Toggle user state class here via JS: 'state-guest' or 'state-logged-in' -->
     <section id="arcade-zone"
