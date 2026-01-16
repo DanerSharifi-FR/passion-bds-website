@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
+use App\Http\Middleware\TemporaryIpBlockMiddleware;
 use App\Mail\LoginCodeMail;
 use App\Models\LoginCode;
 use App\Models\User;
@@ -34,24 +37,21 @@ class LoginCodeService
 
     private const CODE_LENGTH = 4;
     private const EXPIRES_MINUTES = 5;
-    private const MAX_ATTEMPTS_PER_CODE = 5;
 
-    // Cooldown strict : 30s entre 2 demandes depuis la même IP
-    private const IP_COOLDOWN_SECONDS = 30;
+    // Cooldown strict : 30s entre 2 demandes (par session, sinon IP)
+    private const COOLDOWN_SECONDS = 30;
 
-    // Anti-spam : demandes de code (par email + ip)
+    // Anti-spam : demandes de code (par email + session, sinon IP)
     private const REQUEST_LIMIT = 6;
-    private const REQUEST_WINDOW_SECONDS = 600;  // 10 minutes
+    private const REQUEST_WINDOW_SECONDS = 600; // 10 minutes
 
-    // Anti-bruteforce : vérifs de code (par email + ip)
+    // Anti-bruteforce : vérifs de code (par email + session, sinon IP)
     private const VERIFY_LIMIT = 20;
-    private const VERIFY_WINDOW_SECONDS = 600;   // 10 minutes
-
+    private const VERIFY_WINDOW_SECONDS = 600; // 10 minutes
 
     public function __construct(private AuditLogService $auditLogService)
     {
     }
-
 
     /**
      * @throws ValidationException
@@ -59,31 +59,26 @@ class LoginCodeService
     public function requestCode(string $email, string $ip, ?string $userAgent, ?string $sessionId = null): void
     {
         $email = mb_strtolower(trim($email));
+        $identifier = $this->identifier($sessionId, $ip);
 
-        // Use session for rate limiting (fallback to IP for API clients without sessions)
-        $identifier = $sessionId ?: $ip;
+        $this->assertEmailFormat($email);
 
-        // Cooldown strict par session: 1 demande toutes les 30s
+        // Cooldown strict (par session)
         $cooldownKey = 'login_code_cooldown:' . $identifier;
-        if (RateLimiter::tooManyAttempts($cooldownKey, 1)) {
-            $wait = RateLimiter::availableIn($cooldownKey);
+        $this->enforceCooldown($cooldownKey);
 
-            throw ValidationException::withMessages([
-                'email' => "Attends {$wait}s avant de redemander un code.",
-            ]);
-        }
-        RateLimiter::hit($cooldownKey, self::IP_COOLDOWN_SECONDS);
-
-        if (!preg_match(self::EMAIL_REGEX, $email)) {
-            throw ValidationException::withMessages([
-                'email' => 'Format invalide (prenom.nom@imt-atlantique.net)',
-            ]);
-        }
-
-        // Rate limit : empêcher spam d'envoi de codes (par email + session)
+        // Anti-spam request (par email+session)
         $rateKey = 'login_code_req:' . sha1($email . '|' . $identifier);
         if (RateLimiter::tooManyAttempts($rateKey, self::REQUEST_LIMIT)) {
             $wait = RateLimiter::availableIn($rateKey);
+
+            // IMPORTANT: déclenche le "ban" consulté par le middleware => blade au refresh
+            $this->setTemporaryBlockForActor(
+                action: 'AUTH.LOGIN_CODE.REQUEST_RATE_LIMIT',
+                email: $email,
+                ip: $ip,
+                sessionId: $sessionId,
+            );
 
             $this->auditLogService->log(
                 actor: null,
@@ -111,8 +106,7 @@ class LoginCodeService
         }
         RateLimiter::hit($rateKey, self::REQUEST_WINDOW_SECONDS);
 
-        DB::transaction(function () use ($email, $ip, $userAgent) {
-            // Crée l’utilisateur si absent (pas d’énumération, et c’est pratique)
+        DB::transaction(function () use ($email, $ip, $userAgent): void {
             $user = User::where('university_email', $email)->lockForUpdate()->first();
 
             if (!$user) {
@@ -122,7 +116,6 @@ class LoginCodeService
                 $user->is_active = true;
                 $user->save();
             } elseif (!$user->display_name) {
-                // don’t overwrite if already set
                 $user->display_name = User::displayNameFromUniversityEmail($email);
                 $user->save();
             }
@@ -151,7 +144,6 @@ class LoginCodeService
                 'user_agent' => $userAgent ? mb_substr($userAgent, 0, 500) : null,
             ]);
 
-            // Envoi synchro (pas besoin de worker). Plus tard : ->queue()
             Mail::to($email)->send(new LoginCodeMail(
                 code: $code,
                 expiresHuman: 'dans ' . self::EXPIRES_MINUTES . ' minutes',
@@ -165,27 +157,23 @@ class LoginCodeService
     public function requestAdminCode(string $email, string $ip, ?string $userAgent, ?string $sessionId = null): void
     {
         $email = mb_strtolower(trim($email));
+        $identifier = $this->identifier($sessionId, $ip);
 
-        // Use session for rate limiting (fallback to IP for API clients without sessions)
-        $identifier = $sessionId ?: $ip;
+        $this->assertEmailFormat($email);
 
-        // cooldown session (same as user)
         $cooldownKey = 'admin_login_code_cooldown:' . $identifier;
-        if (RateLimiter::tooManyAttempts($cooldownKey, 1)) {
-            $wait = RateLimiter::availableIn($cooldownKey);
+        $this->enforceCooldown($cooldownKey);
 
-            throw ValidationException::withMessages(['email' => "Attends {$wait}s avant de redemander un code."]);
-        }
-        RateLimiter::hit($cooldownKey, self::IP_COOLDOWN_SECONDS);
-
-        if (!preg_match(self::EMAIL_REGEX, $email)) {
-            throw ValidationException::withMessages(['email' => 'Format invalide (prenom.nom@imt-atlantique.net)']);
-        }
-
-        // rate limit email+session
         $rateKey = 'admin_login_code_req:' . sha1($email . '|' . $identifier);
         if (RateLimiter::tooManyAttempts($rateKey, self::REQUEST_LIMIT)) {
             $wait = RateLimiter::availableIn($rateKey);
+
+            $this->setTemporaryBlockForActor(
+                action: 'AUTH.ADMIN_LOGIN_CODE.REQUEST_RATE_LIMIT',
+                email: $email,
+                ip: $ip,
+                sessionId: $sessionId,
+            );
 
             $this->auditLogService->log(
                 actor: null,
@@ -197,36 +185,35 @@ class LoginCodeService
                     'email' => $email,
                     'ip' => $ip,
                     'session_id' => $sessionId,
-                    'cooldown_key' => $cooldownKey,
+                    'rate_key' => $rateKey,
                     'wait_seconds' => $wait,
-                    'max_attempts' => 1,
-                    'window_seconds' => self::IP_COOLDOWN_SECONDS,
+                    'max_attempts' => self::REQUEST_LIMIT,
+                    'window_seconds' => self::REQUEST_WINDOW_SECONDS,
                 ],
                 ip: $ip,
                 userAgent: $userAgent,
                 sessionId: $sessionId,
             );
 
-            throw ValidationException::withMessages(['email' => 'Trop de demandes. Réessaie plus tard.']);
+            throw ValidationException::withMessages([
+                'email' => 'Trop de demandes. Réessaie plus tard.',
+            ]);
         }
         RateLimiter::hit($rateKey, self::REQUEST_WINDOW_SECONDS);
 
-        DB::transaction(function () use ($email, $ip, $userAgent) {
+        DB::transaction(function () use ($email, $ip, $userAgent): void {
             $user = User::where('university_email', $email)->lockForUpdate()->first();
 
-            // MUST exist
             if (!$user || !$user->is_active) {
                 throw ValidationException::withMessages(['email' => 'Accès admin refusé.']);
             }
 
             $user->loadMissing('roles');
 
-            // MUST have at least one admin role
             if (!$user->hasAnyRole(self::ADMIN_ROLES)) {
                 throw ValidationException::withMessages(['email' => 'Accès admin refusé.']);
             }
 
-            // invalidate old codes
             LoginCode::where('user_id', $user->id)
                 ->whereNull('used_at')
                 ->update(['used_at' => now()]);
@@ -272,29 +259,28 @@ class LoginCodeService
     public function verifyCode(string $email, string $code, string $ip, ?string $sessionId = null): User
     {
         $email = Str::lower(trim($email));
-        $code  = preg_replace('/\D+/', '', trim($code)); // keep digits only
+        $code = preg_replace('/\D+/', '', trim($code));
 
-        // Use session for rate limiting (fallback to IP for API clients without sessions)
-        $identifier = $sessionId ?: $ip;
+        $identifier = $this->identifier($sessionId, $ip);
 
-        // Defensive validation (backend must not trust frontend)
-        $mailFormat = '/^[a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9-]*@imt-atlantique\.net$/i';
-        if (!preg_match($mailFormat, $email)) {
-            throw ValidationException::withMessages([
-                'email' => "Email invalide (prenom.nom@imt-atlantique.net).",
-            ]);
-        }
+        $this->assertEmailFormat($email);
 
-        if (strlen($code) !== 4) {
+        if (strlen($code) !== self::CODE_LENGTH) {
             throw ValidationException::withMessages([
                 'code' => 'Code invalide (4 chiffres).',
             ]);
         }
 
-        // Rate limit verify attempts (email+session)
         $verifyKey = 'login_code_verify:' . sha1($email . '|' . $identifier);
         if (RateLimiter::tooManyAttempts($verifyKey, self::VERIFY_LIMIT)) {
             $wait = RateLimiter::availableIn($verifyKey);
+
+            $this->setTemporaryBlockForActor(
+                action: 'AUTH.LOGIN_CODE.VERIFY_RATE_LIMIT',
+                email: $email,
+                ip: $ip,
+                sessionId: $sessionId,
+            );
 
             $this->auditLogService->log(
                 actor: null,
@@ -322,19 +308,17 @@ class LoginCodeService
         }
         RateLimiter::hit($verifyKey, self::VERIFY_WINDOW_SECONDS);
 
-        return DB::transaction(function () use ($email, $code) {
-
+        return DB::transaction(function () use ($email, $code): User {
             $user = User::where('university_email', $email)
                 ->lockForUpdate()
                 ->first();
 
             if (!$user || !$user->is_active) {
                 throw ValidationException::withMessages([
-                    'email' => "Compte introuvable ou désactivé.",
+                    'email' => 'Compte introuvable ou désactivé.',
                 ]);
             }
 
-            // ONLY LATEST non-expired code row is considered
             $latest = LoginCode::where('user_id', $user->id)
                 ->where('expires_at', '>', now())
                 ->orderByDesc('id')
@@ -343,31 +327,29 @@ class LoginCodeService
 
             if (!$latest || $latest->used_at) {
                 throw ValidationException::withMessages([
-                    'code' => "Code expiré ou déjà utilisé. Redemande un code.",
+                    'code' => 'Code expiré ou déjà utilisé. Redemande un code.',
                 ]);
             }
 
             if (!Hash::check($code, $latest->code_hash)) {
                 $latest->attempt_count++;
 
-                // Hard stop after too many tries
+                // hard stop after too many tries
                 if ($latest->attempt_count >= 6) {
-                    // force user to request a new code
                     $latest->used_at = now();
                 }
 
                 $latest->save();
 
                 throw ValidationException::withMessages([
-                    'code' => "Code incorrect.",
+                    'code' => 'Code incorrect.',
                 ]);
             }
 
-            // Success
             $latest->used_at = now();
             $latest->save();
 
-            // Safety: kill any other unused codes (should already be killed in requestCode, but keep it)
+            // Safety: kill any other unused codes
             LoginCode::where('user_id', $user->id)
                 ->whereNull('used_at')
                 ->where('id', '!=', $latest->id)
@@ -378,6 +360,40 @@ class LoginCodeService
 
             return $user;
         });
+    }
+
+    private function identifier(?string $sessionId, string $ip): string
+    {
+        // Priority: session > ip
+        return $sessionId ?: $ip;
+    }
+
+    private function enforceCooldown(string $cooldownKey): void
+    {
+        if (RateLimiter::tooManyAttempts($cooldownKey, 1)) {
+            $wait = RateLimiter::availableIn($cooldownKey);
+
+            throw ValidationException::withMessages([
+                'email' => "Attends {$wait}s avant de redemander un code.",
+            ]);
+        }
+
+        RateLimiter::hit($cooldownKey, self::COOLDOWN_SECONDS);
+    }
+
+    private function assertEmailFormat(string $email): void
+    {
+        if (!preg_match(self::EMAIL_REGEX, $email)) {
+            throw ValidationException::withMessages([
+                'email' => 'Format invalide (prenom.nom@imt-atlantique.net)',
+            ]);
+        }
+    }
+
+    private function setTemporaryBlockForActor(string $action, string $email, string $ip, ?string $sessionId): void
+    {
+        $blockKey = TemporaryIpBlockMiddleware::blockKeyForService($email, $ip, $sessionId);
+        TemporaryIpBlockMiddleware::setTemporaryBlock($blockKey);
     }
 
     /**

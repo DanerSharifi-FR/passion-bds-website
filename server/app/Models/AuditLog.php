@@ -20,6 +20,8 @@ class AuditLog extends Model
         'user_agent',
         'session_id',
         'created_at',
+        'block_key',
+
     ];
 
     protected $casts = [
