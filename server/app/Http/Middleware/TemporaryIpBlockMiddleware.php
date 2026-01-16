@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TemporaryIpBlockMiddleware
 {
-    private const BLOCK_MINUTES = 60;
+    private const BLOCK_MINUTES = 3;
 
     // Only these actions should trigger an IP block.
     private const BLOCKING_ACTIONS = [
