@@ -19,7 +19,6 @@ class AdminAuthController extends Controller
             email: $request->string('email')->toString(),
             ip: $request->ip(),
             userAgent: $request->userAgent(),
-            sessionId: $request->session()->getId(),
         );
 
         return response()->json(['ok' => true], 200);
@@ -36,7 +35,6 @@ class AdminAuthController extends Controller
             email: $request->string('email')->toString(),
             code: $request->string('code')->toString(),
             ip: $request->ip(),
-            sessionId: $request->session()->getId(),
         );
 
         Auth::login($user, remember: true);
