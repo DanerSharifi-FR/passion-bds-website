@@ -118,6 +118,25 @@
             line-height: 1.1;
         }
 
+        @keyframes toast-progress {
+            from {
+                transform: scaleX(1);
+            }
+            to {
+                transform: scaleX(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            #toast-container {
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+                width: calc(100% - 32px);
+                max-width: none;
+            }
+        }
+
         #pbds-loader-overlay .pbds-loader-title b {
             letter-spacing: .12em;
             text-transform: uppercase;
@@ -274,11 +293,17 @@
                 <span
                     class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Accueil</span>
             </a>
-            <a href="{{ route('activities') }}" class="relative group py-2">
+            <a href="{{ route('allos') }}" class="relative group py-2">
                 <div
-                    class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('activities')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                    class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('login') || request()->routeIs('allos')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
                 <span
-                    class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">APREM BDS</span>
+                    class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login') || request()->routeIs('allos')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Allos</span>
+            </a>
+            <a href="{{ route('allos.reservations') }}" class="relative group py-2">
+                <div
+                    class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('allos.reservations')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                <span
+                    class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Mes allos</span>
             </a>
             <a href="{{ route('team') }}" class="relative group py-2">
                 <div
@@ -299,19 +324,19 @@
                     class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Galerie</span>
             </a>--}}
             @auth
-                <a href="{{ route('allos') }}" class="relative group py-2">
+                {{--<a href="{{ route('allos') }}" class="relative group py-2">
                     <div
                         class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('login') || request()->routeIs('allos')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
                     <span
                         class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login') || request()->routeIs('allos')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Allos</span>
-                </a>
+                </a>--}}
             @else
-                <a href="{{ route('login') }}" class="relative group py-2">
+                {{--<a href="{{ route('login') }}" class="relative group py-2">
                     <div
                         class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('login') || request()->routeIs('allos')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
                     <span
                         class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login') || request()->routeIs('allos')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Connexion</span>
-                </a>
+                </a>--}}
             @endauth
         </nav>
     </div>
@@ -344,6 +369,127 @@
     @yield('content')
 </main>
 
+<div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-auto max-w-sm pointer-events-none">
+    <div id="toast-success"
+         class="hidden pointer-events-auto relative overflow-hidden border-2 border-green-600 bg-green-100 text-green-700 px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 transition ease-out duration-200 opacity-0 translate-y-2">
+        <span data-toast-message></span>
+        <button type="button" class="ml-auto text-base font-bold leading-none" aria-label="Fermer la notification">×
+        </button>
+        <span data-toast-progress class="absolute bottom-0 left-0 h-1 bg-green-600 w-full origin-left"></span>
+    </div>
+    <div id="toast-error"
+         class="hidden pointer-events-auto relative overflow-hidden border-2 border-passion-red bg-passion-pink-100 text-passion-red px-4 py-3 text-sm font-semibold shadow-[4px_4px_0_#000] flex items-start gap-3 transition ease-out duration-200 opacity-0 translate-y-2">
+        <span data-toast-message></span>
+        <button type="button" class="ml-auto text-base font-bold leading-none" aria-label="Fermer la notification">×
+        </button>
+        <span data-toast-progress class="absolute bottom-0 left-0 h-1 bg-passion-red w-full origin-left"></span>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const toastContainer = document.getElementById('toast-container');
+        const toastSuccess = document.getElementById('toast-success');
+        const toastError = document.getElementById('toast-error');
+        let activeToast = null;
+        let activeTimeout = null;
+        const hideTimeouts = new WeakMap();
+
+        function hideToast(toast) {
+            if (!toast) return;
+            const existingTimeout = hideTimeouts.get(toast);
+            if (existingTimeout) {
+                clearTimeout(existingTimeout);
+                hideTimeouts.delete(toast);
+            }
+            toast.classList.add('opacity-0', 'translate-y-2');
+            const timeout = window.setTimeout(() => {
+                toast.classList.add('hidden');
+                hideTimeouts.delete(toast);
+            }, 200);
+            hideTimeouts.set(toast, timeout);
+        }
+
+        function showToast({message, type = 'error', duration = 4000} = {}) {
+            if (!toastContainer || !message) return;
+
+            const toast = type === 'success' ? toastSuccess : toastError;
+            const otherToast = type === 'success' ? toastError : toastSuccess;
+            if (!toast || !otherToast) return;
+
+            if (activeTimeout) {
+                clearTimeout(activeTimeout);
+                activeTimeout = null;
+            }
+
+            if (activeToast) {
+                hideToast(activeToast);
+                activeToast = null;
+            }
+
+            hideToast(otherToast);
+
+            const toastMessage = toast.querySelector('[data-toast-message]');
+            const toastCloseButton = toast.querySelector('button');
+            const toastProgress = toast.querySelector('[data-toast-progress]');
+            if (!toastMessage || !toastCloseButton || !toastProgress) return;
+
+            toastMessage.textContent = message;
+            activeToast = toast;
+
+            toastProgress.style.animation = 'none';
+            void toastProgress.offsetHeight;
+            toastProgress.style.animation = `toast-progress ${duration}ms linear forwards`;
+
+            requestAnimationFrame(() => {
+                const existingTimeout = hideTimeouts.get(toast);
+                if (existingTimeout) {
+                    clearTimeout(existingTimeout);
+                    hideTimeouts.delete(toast);
+                }
+                toast.classList.remove('hidden');
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            });
+
+            const closeToast = () => {
+                toastProgress.style.animationPlayState = 'paused';
+                hideToast(toast);
+                if (activeToast === toast) {
+                    activeToast = null;
+                }
+            };
+
+            toastCloseButton.onclick = closeToast;
+
+            activeTimeout = window.setTimeout(() => {
+                if (activeToast === toast) {
+                    closeToast();
+                }
+            }, duration);
+        }
+
+        window.PassionToast = {
+            show: showToast,
+        };
+    })();
+</script>
+@if (session()->has('toast'))
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const toast = @json(session('toast'));
+            const showToast = window.PassionToast?.show;
+            if (!showToast || !toast?.message) {
+                return;
+            }
+            showToast({
+                message: toast.message,
+                type: toast.type || 'error',
+                duration: toast.duration || 4000,
+            });
+        });
+    </script>
+@endif
+
 <!-- MOBILE BOTTOM NAVIGATION (Fixed) -->
 <nav
     class="lg:hidden fixed bottom-0 w-full bg-white border-t border-passion-pink-200 z-50 flex justify-around items-center pb-4 pt-3 h-20">
@@ -367,13 +513,15 @@
         </svg>
         <span class="text-[9px] font-bold uppercase tracking-wider">Galerie</span>
     </a>--}}
-    <a href="{{ route('activities') }}"
-       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('activities')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
-        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <a href="{{ route('team') }}"
+       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('team')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+        <!-- Icon Team -->
+        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+             viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
         </svg>
-        <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">Aprem BDS</span>
+        <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">La team P'AS'SION</span>
     </a>
     <a href="{{ route('home') }}"
        class="flex flex-col items-center p-2 transition-colors group w-1/5 @if(request()->routeIs('home')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
@@ -385,19 +533,32 @@
         </svg>
         <span class="text-[9px] font-bold uppercase tracking-wider">Accueil</span>
     </a>
-
-    <a href="{{ route('team') }}"
-       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('team')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
-        <!-- Icon Team -->
+    <a href="{{ route('allos') }}"
+       class="flex flex-col items-center p-2 transition-colors group relative w-1/5 @if(request()->routeIs('login') || request()->routeIs('allos')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
+        <!-- Icon Fire -->
+        <div
+            class="absolute -top-0 md:right-[35%] right-1/4 w-3 h-3 bg-passion-fire-orange rounded-full animate-pulse"></div>
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
              viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path>
         </svg>
-        <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">La team P'AS'SION</span>
+        <span class="text-[9px] font-bold uppercase tracking-wider">Allos</span>
+    </a>
+
+    <a href="{{ route('allos.reservations') }}"
+       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('activities')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+        <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+        </svg>
+        <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">Mes Allos</span>
     </a>
     @auth
-        <a href="{{ route('allos') }}"
+        {{--<a href="{{ route('allos') }}"
            class="flex flex-col items-center p-2 transition-colors group relative w-1/5 @if(request()->routeIs('login') || request()->routeIs('allos')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
             <!-- Icon Fire -->
             <div
@@ -410,9 +571,9 @@
                       d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path>
             </svg>
             <span class="text-[9px] font-bold uppercase tracking-wider">Allos</span>
-        </a>
+        </a>--}}
     @else
-        <a href="{{ route('login') }}"
+        {{--<a href="{{ route('login') }}"
            class="flex flex-col items-center p-2 transition-colors group relative w-1/5 @if(request()->routeIs('login') || request()->routeIs('allos')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
             <!-- Icon Fire -->
             <div
@@ -425,7 +586,7 @@
                       d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"></path>
             </svg>
             <span class="text-[9px] font-bold uppercase tracking-wider">Connexion</span>
-        </a>
+        </a>--}}
     @endauth
 </nav>
 
@@ -540,27 +701,27 @@
             loaderOverlayElement.id = LOADER_CONFIG.overlayId;
 
             loaderOverlayElement.innerHTML = `
-      <div class="pbds-loader-card" role="status" aria-live="polite" aria-busy="true">
-        <div class="pbds-loader-header">
-          <img class="pbds-loader-logo" src="${LOADER_CONFIG.logoSrc}" alt="P'AS'SION BDS">
-          <div class="pbds-loader-title">
-            <b>P'AS'SION BDS</b>
-            <span id="${LOADER_CONFIG.messageId}">${LOADER_CONFIG.defaultMessage}</span>
-          </div>
-        </div>
-
-        <div class="pbds-loader-row">
-          <div class="pbds-loader-spinner" aria-hidden="true"></div>
-          <div class="pbds-loader-badge">SYSTEM LOADING...</div>
-        </div>
-
-        <div class="pbds-loader-progress-track" aria-hidden="true">
-          <i class="pbds-loader-progress-bar"></i>
-        </div>
-
-        <div class="pbds-loader-footer">Si ça prend trop longtemps, c’est pas toi : c’est le réseau.</div>
+  <div class="pbds-loader-card" role="status" aria-live="polite" aria-busy="true">
+    <div class="pbds-loader-header">
+      <img class="pbds-loader-logo" src="${LOADER_CONFIG.logoSrc}" alt="P'AS'SION BDS">
+      <div class="pbds-loader-title">
+        <b>P'AS'SION BDS</b>
+        <span id="${LOADER_CONFIG.messageId}">${LOADER_CONFIG.defaultMessage}</span>
       </div>
-    `.trim();
+    </div>
+
+    <div class="pbds-loader-row">
+      <div class="pbds-loader-spinner" aria-hidden="true"></div>
+      <div class="pbds-loader-badge">SYSTEM LOADING...</div>
+    </div>
+
+    <div class="pbds-loader-progress-track" aria-hidden="true">
+      <i class="pbds-loader-progress-bar"></i>
+    </div>
+
+    <div class="pbds-loader-footer">Si ça prend trop longtemps, c’est pas toi : c’est le réseau.</div>
+  </div>
+`.trim();
 
             const appendOverlay = () => {
                 if (!document.body) return;

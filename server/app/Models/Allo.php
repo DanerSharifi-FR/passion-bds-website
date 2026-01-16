@@ -15,17 +15,20 @@ use Illuminate\Support\Carbon;
 /**
  * Modèle Allo.
  *
- * Représente un type d'allo (service) que les étudiants peuvent réserver sur des créneaux.
+ * Représente un type d'allo que les étudiants peuvent réserver sur des créneaux.
  *
  * @property int $id
  * @property string $title
  * @property string|null $slug
  * @property string|null $description
- * @property int $points_cost
  * @property string $status
  * @property Carbon $window_start_at
  * @property Carbon $window_end_at
- * @property int $slot_duration_minutes
+ * @property int|null $slot_duration_minutes
+ * @property int $security_margin_minutes
+ * @property int|null $daily_booking_limit
+ * @property int|null $slot_capacity
+ * @property array<int, array{start_date: string, end_date: string, start_time: string, end_time: string}>|null $time_slots
  * @property int|null $created_by_id
  * @property int|null $updated_by_id
  * @property Carbon|null $created_at
@@ -53,11 +56,14 @@ class Allo extends Model
         'title',
         'slug',
         'description',
-        'points_cost',
         'status',
         'window_start_at',
         'window_end_at',
         'slot_duration_minutes',
+        'security_margin_minutes',
+        'daily_booking_limit',
+        'slot_capacity',
+        'time_slots',
         'created_by_id',
         'updated_by_id',
     ];
@@ -66,10 +72,13 @@ class Allo extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'points_cost' => 'integer',
         'slot_duration_minutes' => 'integer',
+        'security_margin_minutes' => 'integer',
+        'daily_booking_limit' => 'integer',
+        'slot_capacity' => 'integer',
         'window_start_at' => 'datetime',
         'window_end_at' => 'datetime',
+        'time_slots' => 'array',
         'created_by_id' => 'integer',
         'updated_by_id' => 'integer',
         'created_at' => 'datetime',
@@ -126,5 +135,22 @@ class Allo extends Model
     public function admins(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'allo_admins', 'allo_id', 'admin_id');
+    }
+
+    public function resolveSlotCapacity(?int $adminsCount = null): int
+    {
+        if ($this->slot_capacity !== null && $this->slot_capacity > 0) {
+            return (int) $this->slot_capacity;
+        }
+
+        if ($adminsCount !== null) {
+            return $adminsCount;
+        }
+
+        if (array_key_exists('admins_count', $this->getAttributes())) {
+            return (int) $this->getAttribute('admins_count');
+        }
+
+        return $this->admins()->count();
     }
 }

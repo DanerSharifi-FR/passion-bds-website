@@ -2,59 +2,208 @@
 
 @section('title', "Gestion des Allos - P'AS'SION BDS")
 
+@php($activeView = $activeView ?? 'requests')
+
 @section('top_bar_buttons')
     <div class="flex bg-slate-900 p-1 rounded-lg border border-slate-700 ml-4">
-        <button onclick="switchView('requests')" id="tabRequests" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-indigo-600 text-white shadow">
-            <i class="fa-solid fa-bell mr-2"></i> Demandes <span class="ml-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full" id="pendingCount">3</span>
-        </button>
-        <button onclick="switchView('catalog')" id="tabCatalog" class="px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
+        <a href="{{ route('admin.allos.requests') }}" id="tabRequests" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all {{ $activeView === 'requests' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white' }}">
+            <i class="fa-solid fa-bell mr-2"></i> Demandes <span class="ml-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full hidden" id="pendingCount">0</span>
+        </a>
+        <a href="{{ route('admin.allos.catalog') }}" id="tabCatalog" class="px-4 py-1.5 rounded-md text-sm font-medium transition-all {{ $activeView === 'catalog' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white' }}">
             <i class="fa-solid fa-store mr-2"></i> Catalogue & Créneaux
-        </button>
+        </a>
     </div>
 @endsection
 
 @section('content')
     <!-- VIEW: REQUESTS -->
-    <div id="viewRequests">
-        <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
-            <h2 class="text-xl font-bold text-white min-w-fit">Suivi des Allos</h2>
-            <div class="flex flex-wrap gap-2 w-full">
-                <select id="filterStatus" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500" onchange="renderRequests()">
-                    <option value="ACTIVE" selected>En cours</option>
-                    <option value="ALL">Tout l'historique</option>
-                    <option value="PENDING">En attente</option>
-                    <option value="ACCEPTED">Acceptés</option>
-                    <option value="DONE">Terminés</option>
-                    <option value="CANCELLED">Annulés</option>
-                </select>
-                <select id="filterAllo" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 max-w-[200px]" onchange="renderRequests()">
-                    <option value="">Tous les services</option>
-                </select>
-                <div class="relative w-full md:w-64">
-                    <input type="text" id="filterUser" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 pl-8 focus:ring-indigo-500" placeholder="Chercher un étudiant..." autocomplete="off">
-                    <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
-                    <button id="clearUserFilter" onclick="clearUserFilter()" class="absolute right-2 top-2 text-slate-500 hover:text-white hidden"><i class="fa-solid fa-xmark"></i></button>
-                    <div id="userSuggestions" class="absolute z-10 w-full bg-slate-800 border border-slate-600 rounded-lg mt-1 hidden max-h-48 overflow-y-auto shadow-xl"></div>
+    <div id="viewRequests" class="{{ $activeView === 'requests' ? '' : 'hidden' }}">
+        <div class="flex flex-col gap-4 mb-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-white min-w-fit">Suivi des Allos</h2>
+                    <p id="requestsCount" class="text-xs text-slate-400 mt-1">0 allos</p>
                 </div>
-                <button onclick="resetFilters()" class="text-xs text-slate-400 hover:text-white underline px-2">Réinitialiser</button>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="inline-flex bg-slate-900 border border-slate-700 p-1 rounded-lg" role="group" aria-label="Portée des demandes">
+                        <button id="scopeMineButton" type="button" class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">Mes allos</button>
+                        <button id="scopeAllButton" type="button" class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors">Tous les allos</button>
+                    </div>
+                    <button id="resetFiltersButton" type="button" class="px-3 py-2 rounded-lg border border-slate-600 text-slate-200 text-sm font-medium hover:text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed">
+                        Réinitialiser
+                    </button>
+                </div>
+            </div>
+            <div class="bg-slate-900/70 border border-slate-700 rounded-2xl p-4 flex flex-col gap-4 shadow-sm">
+                <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+                    <div class="relative flex-1">
+                        <input type="text" id="filterSearch" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 pl-9 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Chercher un étudiant, un allo, une note..." autocomplete="off">
+                        <i class="fa-solid fa-search absolute left-3 top-3.5 text-slate-500 text-sm"></i>
+                        <button id="clearSearch" type="button" class="absolute right-3 top-3 text-slate-500 hover:text-white hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="w-full lg:w-64">
+                        <label class="sr-only" for="filterSort">Trier par</label>
+                        <select id="filterSort" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="slot_soon">Créneau le plus proche</option>
+                            <option value="recent">Plus récent</option>
+                            <option value="status">Statut</option>
+                            <option value="student">Étudiant</option>
+                        </select>
+                    </div>
+                    <button id="openFiltersButton" type="button" class="lg:hidden inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-600 text-slate-200 text-sm hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                        <i class="fa-solid fa-sliders"></i> Filtres avancés
+                    </button>
+                </div>
+                <div id="filtersPanel" class="hidden lg:flex flex-col gap-4">
+                    <div class="flex flex-wrap gap-3">
+                        <div class="relative">
+                            <button id="statusFilterButton" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-expanded="false">
+                                <span id="statusFilterSummary">Statuts : Tous</span>
+                                <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+                            </button>
+                            <div id="statusFilterMenu" class="absolute z-20 mt-2 w-64 rounded-xl bg-slate-900 border border-slate-700 shadow-xl p-2 hidden">
+                                <div class="flex items-center justify-between px-2 py-1 text-xs text-slate-400">
+                                    <span>Sélection rapide</span>
+                                    <div class="flex items-center gap-2">
+                                        <button id="statusSelectAll" type="button" class="text-indigo-300 hover:text-indigo-200">Tout sélectionner</button>
+                                        <button id="statusSelectNone" type="button" class="text-slate-400 hover:text-slate-200">Tout désélectionner</button>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-1 p-2">
+                                    <label class="flex items-center gap-2 text-sm text-slate-200">
+                                        <input type="checkbox" value="PENDING" class="status-checkbox text-indigo-500 focus:ring-indigo-500 rounded">
+                                        En attente
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-slate-200">
+                                        <input type="checkbox" value="ACCEPTED" class="status-checkbox text-indigo-500 focus:ring-indigo-500 rounded">
+                                        En cours
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-slate-200">
+                                        <input type="checkbox" value="DONE" class="status-checkbox text-indigo-500 focus:ring-indigo-500 rounded">
+                                        Terminés
+                                    </label>
+                                    <label class="flex items-center gap-2 text-sm text-slate-200">
+                                        <input type="checkbox" value="CANCELLED" class="status-checkbox text-indigo-500 focus:ring-indigo-500 rounded">
+                                        Annulés
+                                    </label>
+                                </div>
+                                <div class="px-2 py-1 text-xs text-slate-500 border-t border-slate-700">
+                                    Sélection multiple autorisée
+                                </div>
+                            </div>
+                        </div>
+                        <select id="filterAllo" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500 max-w-[220px]">
+                            <option value="">Tous les allos</option>
+                        </select>
+                        <div id="assigneeFilterGroup" class="hidden">
+                            <label class="sr-only" for="filterAssignee">Assigné à</label>
+                            <select id="filterAssignee" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">Un admin…</option>
+                                <option value="unassigned">Non attribués</option>
+                                <option value="me">Moi</option>
+                            </select>
+                        </div>
+                        <select id="filterDateRange" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="all">Tous les créneaux</option>
+                            <option value="today">Aujourd’hui</option>
+                            <option value="tomorrow">Demain</option>
+                            <option value="week">Semaine</option>
+                            <option value="custom">Plage personnalisée</option>
+                        </select>
+                        <div id="customDateRange" class="hidden flex items-center gap-2">
+                            <input type="date" id="filterDateFrom" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <span class="text-slate-500 text-xs">→</span>
+                            <input type="date" id="filterDateTo" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+                </div>
+                <div id="activeFilters" class="flex flex-wrap gap-2"></div>
             </div>
         </div>
         <div class="space-y-4" id="requestsContainer"></div>
     </div>
 
     <!-- VIEW: CATALOG -->
-    <div id="viewCatalog" class="hidden">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold text-white">Catalogue des Services</h2>
-            <button onclick="openAlloModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow">
-                <i class="fa-solid fa-plus mr-2"></i> Nouvel Allo
-            </button>
+    <div id="viewCatalog" class="{{ $activeView === 'catalog' ? '' : 'hidden' }}">
+        <div class="flex flex-col gap-4 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Catalogue des Allos</h2>
+                    <p id="resultsCount" class="text-xs text-slate-400 mt-1">0 allos</p>
+                </div>
+                <button onclick="openAlloModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow">
+                    <i class="fa-solid fa-plus mr-2"></i> Nouvel Allo
+                </button>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogTitleFilter">Filtrer par titre</label>
+                    <input id="catalogTitleFilter" type="text" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500" placeholder="Ex: petit dej, massage...">
+                </div>
+                <div class="sm:w-56">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogStatusFilter">Statut</label>
+                    <select id="catalogStatusFilter" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                        <option value="ALL">Tous les statuts</option>
+                        <option value="DRAFT">Brouillon</option>
+                        <option value="OPEN">Ouvert</option>
+                        <option value="CLOSED">Fermé</option>
+                        <option value="DISABLED">Désactivé</option>
+                    </select>
+                </div>
+                <div class="sm:w-40 sm:flex sm:items-end">
+                    <button id="catalogResetFilters" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg px-3 py-2 transition-colors">
+                        Réinitialiser
+                    </button>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row flex-wrap gap-3">
+                <div class="sm:w-48">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogWindowMode">Fenêtre</label>
+                    <select id="catalogWindowMode" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                        <option value="hours">Dernières heures</option>
+                        <option value="days">Derniers jours</option>
+                        <option value="range">Plage personnalisée</option>
+                    </select>
+                </div>
+                <div class="sm:w-40" id="catalogWindowNumber">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogWindowValue" id="catalogWindowValueLabel">Dernières heures</label>
+                    <input id="catalogWindowValue" type="number" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500" min="1" max="168" value="24">
+                </div>
+                <div class="flex flex-wrap items-end gap-2 hidden" id="catalogWindowRange">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogWindowFrom">Du</label>
+                        <input id="catalogWindowFrom" type="date" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogWindowTo">Au</label>
+                        <input id="catalogWindowTo" type="date" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div class="sm:w-48">
+                    <label class="block text-xs font-medium text-slate-400 mb-1" for="catalogSort">Ordonner par</label>
+                    <select id="catalogSort" class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2 focus:ring-indigo-500">
+                        <option value="visits_window_desc">Visites (fenêtre)</option>
+                        <option value="recent">Création (récent)</option>
+                        <option value="title">Titre (A → Z)</option>
+                    </select>
+                </div>
+            </div>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="catalogGrid"></div>
     </div>
 @endsection
 
 @push('end_scripts')
+    <style>
+        .clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
     <!-- ALLO MODAL -->
     <div id="alloModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -69,37 +218,106 @@
                             <label class="block text-sm font-medium text-slate-300 mb-1">Titre</label>
                             <input type="text" id="alloTitle" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5 focus:ring-yellow-500 focus:border-yellow-500" placeholder="ex: P'tit Dej au lit" required>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-300 mb-1">Coût (Pts)</label>
-                                <input type="number" id="alloCost" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5 font-mono text-yellow-400" placeholder="200" required>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Durée Slot (min)</label>
+                            <input type="number" id="alloDuration" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="15" value="15" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Marge de sécurité (min)</label>
+                            <input type="number" id="alloSecurityMargin" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="0" value="0" min="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Limite par jour / utilisateur</label>
+                            <input type="number" id="alloDailyLimit" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Aucune limite" min="1">
+                            <p class="text-xs text-slate-500 mt-1">Laisse vide pour aucune limite. Sinon, indique un nombre &gt; 0.</p>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-slate-300">Capacité par créneau</label>
+                            <div class="flex items-center gap-3 text-xs text-slate-300">
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="capacityMode" value="admins" checked class="text-indigo-500 focus:ring-indigo-500">
+                                    Auto (nombre d'admins)
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="capacityMode" value="fixed" class="text-indigo-500 focus:ring-indigo-500">
+                                    Fixe
+                                </label>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-300 mb-1">Durée Slot (min)</label>
-                                <input type="number" id="alloDuration" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="15" value="15" required>
+                            <div id="fixedCapacityFields" class="hidden">
+                                <input type="number" id="alloFixedCapacity" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Ex: 80" min="1">
+                                <p class="text-xs text-slate-500 mt-1">Indique le nombre de places disponibles par créneau.</p>
                             </div>
                         </div>
-                        <div class="p-3 bg-slate-700/30 rounded border border-slate-600">
-                            <label class="block text-sm font-medium text-slate-300 mb-2">Fenêtre d'ouverture (Obligatoire)</label>
-                            <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Statut</label>
+                            <select id="alloStatus" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5">
+                                <option value="DRAFT">Brouillon</option>
+                                <option value="OPEN">Ouvert</option>
+                                <option value="CLOSED">Fermé</option>
+                                <option value="DISABLED">Désactivé</option>
+                            </select>
+                        </div>
+                        <div class="p-3 bg-slate-700/30 rounded border border-slate-600 space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300">Planification</label>
+                                <p class="text-xs text-slate-500">Choisis le mode de création des créneaux (fenêtre unique ou créneaux multiples).</p>
+                            </div>
+                            <div class="flex flex-col gap-2 text-xs text-slate-300">
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="scheduleMode" value="window" checked class="text-indigo-500 focus:ring-indigo-500">
+                                    Fenêtre unique
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="scheduleMode" value="date" class="text-indigo-500 focus:ring-indigo-500">
+                                    Créneaux datés (plusieurs dates)
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    <input type="radio" name="scheduleMode" value="range" class="text-indigo-500 focus:ring-indigo-500">
+                                    Plage globale + fenêtres horaires
+                                </label>
+                            </div>
+                            <div id="scheduleWindowFields" class="grid grid-cols-2 gap-2">
                                 <div>
                                     <label class="text-xs text-slate-500 mb-1 block">Ouverture</label>
-                                    <input type="datetime-local" id="alloStart" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" required>
+                                    <input type="datetime-local" id="alloStart" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
                                 </div>
                                 <div>
                                     <label class="text-xs text-slate-500 mb-1 block">Fermeture</label>
-                                    <input type="datetime-local" id="alloEnd" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" required>
+                                    <input type="datetime-local" id="alloEnd" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
                                 </div>
+                            </div>
+                            <div id="scheduleDateFields" class="hidden space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs text-slate-400">Ajoute un créneau par date (date + heure de début/fin).</p>
+                                    <button type="button" id="addDateSlot" class="text-xs text-indigo-300 hover:text-indigo-200">+ Ajouter un créneau</button>
+                                </div>
+                                <div id="dateSlotsContainer" class="space-y-2"></div>
+                            </div>
+                            <div id="scheduleRangeFields" class="hidden space-y-2">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-xs text-slate-500 mb-1 block">Début de période</label>
+                                        <input type="date" id="rangeStartDate" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-slate-500 mb-1 block">Fin de période</label>
+                                        <input type="date" id="rangeEndDate" class="w-full bg-slate-800 border border-slate-600 text-white text-xs rounded p-2">
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-xs text-slate-400">Ajoute plusieurs fenêtres horaires pour cette plage.</p>
+                                    <button type="button" id="addRangeSlot" class="text-xs text-indigo-300 hover:text-indigo-200">+ Ajouter une fenêtre</button>
+                                </div>
+                                <div id="rangeSlotsContainer" class="space-y-2"></div>
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-2">Attribution Admins</label>
                             <div class="bg-slate-900 border border-slate-600 rounded-lg p-2 max-h-32 overflow-y-auto" id="adminList"></div>
-                            <p class="text-xs text-slate-500 mt-1">Ces admins recevront les notifications.</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-300 mb-1">Description</label>
-                            <textarea id="alloDesc" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Détails du service..."></textarea>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Description <span class="text-passion-red">*</span></label>
+                            <textarea id="alloDesc" rows="2" class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg block p-2.5" placeholder="Détails de l'allo..." required></textarea>
                         </div>
                     </form>
                 </div>
@@ -112,51 +330,512 @@
     </div>
 
     <script>
-        // --- DATA ---
-        const mockAdmins = [ { id: 1, name: "Moi (Current)" }, { id: 2, name: "Paul V." }, { id: 3, name: "Marie C." }, { id: 4, name: "Tom R." } ];
+        const API = {
+            allos: '/admin/api/allos',
+            admins: '/admin/api/allo-admins',
+            usages: '/admin/api/allo-usages',
+            visits: '/admin/api/allo-visits',
+        };
 
-        let allos = [
-            { id: 1, title: "P'tit Dej au lit", cost: 150, duration: 15, active: true, start: "2023-10-12T08:00", end: "2023-10-12T11:00", desc: "Un croissant et un jus d'orange livrés en chambre.", admins: ["Moi (Current)", "Tom R."] },
-            { id: 2, title: "Réveil Fanfare", cost: 300, duration: 10, active: false, start: "2023-10-13T07:00", end: "2023-10-13T09:00", desc: "On vient te réveiller avec des trompettes.", admins: ["Paul V."] }
-        ];
+        const isSuperAdmin = @json(auth()->user()->hasRole('ROLE_SUPER_ADMIN'));
+        const currentUserId = @json(auth()->id());
+        const activeView = @json($activeView ?? 'requests');
 
-        let requests = [
-            { id: 101, alloId: 1, alloTitle: "P'tit Dej au lit", user: "Jean Dupont", slot: "08:15", status: "PENDING", handler: null },
-            { id: 102, alloId: 1, alloTitle: "P'tit Dej au lit", user: "Marie Curie", slot: "08:30", status: "ACCEPTED", handler: "Moi" },
-            { id: 103, alloId: 1, alloTitle: "P'tit Dej au lit", user: "Albert E.", slot: "09:00", status: "DONE", handler: "Tom" },
-            { id: 104, alloId: 2, alloTitle: "Réveil Fanfare", user: "Isaac N.", slot: "07:00", status: "PENDING", handler: null },
-            { id: 105, alloId: 1, alloTitle: "P'tit Dej au lit", user: "Ada Lovelace", slot: "09:15", status: "CANCELLED", handler: null },
-        ];
+        let allos = [];
+        let requests = [];
+        let admins = [];
+        let requestActionState = {};
+        let filtersPanelOpen = false;
+        let visitsByAlloId = {};
+        const defaultRequestFilters = {
+            statuses: ['PENDING', 'ACCEPTED', 'DONE', 'CANCELLED'],
+            scope: 'mine',
+            assignee: 'all',
+            alloId: '',
+            dateRange: 'all',
+            dateFrom: '',
+            dateTo: '',
+            search: '',
+            sort: 'slot_soon',
+        };
+        let requestFilters = { ...defaultRequestFilters };
+        let catalogFilters = {
+            title: '',
+            status: 'ALL',
+            sort: 'visits_window_desc',
+        };
+        let catalogAnalyticsWindow = {
+            mode: 'hours',
+            n: 24,
+            from: '',
+            to: '',
+        };
+        let scheduleMode = 'window';
+        let dateSpecificSlots = [];
+        let rangeTimeSlots = [];
+        let rangeDateStart = '';
+        let rangeDateEnd = '';
+        let isDraftMode = true;
 
-        // --- CORE FUNCTIONS ---
-        function switchView(view) {
-            const v1 = document.getElementById('viewRequests');
-            const v2 = document.getElementById('viewCatalog');
-            const t1 = document.getElementById('tabRequests');
-            const t2 = document.getElementById('tabCatalog');
+        function csrf() {
+            return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        }
 
-            if (view === 'requests') {
-                v1.classList.remove('hidden'); v2.classList.add('hidden');
-                t1.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-indigo-600 text-white shadow";
-                t2.className = "px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
-                renderRequests();
-            } else {
-                v1.classList.add('hidden'); v2.classList.remove('hidden');
-                t2.className = "px-4 py-1.5 rounded-md text-sm font-medium transition-all bg-indigo-600 text-white shadow";
-                t1.className = "px-4 py-1.5 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
-                renderCatalog();
+        function jsonHeaders() {
+            return { 'Accept': 'application/json' };
+        }
+
+        async function parseJsonResponse(response) {
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const isLoginRedirect = response.redirected
+                    && response.url
+                    && (response.url.includes('/login') || response.url.includes('/admin/login'));
+                const message = isLoginRedirect
+                    ? 'Session expirée. Merci de te reconnecter.'
+                    : `Réponse inattendue du serveur. (HTTP ${response.status})`;
+                throw new Error(message);
+            }
+            return response.json();
+        }
+
+        function formatDateTime(iso) {
+            if (!iso) return '-';
+            const date = new Date(iso);
+            return date.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+        }
+
+        function formatRelativeTime(iso) {
+            if (!iso) return '';
+            const date = new Date(iso);
+            const now = new Date();
+            const diffMs = date.getTime() - now.getTime();
+            const diffMinutes = Math.round(diffMs / 60000);
+            const diffHours = Math.round(diffMs / 3600000);
+            const diffDays = Math.round(diffMs / 86400000);
+
+            if (Math.abs(diffMinutes) < 60) {
+                return diffMinutes >= 0 ? `dans ${diffMinutes} min` : `il y a ${Math.abs(diffMinutes)} min`;
+            }
+            if (Math.abs(diffHours) < 24) {
+                return diffHours >= 0 ? `dans ${diffHours} h` : `il y a ${Math.abs(diffHours)} h`;
+            }
+            return diffDays >= 0 ? `dans ${diffDays} j` : `il y a ${Math.abs(diffDays)} j`;
+        }
+
+        function debounce(fn, delay = 300) {
+            let timeoutId;
+            return (...args) => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        function formatDateLabel(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                weekday: 'short',
+                day: '2-digit',
+                month: 'short',
+            }).format(date);
+        }
+
+        function formatTimeLabel(date) {
+            return new Intl.DateTimeFormat('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+            }).format(date);
+        }
+
+        function requestStatusConfig(status) {
+            switch (status) {
+                case 'PENDING':
+                    return {
+                        label: 'En attente',
+                        icon: 'fa-hourglass-half',
+                        classes: 'bg-amber-500/15 text-amber-200 border-amber-400/40',
+                    };
+                case 'ACCEPTED':
+                    return {
+                        label: 'En cours',
+                        icon: 'fa-circle-play',
+                        classes: 'bg-sky-500/15 text-sky-200 border-sky-400/40',
+                    };
+                case 'DONE':
+                    return {
+                        label: 'Terminé',
+                        icon: 'fa-circle-check',
+                        classes: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/40',
+                    };
+                case 'CANCELLED':
+                    return {
+                        label: 'Annulé',
+                        icon: 'fa-circle-xmark',
+                        classes: 'bg-rose-500/15 text-rose-200 border-rose-400/40',
+                    };
+                default:
+                    return {
+                        label: 'Inconnu',
+                        icon: 'fa-circle-question',
+                        classes: 'bg-slate-500/20 text-slate-300 border-slate-500/40',
+                    };
             }
         }
 
+        function statusBadgeClasses(status) {
+            switch (status) {
+                case 'OPEN':
+                    return 'bg-emerald-900/20 text-emerald-300 border-emerald-900/30';
+                case 'CLOSED':
+                    return 'bg-amber-900/20 text-amber-300 border-amber-900/30';
+                case 'DISABLED':
+                    return 'bg-slate-700/40 text-slate-300 border-slate-600';
+                default:
+                    return 'bg-indigo-900/20 text-indigo-300 border-indigo-900/30';
+            }
+        }
+
+        function formatDateOnly(dateString) {
+            if (!dateString) return '';
+            const [year, month, day] = dateString.split('-');
+            if (!year || !month || !day) return dateString;
+            return `${day}/${month}/${year}`;
+        }
+
+        function formatTimeOnly(timeString) {
+            if (!timeString) return '';
+            return timeString.slice(0, 5);
+        }
+
+        function setPendingBadge(count) {
+            const badge = document.getElementById('pendingCount');
+            if (!badge) return;
+            badge.innerText = count;
+            badge.classList.toggle('hidden', count === 0);
+        }
+
+        function formatAnalyticsWindowLabel(windowState) {
+            if (windowState.mode === 'hours') {
+                return `${windowState.n}h`;
+            }
+            if (windowState.mode === 'days') {
+                return `${windowState.n}j`;
+            }
+            if (windowState.from && windowState.to) {
+                return `du ${formatDateOnly(windowState.from)} au ${formatDateOnly(windowState.to)}`;
+            }
+            return 'plage';
+        }
+
+        function formatWindowInfo(startAt, endAt) {
+            if (!startAt || !endAt) {
+                return `<span class="text-slate-500 text-xs">Non planifié</span>`;
+            }
+
+            const start = new Date(startAt);
+            const end = new Date(endAt);
+            const sameDay = start.toDateString() === end.toDateString();
+            const dateLabel = formatDateLabel(start);
+            const startTime = formatTimeLabel(start);
+            const endTime = formatTimeLabel(end);
+
+            if (sameDay) {
+                return `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs">${dateLabel}</span>
+                    </div>
+                    <div class="flex items-center gap-2 ml-5 pl-3 border-l border-slate-600/60">
+                        <i class="fa-regular fa-clock text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="flex items-center gap-2">
+                    <i class="fa-regular fa-calendar text-slate-400"></i>
+                    <span class="text-indigo-200 text-xs font-mono">du ${formatDateTime(startAt)}</span>
+                </div>
+                <div class="flex items-center gap-2 ml-5 pl-3 border-l border-slate-600/60">
+                    <i class="fa-solid fa-arrow-right text-slate-400 text-[10px]"></i>
+                    <span class="text-indigo-200 text-xs font-mono">au ${formatDateTime(endAt)}</span>
+                </div>
+            `;
+        }
+
+        function formatScheduleInfo(allo) {
+            if (allo.window_start_at || allo.window_end_at) {
+                return formatWindowInfo(allo.window_start_at, allo.window_end_at);
+            }
+
+            const slots = Array.isArray(allo.time_slots) ? allo.time_slots : [];
+            if (slots.length === 0) {
+                return `<span class="text-slate-500 text-xs">Non planifié</span>`;
+            }
+
+            const firstSlot = slots[0];
+            const sameRange = slots.every(slot => slot.start_date === firstSlot.start_date && slot.end_date === firstSlot.end_date);
+
+            if (sameRange) {
+                const startDate = formatDateOnly(firstSlot.start_date);
+                const endDate = formatDateOnly(firstSlot.end_date);
+                const dateLabel = startDate && endDate
+                    ? (startDate === endDate ? `le ${startDate}` : `du ${startDate} au ${endDate}`)
+                    : 'Période à définir';
+                const timeLines = slots.map(slot => {
+                    const startTime = formatTimeOnly(slot.start_time);
+                    const endTime = formatTimeOnly(slot.end_time);
+                    if (!startTime || !endTime) return '';
+                    return `
+                        <div class="flex items-center gap-2 ml-5 pl-3 border-l border-slate-600/60">
+                            <i class="fa-regular fa-clock text-slate-400"></i>
+                            <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs">${dateLabel}</span>
+                    </div>
+                    ${timeLines || '<span class="text-slate-500 text-xs">Horaires à définir</span>'}
+                `;
+            }
+
+            return slots.map(slot => {
+                const dateLabel = formatDateOnly(slot.start_date);
+                const startTime = formatTimeOnly(slot.start_time);
+                const endTime = formatTimeOnly(slot.end_time);
+                const dateLine = `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-regular fa-calendar text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs">${dateLabel || 'Date à définir'}</span>
+                    </div>
+                `;
+                if (!startTime || !endTime) {
+                    return `
+                        ${dateLine}
+                        <span class="text-slate-500 text-xs">Horaires à définir</span>
+                    `;
+                }
+                return `
+                    ${dateLine}
+                    <div class="flex items-center gap-2 ml-5 pl-3 border-l border-slate-600/60">
+                        <i class="fa-regular fa-clock text-slate-400"></i>
+                        <span class="text-indigo-200 text-xs font-mono">de ${startTime} à ${endTime}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toInputDateTime(iso) {
+            if (!iso) return '';
+            const date = new Date(iso);
+            const pad = (value) => String(value).padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        function statusLabel(status) {
+            switch (status) {
+                case 'OPEN':
+                    return 'Ouvert';
+                case 'CLOSED':
+                    return 'Fermé';
+                case 'DISABLED':
+                    return 'Désactivé';
+                default:
+                    return 'Brouillon';
+            }
+        }
+
+        function statusLabelForFilter(status) {
+            const labels = {
+                PENDING: 'En attente',
+                ACCEPTED: 'En cours',
+                DONE: 'Terminé',
+                CANCELLED: 'Annulé',
+            };
+            return labels[status] || status;
+        }
+
+        function normalizeStatuses(values) {
+            return defaultRequestFilters.statuses.filter(status => values.includes(status));
+        }
+
+        function updateStatusFilterSummary() {
+            const total = defaultRequestFilters.statuses.length;
+            const selectedCount = requestFilters.statuses.length;
+            const summary = selectedCount === 0
+                ? 'Statuts : Aucun'
+                : selectedCount === total
+                    ? 'Statuts : Tous'
+                    : `Statuts : ${selectedCount}/${total}`;
+            const summaryEl = document.getElementById('statusFilterSummary');
+            if (summaryEl) summaryEl.innerText = summary;
+        }
+
+        function isDefaultFilters() {
+            return JSON.stringify(requestFilters) === JSON.stringify(defaultRequestFilters);
+        }
+
+        function updateQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            params.delete('status');
+            params.delete('scope');
+            params.delete('assignee');
+            params.delete('allo_id');
+            params.delete('date_range');
+            params.delete('date_from');
+            params.delete('date_to');
+            params.delete('q');
+            params.delete('sort');
+
+            const statuses = requestFilters.statuses;
+            if (statuses.length === 0) {
+                params.set('status', 'none');
+            } else if (statuses.length !== defaultRequestFilters.statuses.length) {
+                params.set('status', statuses.join(','));
+            }
+            if (requestFilters.scope !== defaultRequestFilters.scope) {
+                params.set('scope', requestFilters.scope);
+            }
+            if (requestFilters.assignee !== defaultRequestFilters.assignee && requestFilters.scope === 'all') {
+                params.set('assignee', requestFilters.assignee);
+            }
+            if (requestFilters.alloId) {
+                params.set('allo_id', requestFilters.alloId);
+            }
+            if (requestFilters.dateRange !== defaultRequestFilters.dateRange) {
+                params.set('date_range', requestFilters.dateRange);
+            }
+            if (requestFilters.dateFrom) {
+                params.set('date_from', requestFilters.dateFrom);
+            }
+            if (requestFilters.dateTo) {
+                params.set('date_to', requestFilters.dateTo);
+            }
+            if (requestFilters.search) {
+                params.set('q', requestFilters.search);
+            }
+            if (requestFilters.sort !== defaultRequestFilters.sort) {
+                params.set('sort', requestFilters.sort);
+            }
+
+            const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        function parseQueryParams() {
+            const params = new URLSearchParams(window.location.search);
+            const statusesParam = params.get('status');
+            const scopeParam = params.get('scope');
+            const assigneeParam = params.get('assignee');
+            const alloIdParam = params.get('allo_id');
+            const dateRangeParam = params.get('date_range');
+            const dateFromParam = params.get('date_from');
+            const dateToParam = params.get('date_to');
+            const searchParam = params.get('q');
+            const sortParam = params.get('sort');
+
+            const nextFilters = { ...defaultRequestFilters };
+
+            if (statusesParam) {
+                if (statusesParam === 'none') {
+                    nextFilters.statuses = [];
+                } else {
+                    const parsedStatuses = statusesParam.split(',').map(value => value.trim()).filter(Boolean);
+                    nextFilters.statuses = normalizeStatuses(parsedStatuses);
+                }
+            }
+            if (scopeParam === 'all' || scopeParam === 'mine') {
+                nextFilters.scope = scopeParam;
+            }
+            if (assigneeParam) {
+                nextFilters.assignee = assigneeParam;
+            }
+            if (alloIdParam) {
+                nextFilters.alloId = alloIdParam;
+            }
+            if (dateRangeParam) {
+                nextFilters.dateRange = dateRangeParam;
+            }
+            if (dateFromParam) {
+                nextFilters.dateFrom = dateFromParam;
+            }
+            if (dateToParam) {
+                nextFilters.dateTo = dateToParam;
+            }
+            if (searchParam) {
+                nextFilters.search = searchParam;
+            }
+            if (sortParam) {
+                nextFilters.sort = sortParam;
+            }
+
+            if (nextFilters.scope !== 'all') {
+                nextFilters.assignee = defaultRequestFilters.assignee;
+            }
+
+            requestFilters = nextFilters;
+        }
+
+        // --- CORE FUNCTIONS ---
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
             if (sb.classList.contains('-translate-x-full')) sb.classList.remove('-translate-x-full');
             else sb.classList.add('-translate-x-full');
         }
 
+        async function loadAllos() {
+            try {
+                const response = await fetch(API.allos, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger les allos.');
+                allos = payload.data || [];
+                populateFilters();
+                renderCatalog();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors du chargement des allos.', 'error');
+            }
+        }
+
+        async function loadRequests() {
+            try {
+                const response = await fetch(`${API.usages}?status=ALL`, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger les demandes.');
+                requests = payload.data || [];
+                renderRequests();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors du chargement des demandes.', 'error');
+            }
+        }
+
+        async function loadAdmins() {
+            try {
+                const response = await fetch(API.admins, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger la liste des admins.');
+                admins = payload.data || [];
+                populateAssignees();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors du chargement des admins.', 'error');
+            }
+        }
+
         function populateFilters() {
             const alloSelect = document.getElementById('filterAllo');
-            alloSelect.innerHTML = '<option value="">Tous les services</option>';
+            alloSelect.innerHTML = '<option value="">Tous les allos</option>';
             allos.forEach(a => {
                 const opt = document.createElement('option');
                 opt.value = a.id;
@@ -165,108 +844,802 @@
             });
         }
 
+        function populateAssignees() {
+            const assigneeSelect = document.getElementById('filterAssignee');
+            if (!assigneeSelect) return;
+            const currentValue = assigneeSelect.value || 'all';
+            const existing = Array.from(assigneeSelect.querySelectorAll('option[data-admin="true"]'));
+            existing.forEach(opt => opt.remove());
+            admins.forEach(admin => {
+                const opt = document.createElement('option');
+                opt.value = `admin:${admin.id}`;
+                opt.innerText = admin.name;
+                opt.dataset.admin = 'true';
+                assigneeSelect.appendChild(opt);
+            });
+            assigneeSelect.value = currentValue;
+        }
+
         function populateAdminList(selectedAdmins = []) {
             const container = document.getElementById('adminList');
             container.innerHTML = '';
-            mockAdmins.forEach(admin => {
-                const isChecked = selectedAdmins.includes(admin.name);
+            if (admins.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500">Aucun admin disponible.</p>';
+                return;
+            }
+
+            admins.forEach(admin => {
+                const isChecked = selectedAdmins.includes(admin.id);
                 const div = document.createElement('div');
                 div.className = "flex items-center mb-2 last:mb-0";
-                div.innerHTML = `<input type="checkbox" id="admin_${admin.id}" name="alloAdmins" value="${admin.name}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600 bg-slate-800 border-slate-600 rounded focus:ring-indigo-500"><label for="admin_${admin.id}" class="ml-2 text-sm text-slate-300 cursor-pointer select-none">${admin.name}</label>`;
+                div.innerHTML = `<input type="checkbox" id="admin_${admin.id}" name="alloAdmins" value="${admin.id}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600 bg-slate-800 border-slate-600 rounded focus:ring-indigo-500"><label for="admin_${admin.id}" class="ml-2 text-sm text-slate-300 cursor-pointer select-none">${admin.name}</label>`;
                 container.appendChild(div);
             });
+        }
+
+        function setScheduleMode(mode) {
+            scheduleMode = mode;
+            updateScheduleVisibility();
+            updateAlloRequirements();
+        }
+
+        function updateScheduleVisibility() {
+            const windowFields = document.getElementById('scheduleWindowFields');
+            const dateFields = document.getElementById('scheduleDateFields');
+            const rangeFields = document.getElementById('scheduleRangeFields');
+
+            windowFields.classList.toggle('hidden', scheduleMode !== 'window');
+            dateFields.classList.toggle('hidden', scheduleMode !== 'date');
+            rangeFields.classList.toggle('hidden', scheduleMode !== 'range');
+        }
+
+        function updateAlloRequirements() {
+            const statusValue = document.getElementById('alloStatus').value;
+            const durationInput = document.getElementById('alloDuration');
+            const windowStartInput = document.getElementById('alloStart');
+            const windowEndInput = document.getElementById('alloEnd');
+            const dateSlotsContainer = document.getElementById('dateSlotsContainer');
+            const rangeSlotsContainer = document.getElementById('rangeSlotsContainer');
+
+            isDraftMode = statusValue === 'DRAFT';
+            durationInput.required = !isDraftMode;
+            windowStartInput.required = !isDraftMode && scheduleMode === 'window';
+            windowEndInput.required = !isDraftMode && scheduleMode === 'window';
+
+            dateSlotsContainer.querySelectorAll('input').forEach((input) => {
+                input.required = !isDraftMode && scheduleMode === 'date';
+            });
+            rangeSlotsContainer.querySelectorAll('input').forEach((input) => {
+                input.required = !isDraftMode && scheduleMode === 'range';
+            });
+        }
+
+        function updateCapacityVisibility() {
+            const fixedFields = document.getElementById('fixedCapacityFields');
+            const fixedCapacityInput = document.getElementById('alloFixedCapacity');
+            const isFixed = document.querySelector('input[name="capacityMode"]:checked')?.value === 'fixed';
+            fixedFields.classList.toggle('hidden', !isFixed);
+            fixedCapacityInput.required = isFixed;
+        }
+
+        function renderDateSlots() {
+            const container = document.getElementById('dateSlotsContainer');
+            container.innerHTML = '';
+
+            if (dateSpecificSlots.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500">Aucun créneau ajouté.</p>';
+                return;
+            }
+
+            dateSpecificSlots.forEach((slot, index) => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-1 md:grid-cols-[1.1fr_0.9fr_0.9fr_auto] gap-2 items-center';
+                row.innerHTML = `
+                    <input type="date" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.date || ''}" data-field="date" data-index="${index}">
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.start_time || ''}" data-field="start_time" data-index="${index}">
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.end_time || ''}" data-field="end_time" data-index="${index}">
+                    <button type="button" class="text-xs text-red-300 hover:text-red-200" data-action="remove" data-index="${index}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+                row.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('change', (event) => {
+                        const idx = Number(event.target.dataset.index);
+                        const field = event.target.dataset.field;
+                        dateSpecificSlots[idx][field] = event.target.value;
+                    });
+                    input.required = !isDraftMode && scheduleMode === 'date';
+                });
+                row.querySelector('[data-action="remove"]').addEventListener('click', (event) => {
+                    const idx = Number(event.currentTarget.dataset.index);
+                    dateSpecificSlots.splice(idx, 1);
+                    renderDateSlots();
+                });
+                container.appendChild(row);
+            });
+        }
+
+        function renderRangeSlots() {
+            const container = document.getElementById('rangeSlotsContainer');
+            container.innerHTML = '';
+
+            if (rangeTimeSlots.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500">Aucune fenêtre horaire ajoutée.</p>';
+                return;
+            }
+
+            rangeTimeSlots.forEach((slot, index) => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-center';
+                row.innerHTML = `
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.start_time || ''}" data-field="start_time" data-index="${index}">
+                    <input type="time" class="bg-slate-800 border border-slate-600 text-white text-xs rounded p-2" value="${slot.end_time || ''}" data-field="end_time" data-index="${index}">
+                    <button type="button" class="text-xs text-red-300 hover:text-red-200" data-action="remove" data-index="${index}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                `;
+                row.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('change', (event) => {
+                        const idx = Number(event.target.dataset.index);
+                        const field = event.target.dataset.field;
+                        rangeTimeSlots[idx][field] = event.target.value;
+                    });
+                    input.required = !isDraftMode && scheduleMode === 'range';
+                });
+                row.querySelector('[data-action="remove"]').addEventListener('click', (event) => {
+                    const idx = Number(event.currentTarget.dataset.index);
+                    rangeTimeSlots.splice(idx, 1);
+                    renderRangeSlots();
+                });
+                container.appendChild(row);
+            });
+        }
+
+        function resetScheduleState() {
+            scheduleMode = 'window';
+            dateSpecificSlots = [];
+            rangeTimeSlots = [];
+            rangeDateStart = '';
+            rangeDateEnd = '';
+            document.querySelectorAll('input[name="scheduleMode"]').forEach((input) => {
+                input.checked = input.value === scheduleMode;
+            });
+            document.getElementById('rangeStartDate').value = '';
+            document.getElementById('rangeEndDate').value = '';
+            updateScheduleVisibility();
+            renderDateSlots();
+            renderRangeSlots();
+            updateAlloRequirements();
         }
 
         // --- REQUESTS ---
         function renderRequests() {
             const container = document.getElementById('requestsContainer');
-            const statusFilter = document.getElementById('filterStatus').value;
-            const alloFilter = document.getElementById('filterAllo').value;
-            const userFilter = document.getElementById('filterUser').value.toLowerCase();
             container.innerHTML = '';
 
             let filtered = requests.filter(r => {
-                let statusMatch = true;
-                if (statusFilter === 'ACTIVE') statusMatch = (r.status === 'PENDING' || r.status === 'ACCEPTED');
-                else if (statusFilter !== 'ALL') statusMatch = (r.status === statusFilter);
-                let alloMatch = true;
-                if (alloFilter) alloMatch = (r.alloId == alloFilter);
-                let userMatch = true;
-                if (userFilter) userMatch = r.user.toLowerCase().includes(userFilter);
-                return statusMatch && alloMatch && userMatch;
+                const statusMatch = requestFilters.statuses.length === 0
+                    || requestFilters.statuses.includes(r.status);
+                const alloMatch = !requestFilters.alloId || r.allo_id == requestFilters.alloId;
+                const scopeMatch = requestFilters.scope === 'all'
+                    ? true
+                    : r.handled_by_id === currentUserId;
+                const assigneeMatch = (() => {
+                    if (requestFilters.scope !== 'all') return true;
+                    if (requestFilters.assignee === 'all') return true;
+                    if (requestFilters.assignee === 'unassigned') return !r.handled_by_id;
+                    if (requestFilters.assignee === 'me') return r.handled_by_id === currentUserId;
+                    if (requestFilters.assignee.startsWith('admin:')) {
+                        const id = parseInt(requestFilters.assignee.split(':')[1]);
+                        return r.handled_by_id === id;
+                    }
+                    return true;
+                })();
+                const searchText = requestFilters.search.trim().toLowerCase();
+                const searchMatch = !searchText
+                    || `${r.user_name} ${r.user_email} ${r.allo_title} ${r.user_note || ''}`.toLowerCase().includes(searchText);
+                const slotDate = r.slot_start_at ? new Date(r.slot_start_at) : null;
+                const dateMatch = (() => {
+                    if (!slotDate) return true;
+                    if (requestFilters.dateRange === 'today') {
+                        const today = new Date();
+                        return slotDate.toDateString() === today.toDateString();
+                    }
+                    if (requestFilters.dateRange === 'tomorrow') {
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        return slotDate.toDateString() === tomorrow.toDateString();
+                    }
+                    if (requestFilters.dateRange === 'week') {
+                        const now = new Date();
+                        const weekEnd = new Date(now);
+                        weekEnd.setDate(weekEnd.getDate() + 7);
+                        return slotDate >= now && slotDate <= weekEnd;
+                    }
+                    if (requestFilters.dateRange === 'custom') {
+                        const from = requestFilters.dateFrom ? new Date(requestFilters.dateFrom) : null;
+                        const to = requestFilters.dateTo ? new Date(requestFilters.dateTo) : null;
+                        if (from && slotDate < from) return false;
+                        if (to) {
+                            const end = new Date(to);
+                            end.setHours(23, 59, 59, 999);
+                            if (slotDate > end) return false;
+                        }
+                    }
+                    return true;
+                })();
+
+                return statusMatch && alloMatch && scopeMatch && assigneeMatch && searchMatch && dateMatch;
             });
 
             const pendingCount = requests.filter(r => r.status === 'PENDING').length;
-            const badge = document.getElementById('pendingCount');
-            badge.innerText = pendingCount;
-            badge.classList.toggle('hidden', pendingCount === 0);
+            setPendingBadge(pendingCount);
 
-            if(filtered.length === 0) { container.innerHTML = `<div class="text-center py-12 text-slate-500"><i class="fa-solid fa-filter text-4xl mb-3 opacity-20"></i><p>Aucun résultat.</p></div>`; return; }
+            const resultsCount = document.getElementById('requestsCount');
+            if (resultsCount) {
+                resultsCount.innerText = `${filtered.length} allos`;
+            }
+
+            filtered = sortRequests(filtered);
+
+            if (filtered.length === 0) {
+                const hasActiveFilters = !isDefaultFilters();
+                container.innerHTML = `
+                    <div class="text-center py-16 text-slate-500 border border-dashed border-slate-700 rounded-2xl">
+                        <i class="fa-solid fa-filter text-4xl mb-4 opacity-30"></i>
+                        <p class="text-sm">${hasActiveFilters ? 'Aucun résultat — retirez un filtre pour élargir la recherche.' : 'Aucune demande pour le moment.'}</p>
+                    </div>
+                `;
+                renderActiveFilters();
+                updateResetButtonState();
+                return;
+            }
 
             filtered.forEach(r => {
-                let statusBadge = '', actions = '', cardBorder = 'border-slate-700';
-                if(r.status === 'PENDING') {
-                    statusBadge = `<span class="px-2 py-1 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-xs font-bold">EN ATTENTE</span>`;
-                    actions = `<button onclick="updateStatus(${r.id}, 'CANCELLED')" class="text-slate-400 hover:text-red-400 text-sm px-3">Annuler</button><button onclick="updateStatus(${r.id}, 'ACCEPTED')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-1.5 rounded font-medium shadow">Prendre en charge</button>`;
-                    cardBorder = 'border-yellow-500/30';
-                } else if (r.status === 'ACCEPTED') {
-                    statusBadge = `<span class="px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold">EN COURS (${r.handler})</span>`;
-                    actions = `<button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3">Relâcher</button><button onclick="updateStatus(${r.id}, 'DONE')" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded font-medium shadow">Terminer</button>`;
-                    cardBorder = 'border-blue-500/30';
-                } else if (r.status === 'DONE') {
-                    statusBadge = `<span class="px-2 py-1 rounded bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-bold">TERMINÉ</span>`;
-                    actions = `<span class="text-xs text-slate-500 mr-3 hidden sm:inline">Géré par ${r.handler}</span><button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3 flex items-center border-l border-slate-700 ml-2 pl-4"><i class="fa-solid fa-rotate-left mr-1"></i> Rouvrir</button>`;
-                    cardBorder = 'border-green-500/30';
-                } else {
-                    statusBadge = `<span class="px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold">ANNULÉ</span>`;
-                    actions = `<button onclick="updateStatus(${r.id}, 'PENDING')" class="text-slate-400 hover:text-yellow-400 text-sm px-3 flex items-center"><i class="fa-solid fa-rotate-left mr-1"></i> Remettre en attente</button>`;
-                    cardBorder = 'border-red-500/30';
-                }
+                const statusConfig = requestStatusConfig(r.status);
+                const isLoading = !!requestActionState[r.id];
+                const cardBorder = r.status === 'PENDING'
+                    ? 'border-amber-500/30'
+                    : r.status === 'ACCEPTED'
+                        ? 'border-sky-500/30'
+                        : r.status === 'DONE'
+                            ? 'border-emerald-500/30'
+                            : 'border-rose-500/30';
+                const assignControls = renderAssignControls(r, isLoading);
+                const handlerLine = r.handled_by_name ? `Assigné à ${r.handled_by_name}` : 'Non attribué';
+                const relativeTime = formatRelativeTime(r.slot_start_at);
+                const relativeTimeBadge = relativeTime
+                    ? `<span class="text-xs text-slate-300 bg-slate-700/60 px-2 py-0.5 rounded-full">${relativeTime}</span>`
+                    : '';
+                const noteText = r.user_note || 'Aucune note.';
+                const noteId = `note_${r.id}`;
+                const canReopen = isSuperAdmin && r.status === 'DONE';
+
+                const isOwnedByOther = r.handled_by_id && r.handled_by_id !== currentUserId;
+                const actions = renderActions(r, isLoading, canReopen, isOwnedByOther);
+
                 container.innerHTML += `
-                    <div class="bg-slate-800 rounded-lg p-4 border ${cardBorder} flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all">
-                        <div class="flex items-center gap-4">
-                            <div class="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center text-indigo-400 font-bold">${r.user.substring(0,2)}</div>
-                            <div>
-                                <div class="flex items-center gap-2 mb-1"><h3 class="font-bold text-white">${r.alloTitle}</h3>${statusBadge}</div>
-                                <p class="text-sm text-slate-400"><i class="fa-solid fa-user mr-1"></i> ${r.user} <span class="mx-2">•</span> <i class="fa-regular fa-clock mr-1"></i> Créneau : <span class="text-white font-mono">${r.slot}</span></p>
+                    <div class="bg-slate-800 rounded-2xl p-4 border ${cardBorder} flex flex-col gap-4 transition-all">
+                        <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                            <div class="flex items-start gap-4">
+                                <div class="h-11 w-11 rounded-full bg-slate-700 flex items-center justify-center text-indigo-300 font-bold uppercase">${r.user_name.substring(0,2)}</div>
+                                <div class="space-y-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="font-bold text-white text-lg">${r.allo_title}</h3>
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-semibold uppercase tracking-wide ${statusConfig.classes}">
+                                            <i class="fa-solid ${statusConfig.icon}"></i> ${statusConfig.label}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-slate-400 flex flex-wrap items-center gap-2">
+                                        <span class="inline-flex items-center gap-1"><i class="fa-solid fa-user text-slate-500"></i> ${r.user_name}</span>
+                                        <span class="text-slate-500">•</span>
+                                        <span class="inline-flex items-center gap-2">
+                                            <i class="fa-regular fa-clock text-slate-500"></i>
+                                            <span class="text-slate-400">Créneau :</span>
+                                            <span class="text-white font-mono">${formatDateTime(r.slot_start_at)}</span>
+                                        </span>
+                                        ${relativeTimeBadge}
+                                    </p>
+                                    <p class="text-xs uppercase tracking-wide text-slate-500">${handlerLine}</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-2 w-full lg:w-auto border-t lg:border-t-0 border-slate-700 pt-3 lg:pt-0">
+                                ${assignControls}
+                                <div class="flex flex-wrap items-center gap-2 justify-end">${actions}</div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 w-full md:w-auto justify-end border-t md:border-t-0 border-slate-700 pt-3 md:pt-0">${actions}</div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-400">
+                            <div class="space-y-2">
+                                <p class="uppercase tracking-wide text-[10px] text-slate-500">Note étudiant</p>
+                                <p id="${noteId}" class="text-sm text-slate-200 clamp-3">${noteText}</p>
+                                ${noteText.length > 140 ? `<button type="button" class="toggle-note text-xs text-indigo-300 hover:text-indigo-200" data-note="${noteId}">Voir plus</button>` : ''}
+                            </div>
+                        </div>
                     </div>`;
             });
+
+            bindNoteToggles();
+            bindAssignControls();
+            renderActiveFilters();
+            updateResetButtonState();
         }
 
         async function updateStatus(id, status) {
-            const req = requests.find(r => r.id === id);
-            if(req) {
-                req.status = status;
-                req.handler = status === 'ACCEPTED' ? 'Moi' : (status === 'PENDING' ? null : req.handler);
-                let msg = "Statut mis à jour";
-                if(status === 'ACCEPTED') msg = "Vous avez pris en charge la demande";
-                if(status === 'DONE') msg = "Allo terminé !";
-                if(status === 'PENDING') msg = "Demande remise en attente";
-                showToast(msg, 'success');
-                renderRequests();
+            if (requestActionState[id]) return;
+            const payload = { status };
+            await updateUsage(id, payload, status);
+        }
+
+        function getAssignableAdmins(alloId, currentHandlerId = null) {
+            const allo = allos.find(item => item.id === alloId);
+            const alloAdmins = Array.isArray(allo?.admins) ? allo.admins : [];
+
+            // Safety: if current handler exists but is not in allo.admins, keep it selectable (legacy data)
+            if (currentHandlerId && !alloAdmins.some(a => String(a.id) === String(currentHandlerId))) {
+                const fallback = admins.find(a => String(a.id) === String(currentHandlerId));
+                if (fallback) return [...alloAdmins, fallback];
             }
+
+            return alloAdmins;
+        }
+
+
+        function renderAssignControls(request, isLoading) {
+            if (request.status !== 'PENDING' && request.status !== 'ACCEPTED') {
+                return '';
+            }
+
+            const availableAdmins = getAssignableAdmins(request.allo_id, request.handled_by_id);
+            if (!availableAdmins || availableAdmins.length === 0) {
+                return '<span class="text-xs text-slate-500 mr-2">Aucun responsable.</span>';
+            }
+
+            const selectId = `assignSelect_${request.id}`;
+            const options = availableAdmins.map(admin => {
+                const selected = admin.id === request.handled_by_id ? 'selected' : '';
+                return `<option value="${admin.id}" ${selected}>${admin.name}</option>`;
+            }).join('');
+            const noneSelected = request.handled_by_id ? '' : 'selected';
+            const buttonLabel = request.status === 'PENDING' ? 'Attribuer' : 'Réattribuer';
+            const isDisabled = isLoading;
+            const disabledClass = isDisabled ? 'opacity-50 cursor-not-allowed' : '';
+            return `
+                <div class="flex flex-wrap items-center gap-2">
+                    <select id="${selectId}" data-assign-select="${request.id}" class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="" ${noneSelected}>Personne</option>
+                        ${options}
+                    </select>
+                    <button
+                      onclick="assignUsage(${request.id})"
+                      data-assign-button="${request.id}"
+                      data-current-handler="${request.handled_by_id || ''}"
+                      data-loading="${isLoading ? '1' : '0'}"
+                      class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-1.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}"
+                      ${isDisabled ? 'disabled' : ''}
+                    >
+                      ${buttonLabel}
+                    </button>
+
+                    ${request.status === 'ACCEPTED' ? `<button onclick="updateStatus(${request.id}, 'PENDING')" class="text-xs px-3 py-1.5 rounded border border-slate-600 text-slate-200 hover:text-yellow-200 hover:border-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}" ${isDisabled ? 'disabled' : ''} title="${isDisabled ? 'Action en cours' : 'Relâcher la demande'}">Relâcher</button>` : ''}
+                </div>
+            `;
+        }
+
+        async function assignUsage(id) {
+            if (requestActionState[id]) return;
+            const select = document.getElementById(`assignSelect_${id}`);
+            if (!select) return;
+            const handlerId = select.value ? parseInt(select.value) : null;
+            if (!handlerId) {
+                await updateUsage(id, { status: 'PENDING', handled_by_id: null }, 'PENDING');
+                return;
+            }
+            await updateUsage(id, { status: 'ACCEPTED', handled_by_id: handlerId });
+        }
+
+        function renderActions(request, isLoading, canReopen, isOwnedByOther) {
+            const disabledAttrs = isLoading ? 'disabled' : '';
+            const disabledClass = isLoading ? 'opacity-50 cursor-not-allowed' : '';
+            const loadingLabel = isLoading ? '<i class="fa-solid fa-spinner fa-spin mr-2"></i> En cours...' : '';
+            const ownershipLabel = request.handled_by_name || 'un autre admin';
+            if (request.status === 'PENDING') {
+                const primaryDisabled = isLoading || isOwnedByOther;
+                const primaryTitle = isOwnedByOther
+                    ? `Déjà attribué à ${ownershipLabel}`
+                    : (isLoading ? 'Action en cours' : 'Prendre en charge');
+                return `
+                    <button onclick="updateStatus(${request.id}, 'CANCELLED')" class="text-xs px-3 py-1.5 rounded border border-slate-600 text-slate-300 hover:text-rose-200 hover:border-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}" ${disabledAttrs} title="${isLoading ? 'Action en cours' : 'Annuler la demande'}">Annuler</button>
+                    <button onclick="updateStatus(${request.id}, 'ACCEPTED')" class="text-xs px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${primaryDisabled ? 'opacity-50 cursor-not-allowed' : ''}" ${primaryDisabled ? 'disabled' : ''} title="${primaryTitle}">${loadingLabel || 'Prendre en charge'}</button>
+                `;
+            }
+            if (request.status === 'ACCEPTED') {
+                const canOverrideOwnership = isSuperAdmin && isOwnedByOther;
+                const primaryDisabled = isLoading || (isOwnedByOther && !isSuperAdmin);
+                const primaryTitle = isOwnedByOther
+                    ? (canOverrideOwnership
+                        ? `Attribué à ${ownershipLabel} — terminer en tant que super admin`
+                        : `Attribué à ${ownershipLabel}`)
+                    : (isLoading ? 'Action en cours' : 'Terminer la demande');
+                return `
+                    <button onclick="updateStatus(${request.id}, 'DONE')" class="text-xs px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${primaryDisabled ? 'opacity-50 cursor-not-allowed' : ''}" ${primaryDisabled ? 'disabled' : ''} title="${primaryTitle}">${loadingLabel || 'Terminer'}</button>
+                `;
+            }
+            if (request.status === 'DONE') {
+                const doneBy = request.done_by_name || request.handled_by_name || 'Admin';
+                return `
+                    <span class="text-xs text-slate-500 mr-3">Géré par ${doneBy}</span>
+                    ${canReopen ? `<button onclick="updateStatus(${request.id}, 'PENDING')" class="text-xs px-3 py-1.5 rounded border border-slate-600 text-slate-200 hover:text-yellow-200 hover:border-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}" ${disabledAttrs}><i class="fa-solid fa-rotate-left mr-1"></i> Rouvrir</button>` : ''}
+                `;
+            }
+            return `
+                <button onclick="updateStatus(${request.id}, 'PENDING')" class="text-xs px-3 py-1.5 rounded border border-slate-600 text-slate-200 hover:text-yellow-200 hover:border-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${disabledClass}" ${disabledAttrs}><i class="fa-solid fa-rotate-left mr-1"></i> Remettre en attente</button>
+            `;
+        }
+
+        function bindNoteToggles() {
+            document.querySelectorAll('.toggle-note').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const targetId = event.currentTarget.dataset.note;
+                    const note = document.getElementById(targetId);
+                    if (!note) return;
+                    const isClamped = note.classList.contains('clamp-3');
+                    note.classList.toggle('clamp-3', !isClamped);
+                    event.currentTarget.innerText = isClamped ? 'Voir moins' : 'Voir plus';
+                });
+            });
+        }
+
+        function bindAssignControls() {
+            document.querySelectorAll('[data-assign-select]').forEach(select => {
+                const requestId = select.dataset.assignSelect;
+                const button = document.querySelector(`[data-assign-button="${requestId}"]`);
+                if (!button) return;
+                const currentHandler = String(button.dataset.currentHandler || '');
+                const updateState = () => {
+                    const selected = String(select.value || '');
+                    const isLoading = button.dataset.loading === '1';
+                    const isNoChange = selected === currentHandler;
+                    const shouldDisable = isLoading || isNoChange;
+
+                    button.disabled = shouldDisable;
+                    button.classList.toggle('opacity-50', shouldDisable);
+                    button.classList.toggle('cursor-not-allowed', shouldDisable);
+                    button.title = shouldDisable
+                        ? (isLoading ? 'Action en cours' : 'Sélectionnez un agent différent pour attribuer')
+                        : 'Attribuer cet agent';
+                };
+                updateState();
+                select.addEventListener('change', updateState);
+            });
+        }
+
+        function sortRequests(list) {
+            const statusOrder = { PENDING: 1, ACCEPTED: 2, DONE: 3, CANCELLED: 4 };
+            return [...list].sort((a, b) => {
+                if (requestFilters.sort === 'recent') {
+                    return new Date(b.created_at || b.slot_start_at) - new Date(a.created_at || a.slot_start_at);
+                }
+                if (requestFilters.sort === 'status') {
+                    return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+                }
+                if (requestFilters.sort === 'student') {
+                    return (a.user_name || '').localeCompare(b.user_name || '');
+                }
+                const aDate = a.slot_start_at ? new Date(a.slot_start_at) : new Date(8640000000000000);
+                const bDate = b.slot_start_at ? new Date(b.slot_start_at) : new Date(8640000000000000);
+                return aDate - bDate;
+            });
+        }
+
+        function renderActiveFilters() {
+            const container = document.getElementById('activeFilters');
+            container.innerHTML = '';
+            const chips = [];
+
+            if (requestFilters.search) chips.push({ label: `Recherche : ${requestFilters.search}`, key: 'search' });
+            if (requestFilters.alloId) {
+                const allo = allos.find(item => String(item.id) === String(requestFilters.alloId));
+                chips.push({ label: `Allo : ${allo?.title || 'Filtre'}`, key: 'alloId' });
+            }
+            const isDefaultStatuses = JSON.stringify(requestFilters.statuses) === JSON.stringify(defaultRequestFilters.statuses);
+            if (!isDefaultStatuses) {
+                const labels = requestFilters.statuses.length
+                    ? requestFilters.statuses.map(statusLabelForFilter)
+                    : ['Aucun'];
+                chips.push({ label: `Statuts : ${labels.join(', ')}`, key: 'statuses' });
+            }
+            if (requestFilters.scope !== defaultRequestFilters.scope) {
+                chips.push({ label: requestFilters.scope === 'all' ? 'Tous les allos' : 'Mes allos', key: 'scope' });
+            }
+            if (requestFilters.scope === 'all' && requestFilters.assignee !== 'all') {
+                const label = requestFilters.assignee === 'unassigned'
+                    ? 'Non attribués'
+                    : requestFilters.assignee === 'me'
+                        ? 'Moi'
+                        : admins.find(a => `admin:${a.id}` === requestFilters.assignee)?.name || 'Agent';
+                chips.push({ label: `Assigné : ${label}`, key: 'assignee' });
+            }
+            if (requestFilters.dateRange !== 'all') {
+                const label = requestFilters.dateRange === 'today'
+                    ? 'Créneau : aujourd’hui'
+                    : requestFilters.dateRange === 'tomorrow'
+                        ? 'Créneau : demain'
+                        : requestFilters.dateRange === 'week'
+                            ? 'Créneau : semaine'
+                            : `Créneau : ${requestFilters.dateFrom || '...'} → ${requestFilters.dateTo || '...'}`;
+                chips.push({ label, key: 'dateRange' });
+            }
+            chips.forEach(chip => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500';
+                button.innerHTML = `${chip.label} <i class="fa-solid fa-xmark text-[10px]"></i>`;
+                button.addEventListener('click', () => removeFilterChip(chip.key));
+                container.appendChild(button);
+            });
+        }
+
+        function removeFilterChip(key) {
+            if (key === 'search') requestFilters.search = '';
+            if (key === 'alloId') requestFilters.alloId = '';
+            if (key === 'statuses') requestFilters.statuses = [...defaultRequestFilters.statuses];
+            if (key === 'scope') {
+                requestFilters.scope = defaultRequestFilters.scope;
+                requestFilters.assignee = defaultRequestFilters.assignee;
+            }
+            if (key === 'assignee') requestFilters.assignee = 'all';
+            if (key === 'dateRange') {
+                requestFilters.dateRange = 'all';
+                requestFilters.dateFrom = '';
+                requestFilters.dateTo = '';
+            }
+            syncFilterInputs();
+            updateQueryParams();
+            renderRequests();
+        }
+
+        function updateResetButtonState() {
+            const resetButton = document.getElementById('resetFiltersButton');
+            if (!resetButton) return;
+            resetButton.disabled = isDefaultFilters();
+        }
+
+        function syncFilterInputs() {
+            document.getElementById('filterSearch').value = requestFilters.search;
+            document.getElementById('filterAllo').value = requestFilters.alloId;
+            document.getElementById('filterAssignee').value = requestFilters.assignee;
+            document.getElementById('filterDateRange').value = requestFilters.dateRange;
+            document.getElementById('filterDateFrom').value = requestFilters.dateFrom;
+            document.getElementById('filterDateTo').value = requestFilters.dateTo;
+            document.getElementById('filterSort').value = requestFilters.sort;
+            document.getElementById('customDateRange').classList.toggle('hidden', requestFilters.dateRange !== 'custom');
+            document.getElementById('clearSearch').classList.toggle('hidden', !requestFilters.search);
+            document.querySelectorAll('.status-checkbox').forEach(cb => {
+                cb.checked = requestFilters.statuses.includes(cb.value);
+            });
+            updateStatusFilterSummary();
+            const scopeMineButton = document.getElementById('scopeMineButton');
+            const scopeAllButton = document.getElementById('scopeAllButton');
+            const isMine = requestFilters.scope === 'mine';
+            scopeMineButton.className = `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${isMine ? 'bg-indigo-600 text-white shadow' : 'text-slate-300 hover:text-white'}`;
+            scopeAllButton.className = `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${!isMine ? 'bg-indigo-600 text-white shadow' : 'text-slate-300 hover:text-white'}`;
+            document.getElementById('assigneeFilterGroup').classList.toggle('hidden', isMine);
+        }
+
+        function bindFilterControls() {
+            const searchInput = document.getElementById('filterSearch');
+            const clearSearch = document.getElementById('clearSearch');
+            const alloSelect = document.getElementById('filterAllo');
+            const assigneeSelect = document.getElementById('filterAssignee');
+            const dateRangeSelect = document.getElementById('filterDateRange');
+            const dateFrom = document.getElementById('filterDateFrom');
+            const dateTo = document.getElementById('filterDateTo');
+            const sortSelect = document.getElementById('filterSort');
+            const resetButton = document.getElementById('resetFiltersButton');
+            const scopeMineButton = document.getElementById('scopeMineButton');
+            const scopeAllButton = document.getElementById('scopeAllButton');
+
+            const applySearch = debounce(() => {
+                requestFilters.search = searchInput.value.trim();
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
+            }, 300);
+
+            searchInput.addEventListener('input', applySearch);
+            clearSearch.addEventListener('click', () => {
+                requestFilters.search = '';
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
+            });
+            alloSelect.addEventListener('change', () => {
+                requestFilters.alloId = alloSelect.value;
+                updateQueryParams();
+                renderRequests();
+            });
+            assigneeSelect.addEventListener('change', () => {
+                requestFilters.assignee = assigneeSelect.value;
+                updateQueryParams();
+                renderRequests();
+            });
+            scopeMineButton.addEventListener('click', () => {
+                requestFilters.scope = 'mine';
+                requestFilters.assignee = 'all';
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
+            });
+            scopeAllButton.addEventListener('click', () => {
+                requestFilters.scope = 'all';
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
+            });
+            dateRangeSelect.addEventListener('change', () => {
+                requestFilters.dateRange = dateRangeSelect.value;
+                if (requestFilters.dateRange !== 'custom') {
+                    requestFilters.dateFrom = '';
+                    requestFilters.dateTo = '';
+                }
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
+            });
+            dateFrom.addEventListener('change', () => {
+                requestFilters.dateFrom = dateFrom.value;
+                updateQueryParams();
+                renderRequests();
+            });
+            dateTo.addEventListener('change', () => {
+                requestFilters.dateTo = dateTo.value;
+                updateQueryParams();
+                renderRequests();
+            });
+            sortSelect.addEventListener('change', () => {
+                requestFilters.sort = sortSelect.value;
+                updateQueryParams();
+                renderRequests();
+            });
+            resetButton.addEventListener('click', () => {
+                requestFilters = { ...defaultRequestFilters };
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
+            });
+
+            document.querySelectorAll('.status-checkbox').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const selected = Array.from(document.querySelectorAll('.status-checkbox:checked')).map(input => input.value);
+                    requestFilters.statuses = normalizeStatuses(selected);
+                    syncFilterInputs();
+                    updateQueryParams();
+                    renderRequests();
+                });
+            });
+
+            document.getElementById('statusSelectAll').addEventListener('click', () => {
+                requestFilters.statuses = ['PENDING', 'ACCEPTED', 'DONE', 'CANCELLED'];
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
+            });
+            document.getElementById('statusSelectNone').addEventListener('click', () => {
+                requestFilters.statuses = [];
+                syncFilterInputs();
+                updateQueryParams();
+                renderRequests();
+            });
+
+            const statusButton = document.getElementById('statusFilterButton');
+            const statusMenu = document.getElementById('statusFilterMenu');
+            statusButton.addEventListener('click', () => {
+                statusMenu.classList.toggle('hidden');
+                statusButton.setAttribute('aria-expanded', statusMenu.classList.contains('hidden') ? 'false' : 'true');
+            });
+            document.addEventListener('click', (event) => {
+                if (!statusButton.contains(event.target) && !statusMenu.contains(event.target)) {
+                    statusMenu.classList.add('hidden');
+                    statusButton.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            document.getElementById('openFiltersButton').addEventListener('click', () => {
+                filtersPanelOpen = !filtersPanelOpen;
+                document.getElementById('filtersPanel').classList.toggle('hidden', !filtersPanelOpen);
+            });
         }
 
         // --- CATALOG ---
+        function getFilteredAllos() {
+            const titleFilter = catalogFilters.title.trim().toLowerCase();
+            const statusFilter = catalogFilters.status;
+
+            const filtered = allos.filter((allo) => {
+                const matchesTitle = !titleFilter
+                    || allo.title.toLowerCase().includes(titleFilter);
+                const matchesStatus = statusFilter === 'ALL'
+                    || allo.status === statusFilter;
+                return matchesTitle && matchesStatus;
+            });
+
+            return sortCatalogAllos(filtered);
+        }
+
+        function sortCatalogAllos(items) {
+            const sorted = [...items];
+            const sortMode = catalogFilters.sort;
+
+            if (sortMode === 'title') {
+                sorted.sort((a, b) => a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' }));
+                return sorted;
+            }
+
+            if (sortMode === 'visits_window_desc') {
+                sorted.sort((a, b) => {
+                    const visitsA = visitsByAlloId[a.id] ?? 0;
+                    const visitsB = visitsByAlloId[b.id] ?? 0;
+                    if (visitsA !== visitsB) {
+                        return visitsB - visitsA;
+                    }
+                    return a.title.localeCompare(b.title, 'fr', { sensitivity: 'base' });
+                });
+                return sorted;
+            }
+
+            if (sortMode === 'recent') {
+                sorted.sort((a, b) => {
+                    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                    return dateB - dateA;
+                });
+            }
+
+            return sorted;
+        }
+
         function renderCatalog() {
             const grid = document.getElementById('catalogGrid');
-            const html = allos.map(a => {
-                let statusInfo = '<span class="text-slate-500 text-xs">Non planifié</span>';
-                if (a.start && a.end) {
-                    const s = new Date(a.start);
-                    const e = new Date(a.end);
-                    statusInfo = `<span class="text-indigo-400 text-xs font-mono">${s.toLocaleDateString()} ${s.getHours()}h-${e.getHours()}h</span>`;
-                }
-                const adminsStr = a.admins && a.admins.length > 0 ? a.admins.join(', ') : "Tous";
+            const resultsCount = document.getElementById('resultsCount');
+            const filteredAllos = getFilteredAllos();
+            if (resultsCount) {
+                resultsCount.innerText = `${filteredAllos.length} allos`;
+            }
+            if (filteredAllos.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-500">
+                        <i class="fa-solid fa-filter text-3xl mb-3 opacity-30"></i>
+                        <p>Aucun allo ne correspond à ces filtres.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = filteredAllos.map(a => {
+                const windowInfo = formatScheduleInfo(a);
+                const adminsStr = a.admins && a.admins.length > 0 ? a.admins.map(admin => admin.name).join(', ') : "Tous";
+                const visitsCount = visitsByAlloId[a.id] ?? 0;
+                const visitsLabel = formatAnalyticsWindowLabel(catalogAnalyticsWindow);
                 return `
                     <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow flex flex-col">
-                        <div class="flex justify-between items-start mb-2"><h3 class="text-lg font-bold text-white">${a.title}</h3><span class="text-yellow-400 font-mono font-bold">${a.cost} pts</span></div>
-                        <p class="text-sm text-slate-400 mb-2 flex-1">${a.desc}</p>
+                        <div class="flex justify-between items-start mb-2 gap-2">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">${a.title}</h3>
+                                <span class="inline-flex items-center px-2 py-0.5 text-[10px] uppercase tracking-wide rounded border ${statusBadgeClasses(a.status)}">${statusLabel(a.status)}</span>
+                            </div>
+                            <div class="text-xs text-slate-200 bg-slate-900/60 border border-slate-700 rounded-full px-2 py-1 flex items-center gap-1">
+                                <span>👁 ${visitsCount}</span>
+                                <span class="text-[10px] text-slate-400">${visitsLabel}</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-400 mb-2 flex-1">${a.description || 'Pas de description.'}</p>
                         <div class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-user-shield mr-1"></i> Géré par: <span class="text-white">${adminsStr}</span></div>
-                        <div class="flex items-center gap-2 mb-4 bg-slate-700/30 p-2 rounded"><i class="fa-regular fa-calendar text-slate-400"></i> ${statusInfo}<span class="ml-auto text-xs bg-slate-700 px-2 py-1 rounded">${a.duration} min/slot</span></div>
+                        <div class="flex items-start justify-between gap-3 mb-4 bg-slate-700/30 p-3 rounded">
+                            <div class="flex flex-col gap-1">
+                                ${windowInfo}
+                            </div>
+                            <span class="text-xs bg-slate-700 px-2 py-1 rounded">${a.slot_duration_minutes} min/slot</span>
+                        </div>
                         <div class="flex gap-2 mt-auto">
                             <button onclick="window.openEditAllo(${a.id})" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition-colors"><i class="fa-solid fa-pen mr-2"></i> Modifier</button>
                             <button type="button" onclick="window.deleteAllo(${a.id})" class="px-3 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/30 rounded text-sm transition-colors" title="Supprimer"><i class="fa-solid fa-trash"></i></button>
@@ -277,12 +1650,24 @@
         }
 
         async function deleteAllo(id) {
-            console.log("Deleting Allo", id);
             if(!confirm("Êtes-vous sûr de vouloir supprimer cet Allo ?")) return;
-            allos = allos.filter(a => a.id != id);
-            showToast("Allo supprimé", "success");
-            renderCatalog();
-            populateFilters();
+            try {
+                const response = await fetch(`${API.allos}/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        ...jsonHeaders(),
+                        'X-CSRF-TOKEN': csrf(),
+                    },
+                    credentials: 'same-origin',
+                });
+                const payload = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(payload.message || 'Suppression impossible.');
+                showToast("Allo supprimé", "success");
+                await loadAllos();
+                await loadRequests();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors de la suppression.', 'error');
+            }
         }
 
         // --- MODALS ---
@@ -290,12 +1675,21 @@
             document.getElementById('alloModalTitle').innerText = "Créer un Allo";
             document.getElementById('editAlloId').value = "";
             document.getElementById('alloTitle').value = "";
-            document.getElementById('alloCost').value = "100";
             document.getElementById('alloDuration').value = "15";
+            document.getElementById('alloSecurityMargin').value = "0";
+            document.getElementById('alloDailyLimit').value = "";
+            document.querySelectorAll('input[name="capacityMode"]').forEach((input) => {
+                input.checked = input.value === 'admins';
+            });
+            document.getElementById('alloFixedCapacity').value = "";
             document.getElementById('alloStart').value = "";
             document.getElementById('alloEnd').value = "";
             document.getElementById('alloDesc').value = "";
+            document.getElementById('alloStatus').value = "DRAFT";
             populateAdminList([]);
+            resetScheduleState();
+            updateAlloRequirements();
+            updateCapacityVisibility();
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
@@ -306,101 +1700,349 @@
             document.getElementById('alloModalTitle').innerText = "Modifier Allo";
             document.getElementById('editAlloId').value = a.id;
             document.getElementById('alloTitle').value = a.title;
-            document.getElementById('alloCost').value = a.cost;
-            document.getElementById('alloDuration').value = a.duration;
-            document.getElementById('alloStart').value = a.start || "";
-            document.getElementById('alloEnd').value = a.end || "";
-            document.getElementById('alloDesc').value = a.desc;
-            populateAdminList(a.admins || []);
+            document.getElementById('alloDuration').value = a.slot_duration_minutes;
+            document.getElementById('alloSecurityMargin').value = a.security_margin_minutes ?? 0;
+            document.getElementById('alloDailyLimit').value = a.daily_booking_limit ?? "";
+            document.querySelectorAll('input[name="capacityMode"]').forEach((input) => {
+                input.checked = (input.value === 'fixed') === (a.slot_capacity !== null && a.slot_capacity !== undefined);
+            });
+            document.getElementById('alloFixedCapacity').value = a.slot_capacity ?? "";
+            document.getElementById('alloStart').value = toInputDateTime(a.window_start_at);
+            document.getElementById('alloEnd').value = toInputDateTime(a.window_end_at);
+            document.getElementById('alloDesc').value = a.description || "";
+            document.getElementById('alloStatus').value = a.status || "DRAFT";
+            populateAdminList(a.admin_ids || []);
+            resetScheduleState();
+
+            if (Array.isArray(a.time_slots) && a.time_slots.length > 0) {
+                const first = a.time_slots[0];
+                const sameRange = a.time_slots.every(slot => slot.start_date === first.start_date && slot.end_date === first.end_date);
+                if (sameRange) {
+                    scheduleMode = 'range';
+                    rangeDateStart = first.start_date || '';
+                    rangeDateEnd = first.end_date || '';
+                    rangeTimeSlots = a.time_slots.map(slot => ({
+                        start_time: slot.start_time || '',
+                        end_time: slot.end_time || '',
+                    }));
+                    document.getElementById('rangeStartDate').value = rangeDateStart;
+                    document.getElementById('rangeEndDate').value = rangeDateEnd;
+                    renderRangeSlots();
+                } else {
+                    scheduleMode = 'date';
+                    dateSpecificSlots = a.time_slots.map(slot => ({
+                        date: slot.start_date || '',
+                        start_time: slot.start_time || '',
+                        end_time: slot.end_time || '',
+                    }));
+                    renderDateSlots();
+                }
+                document.querySelectorAll('input[name="scheduleMode"]').forEach((input) => {
+                    input.checked = input.value === scheduleMode;
+                });
+                updateScheduleVisibility();
+            }
+            updateAlloRequirements();
+            updateCapacityVisibility();
             document.getElementById('alloModal').classList.remove('hidden');
             document.body.classList.add('modal-active');
         }
 
         function closeAlloModal() { document.getElementById('alloModal').classList.add('hidden'); document.body.classList.remove('modal-active'); }
 
-        function submitAllo() {
+        function bindCatalogFilters() {
+            const titleFilter = document.getElementById('catalogTitleFilter');
+            const statusFilter = document.getElementById('catalogStatusFilter');
+            const resetButton = document.getElementById('catalogResetFilters');
+            const windowMode = document.getElementById('catalogWindowMode');
+            const windowValue = document.getElementById('catalogWindowValue');
+            const windowValueLabel = document.getElementById('catalogWindowValueLabel');
+            const windowNumberWrapper = document.getElementById('catalogWindowNumber');
+            const windowRangeWrapper = document.getElementById('catalogWindowRange');
+            const windowFrom = document.getElementById('catalogWindowFrom');
+            const windowTo = document.getElementById('catalogWindowTo');
+            const sortSelect = document.getElementById('catalogSort');
+
+            const applyFilters = () => {
+                catalogFilters = {
+                    title: titleFilter.value,
+                    status: statusFilter.value,
+                    sort: sortSelect.value,
+                };
+                renderCatalog();
+            };
+
+            const applyWindowMode = () => {
+                catalogAnalyticsWindow.mode = windowMode.value;
+                const isRange = catalogAnalyticsWindow.mode === 'range';
+                windowNumberWrapper.classList.toggle('hidden', isRange);
+                windowRangeWrapper.classList.toggle('hidden', !isRange);
+                if (catalogAnalyticsWindow.mode === 'hours') {
+                    windowValueLabel.innerText = 'Dernières heures';
+                    windowValue.min = '1';
+                    windowValue.max = '168';
+                } else if (catalogAnalyticsWindow.mode === 'days') {
+                    windowValueLabel.innerText = 'Derniers jours';
+                    windowValue.min = '1';
+                    windowValue.max = '365';
+                }
+                refreshCatalogAnalytics();
+            };
+
+            titleFilter.addEventListener('input', applyFilters);
+            statusFilter.addEventListener('change', applyFilters);
+            sortSelect.addEventListener('change', applyFilters);
+            resetButton.addEventListener('click', () => {
+                titleFilter.value = '';
+                statusFilter.value = 'ALL';
+                sortSelect.value = 'visits_window_desc';
+                applyFilters();
+            });
+
+            windowMode.addEventListener('change', applyWindowMode);
+            const applyWindowValue = debounce(() => {
+                const nextValue = parseInt(windowValue.value, 10);
+                catalogAnalyticsWindow.n = Number.isNaN(nextValue) ? 1 : nextValue;
+                refreshCatalogAnalytics();
+            }, 400);
+            windowValue.addEventListener('input', applyWindowValue);
+            windowFrom.addEventListener('change', () => {
+                catalogAnalyticsWindow.from = windowFrom.value;
+                refreshCatalogAnalytics();
+            });
+            windowTo.addEventListener('change', () => {
+                catalogAnalyticsWindow.to = windowTo.value;
+                refreshCatalogAnalytics();
+            });
+
+            windowMode.value = catalogAnalyticsWindow.mode;
+            windowValue.value = catalogAnalyticsWindow.n;
+            windowFrom.value = catalogAnalyticsWindow.from;
+            windowTo.value = catalogAnalyticsWindow.to;
+            applyWindowMode();
+        }
+
+        async function refreshPendingCount() {
+            try {
+                const response = await fetch(`${API.usages}?status=PENDING`, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger les demandes.');
+                const pending = Array.isArray(payload.data) ? payload.data.length : 0;
+                setPendingBadge(pending);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function refreshCatalogAnalytics() {
+            try {
+                const params = new URLSearchParams();
+                params.set('mode', catalogAnalyticsWindow.mode);
+
+                if (catalogAnalyticsWindow.mode === 'hours' || catalogAnalyticsWindow.mode === 'days') {
+                    const max = catalogAnalyticsWindow.mode === 'hours' ? 168 : 365;
+                    const n = Math.min(Math.max(catalogAnalyticsWindow.n || 1, 1), max);
+                    catalogAnalyticsWindow.n = n;
+                    const windowValueInput = document.getElementById('catalogWindowValue');
+                    if (windowValueInput) {
+                        windowValueInput.value = n;
+                    }
+                    params.set('n', String(n));
+                } else {
+                    if (!catalogAnalyticsWindow.from || !catalogAnalyticsWindow.to) {
+                        renderCatalog();
+                        return;
+                    }
+                    params.set('from', catalogAnalyticsWindow.from);
+                    params.set('to', catalogAnalyticsWindow.to);
+                }
+
+                const response = await fetch(`${API.visits}?${params.toString()}`, {
+                    credentials: 'same-origin',
+                    headers: jsonHeaders(),
+                });
+                const payload = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(payload.message || 'Impossible de charger les visites.');
+                visitsByAlloId = payload.data || {};
+                renderCatalog();
+            } catch (error) {
+                console.error(error);
+                renderCatalog();
+            }
+        }
+
+        async function submitAllo() {
             const id = document.getElementById('editAlloId').value;
             const selectedAdmins = [];
             document.querySelectorAll('input[name="alloAdmins"]:checked').forEach(cb => selectedAdmins.push(cb.value));
+            const selectedMode = document.querySelector('input[name="scheduleMode"]:checked')?.value || 'window';
+            let timeSlots = null;
+            const statusValue = document.getElementById('alloStatus').value;
+            const isDraft = statusValue === 'DRAFT';
+            const durationValue = document.getElementById('alloDuration').value;
+            const durationMinutes = durationValue ? parseInt(durationValue) : null;
+            const securityMarginValue = document.getElementById('alloSecurityMargin').value;
+            const securityMarginMinutes = securityMarginValue ? parseInt(securityMarginValue) : 0;
+            const dailyLimitValue = document.getElementById('alloDailyLimit').value;
+            const dailyLimit = dailyLimitValue ? parseInt(dailyLimitValue) : null;
+            const capacityMode = document.querySelector('input[name="capacityMode"]:checked')?.value || 'admins';
+            const fixedCapacityValue = document.getElementById('alloFixedCapacity').value;
+            const fixedCapacity = fixedCapacityValue ? parseInt(fixedCapacityValue) : null;
+            const normalizeSlotValue = (value) => (value ? value : null);
+            const descriptionValue = document.getElementById('alloDesc').value;
             const data = {
                 title: document.getElementById('alloTitle').value,
-                cost: parseInt(document.getElementById('alloCost').value),
-                duration: parseInt(document.getElementById('alloDuration').value),
-                start: document.getElementById('alloStart').value,
-                end: document.getElementById('alloEnd').value,
-                desc: document.getElementById('alloDesc').value,
-                admins: selectedAdmins,
-                active: true
+                slot_duration_minutes: Number.isNaN(durationMinutes) ? null : durationMinutes,
+                security_margin_minutes: Number.isNaN(securityMarginMinutes) ? 0 : Math.max(securityMarginMinutes, 0),
+                daily_booking_limit: Number.isNaN(dailyLimit) ? null : dailyLimit,
+                slot_capacity: capacityMode === 'fixed' ? fixedCapacity : null,
+                window_start_at: document.getElementById('alloStart').value,
+                window_end_at: document.getElementById('alloEnd').value,
+                description: descriptionValue.trim(),
+                status: statusValue,
+                admin_ids: selectedAdmins.map(id => parseInt(id)),
             };
             if(!data.title) { showToast("Titre requis", 'error'); return; }
-            if(!data.start || !data.end) { showToast("Dates d'ouverture/fermeture requises", 'error'); return; }
-            if(id) {
-                const idx = allos.findIndex(a => a.id == id);
-                if(idx > -1) allos[idx] = { ...allos[idx], ...data };
-                showToast("Allo mis à jour", 'success');
-            } else {
-                allos.push({ id: Date.now(), ...data });
-                showToast("Allo créé", 'success');
-            }
-            renderCatalog();
-            populateFilters();
-            closeAlloModal();
-        }
-
-        // --- FILTER HELPERS ---
-        const filterUserInput = document.getElementById('filterUser');
-        const userSuggestions = document.getElementById('userSuggestions');
-
-        filterUserInput.addEventListener('input', function() {
-            const val = this.value.toLowerCase();
-            userSuggestions.innerHTML = '';
-
-            if (val.length < 1) {
-                userSuggestions.classList.add('hidden');
-                document.getElementById('clearUserFilter').classList.add('hidden');
-                renderRequests();
+            if (!data.description) {
+                showToast("Description requise", 'error');
                 return;
             }
-            document.getElementById('clearUserFilter').classList.remove('hidden');
+            if (!isDraft && !data.slot_duration_minutes) {
+                showToast("Durée du slot requise", 'error');
+                return;
+            }
+            if (dailyLimitValue && (Number.isNaN(dailyLimit) || dailyLimit <= 0)) {
+                showToast("La limite quotidienne doit être un nombre supérieur à 0.", 'error');
+                return;
+            }
+            if (capacityMode === 'fixed' && (fixedCapacity === null || Number.isNaN(fixedCapacity) || fixedCapacity <= 0)) {
+                showToast("La capacité fixe doit être un nombre supérieur à 0.", 'error');
+                return;
+            }
+            if (selectedMode === 'window') {
+                data.time_slots = null;
+            }
+            if (selectedMode === 'date') {
+                const normalizedSlots = dateSpecificSlots.map(slot => ({
+                    start_date: normalizeSlotValue(slot.date),
+                    end_date: normalizeSlotValue(slot.date),
+                    start_time: normalizeSlotValue(slot.start_time),
+                    end_time: normalizeSlotValue(slot.end_time),
+                })).filter(slot => slot.start_date || slot.start_time || slot.end_time);
+                if (!isDraft && normalizedSlots.length === 0) {
+                    showToast("Ajoute au moins un créneau daté.", 'error');
+                    return;
+                }
+                const hasIncomplete = normalizedSlots.some(slot => !slot.start_date || !slot.start_time || !slot.end_time);
+                if (!isDraft && hasIncomplete) {
+                    showToast("Tous les créneaux datés doivent être complets.", 'error');
+                    return;
+                }
+                timeSlots = normalizedSlots.length ? normalizedSlots : null;
+                data.window_start_at = null;
+                data.window_end_at = null;
+            }
 
-            const uniqueUsers = [...new Set(requests.map(r => r.user))];
-            const matches = uniqueUsers.filter(u => u.toLowerCase().includes(val));
+            if (selectedMode === 'range') {
+                rangeDateStart = document.getElementById('rangeStartDate').value;
+                rangeDateEnd = document.getElementById('rangeEndDate').value;
+                if (!isDraft && (!rangeDateStart || !rangeDateEnd)) {
+                    showToast("Dates de période requises.", 'error');
+                    return;
+                }
+                const normalizedSlots = rangeTimeSlots.map(slot => ({
+                    start_date: rangeDateStart,
+                    end_date: rangeDateEnd,
+                    start_time: normalizeSlotValue(slot.start_time),
+                    end_time: normalizeSlotValue(slot.end_time),
+                })).filter(slot => slot.start_time || slot.end_time);
+                if (!isDraft && normalizedSlots.length === 0) {
+                    showToast("Ajoute au moins une fenêtre horaire.", 'error');
+                    return;
+                }
+                const hasIncomplete = normalizedSlots.some(slot => !slot.start_time || !slot.end_time);
+                if (!isDraft && hasIncomplete) {
+                    showToast("Toutes les fenêtres horaires doivent être complètes.", 'error');
+                    return;
+                }
+                timeSlots = normalizedSlots.length ? normalizedSlots : null;
+                data.window_start_at = null;
+                data.window_end_at = null;
+            }
 
-            if (matches.length > 0) {
-                userSuggestions.classList.remove('hidden');
-                matches.forEach(u => {
-                    const div = document.createElement('div');
-                    div.className = 'px-4 py-2 cursor-pointer hover:bg-slate-700 text-sm text-slate-300 hover:text-white transition-colors';
-                    div.innerText = u;
-                    div.onclick = () => {
-                        filterUserInput.value = u;
-                        userSuggestions.classList.add('hidden');
-                        renderRequests();
-                    };
-                    userSuggestions.appendChild(div);
+            if (!isDraft) {
+                if (selectedMode === 'window' && (!data.window_start_at || !data.window_end_at)) {
+                    showToast("Dates d'ouverture/fermeture requises", 'error');
+                    return;
+                }
+                if ((selectedMode === 'date' || selectedMode === 'range') && (!timeSlots || timeSlots.length === 0)) {
+                    showToast("Créneaux requis", 'error');
+                    return;
+                }
+            }
+
+            if (timeSlots !== null) {
+                data.time_slots = timeSlots;
+            }
+
+            try {
+                const response = await fetch(id ? `${API.allos}/${id}` : API.allos, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: {
+                        ...jsonHeaders(),
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf(),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data),
                 });
-            } else {
-                userSuggestions.classList.add('hidden');
+                const payload = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(payload.message || 'Sauvegarde impossible.');
+                showToast(id ? "Allo mis à jour" : "Allo créé", 'success');
+                closeAlloModal();
+                await loadAllos();
+                await loadRequests();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors de la sauvegarde.', 'error');
             }
-            renderRequests();
-        });
-
-        document.addEventListener('click', function(e) {
-            if (!filterUserInput.contains(e.target) && !userSuggestions.contains(e.target)) {
-                userSuggestions.classList.add('hidden');
-            }
-        });
-
-        function clearUserFilter() {
-            filterUserInput.value = '';
-            document.getElementById('clearUserFilter').classList.add('hidden');
-            renderRequests();
         }
 
-        function resetFilters() {
-            document.getElementById('filterStatus').value = 'ACTIVE';
-            document.getElementById('filterAllo').value = '';
-            clearUserFilter();
+        async function updateUsage(id, payload, actionLabel = '') {
+            try {
+                requestActionState[id] = true;
+                renderRequests();
+                const requiresConfirm = actionLabel === 'CANCELLED' || actionLabel === 'DONE' || actionLabel === 'PENDING';
+                if (requiresConfirm && payload.status) {
+                    const confirmed = await confirmAction(id, payload.status, true);
+                    if (!confirmed) {
+                        requestActionState[id] = false;
+                        renderRequests();
+                        return;
+                    }
+                }
+                const response = await fetch(`${API.usages}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        ...jsonHeaders(),
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf(),
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(payload),
+                });
+                const result = await parseJsonResponse(response);
+                if (!response.ok) throw new Error(result.message || 'Mise à jour impossible.');
+                showToast('Demande mise à jour.', 'success');
+                await loadRequests();
+            } catch (error) {
+                showToast(error.message || 'Erreur lors de la mise à jour.', 'error');
+            } finally {
+                requestActionState[id] = false;
+                renderRequests();
+            }
         }
 
         // --- TOAST ---
@@ -414,11 +2056,103 @@
             setTimeout(() => { toast.classList.remove('toast-enter'); toast.classList.add('toast-exit'); toast.addEventListener('animationend', () => toast.remove()); }, 3000);
         }
 
+        function confirmAction(id, status, isBlocking = false) {
+            const messages = {
+                CANCELLED: 'Voulez-vous annuler cette demande ?',
+                DONE: 'Confirmer la fin de cette demande ?',
+                PENDING: 'Relâcher cette demande ?',
+            };
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmModal');
+                const text = document.getElementById('confirmModalText');
+                const confirmButton = document.getElementById('confirmModalConfirm');
+                const cancelButton = document.getElementById('confirmModalCancel');
+                if (!modal || !text || !confirmButton || !cancelButton) {
+                    resolve(true);
+                    return;
+                }
+                text.innerText = messages[status] || 'Confirmer cette action ?';
+                modal.classList.remove('hidden');
+                const closeModal = (value) => {
+                    modal.classList.add('hidden');
+                    confirmButton.onclick = null;
+                    cancelButton.onclick = null;
+                    resolve(value);
+                };
+                confirmButton.onclick = () => closeModal(true);
+                cancelButton.onclick = () => closeModal(false);
+                if (!isBlocking) {
+                    confirmButton.focus();
+                }
+            });
+        }
+
         // Init
         window.deleteAllo = deleteAllo;
         window.openEditAllo = openEditAllo;
-        populateFilters();
-        renderRequests();
+        document.querySelectorAll('input[name="scheduleMode"]').forEach(input => {
+            input.addEventListener('change', (event) => setScheduleMode(event.target.value));
+        });
+        document.getElementById('alloStatus').addEventListener('change', () => {
+            updateAlloRequirements();
+        });
+        document.querySelectorAll('input[name="capacityMode"]').forEach(input => {
+            input.addEventListener('change', updateCapacityVisibility);
+        });
+        document.getElementById('addDateSlot').addEventListener('click', () => {
+            dateSpecificSlots.push({ date: '', start_time: '', end_time: '' });
+            renderDateSlots();
+        });
+        document.getElementById('addRangeSlot').addEventListener('click', () => {
+            rangeTimeSlots.push({ start_time: '', end_time: '' });
+            renderRangeSlots();
+        });
+        document.getElementById('rangeStartDate').addEventListener('change', (event) => {
+            rangeDateStart = event.target.value;
+        });
+        document.getElementById('rangeEndDate').addEventListener('change', (event) => {
+            rangeDateEnd = event.target.value;
+        });
+        updateScheduleVisibility();
+        renderDateSlots();
+        renderRangeSlots();
+        updateCapacityVisibility();
+        updateAlloRequirements();
+        refreshPendingCount();
+        if (activeView === 'catalog') {
+            bindCatalogFilters();
+            loadAdmins().then(() => {
+                populateAdminList();
+                renderCatalog();
+            });
+            loadAllos();
+        } else {
+            parseQueryParams();
+            syncFilterInputs();
+            bindFilterControls();
+            loadAdmins().then(() => {
+                populateAdminList();
+                renderRequests();
+            });
+            loadAllos();
+            loadRequests();
+        }
 
     </script>
+    <div id="confirmModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="fixed inset-0 bg-slate-900/80"></div>
+            <div class="relative bg-slate-800 border border-slate-700 rounded-2xl shadow-xl w-full max-w-md p-6">
+                <div class="flex items-center gap-3 text-slate-200">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-lg"></i>
+                    <h3 class="text-lg font-semibold">Confirmer l’action</h3>
+                </div>
+                <p id="confirmModalText" class="text-sm text-slate-400 mt-3">Confirmer cette action ?</p>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button id="confirmModalCancel" type="button" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-200 hover:text-white hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Annuler</button>
+                    <button id="confirmModalConfirm" type="button" class="px-4 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">Confirmer</button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endpush

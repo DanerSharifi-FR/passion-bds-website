@@ -3,8 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activity;
+use App\Models\Allo;
+use App\Models\AlloPageView;
+use App\Models\AlloSlot;
+use App\Models\AlloUsage;
+use App\Models\User;
+use App\Services\AlloUsageService;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Random\RandomException;
 
@@ -14,14 +23,179 @@ class PageController extends Controller
     {
         $leaderboardWidget = $this->buildLeaderboardWidgetData(auth()->id());
 
+        $randomAllos = Allo::query()
+            ->where('status', 'OPEN')
+            ->inRandomOrder()
+            ->limit(2)
+            ->get();
+
         return view('home', [
             'leaderboardWidget' => $leaderboardWidget,
+            'randomAllos' => $randomAllos,
         ]);
     }
 
     public function allos()
     {
         return view('allos');
+    }
+
+    public function alloReservations(): Factory|View
+    {
+        return view('allo-reservations');
+    }
+
+    public function alloSlots(Request $request, int $alloId): Factory|View|RedirectResponse
+    {
+        /** @var Allo $allo */
+        $allo = Allo::query()
+            ->whereIn('status', ['OPEN', 'CLOSED'])
+            ->findOrFail($alloId);
+
+        $now = now();
+        $user = $request->user();
+        $canBookNew = $user instanceof User ? $this->canBookNew($allo, $user, $now) : true;
+
+        $existingBooking = null;
+
+        if ($user !== null) {
+            $existingBooking = AlloUsage::query()
+                ->where('user_id', $user->id)
+                ->where('allo_id', $allo->id)
+                ->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ])
+                ->orderByDesc('slot_start_at')
+                ->first();
+
+            if ($existingBooking !== null && ! $canBookNew) {
+                if ($existingBooking->status !== AlloUsageService::STATUS_PENDING) {
+                    return redirect()
+                        ->route('allos.reservations')
+                        ->with('toast', [
+                            'type' => 'error',
+                            'message' => 'Tu as atteint ta limite de réservations pour cet allo.',
+                        ]);
+                }
+            }
+        }
+
+        if ($user !== null && ! $canBookNew && $existingBooking === null) {
+            abort(404);
+        }
+
+        $windowBounds = $this->resolveWindowBounds($allo);
+        $windowEnd = $windowBounds[1] ?? null;
+        $availabilityThreshold = $now->copy()->addMinutes(max((int) ($allo->security_margin_minutes ?? 0), 0));
+
+        $hasAnySlots = AlloSlot::query()
+            ->where('allo_id', $allo->id)
+            ->exists();
+        $hasFutureSlots = AlloSlot::query()
+            ->where('allo_id', $allo->id)
+            ->where('slot_start_at', '>=', $availabilityThreshold)
+            ->exists();
+
+        $slotsPassed = $hasAnySlots && ! $hasFutureSlots;
+        $isEnded = $allo->status !== 'OPEN'
+            || ($windowEnd !== null && $now->greaterThan($windowEnd))
+            || $slotsPassed;
+
+        abort_if($isEnded, 404);
+
+        if ($user !== null) {
+            try {
+                $startOfToday = now()->startOfDay();
+                $startOfTomorrow = $startOfToday->copy()->addDay();
+
+                $alreadyLoggedToday = AlloPageView::query()
+                    ->where('allo_id', $allo->id)
+                    ->where('user_id', $user->id)
+                    ->where('viewed_at', '>=', $startOfToday)
+                    ->where('viewed_at', '<', $startOfTomorrow)
+                    ->exists();
+
+                if (! $alreadyLoggedToday) {
+                    // Journalise 1 visite / jour (jour calendaire).
+                    AlloPageView::create([
+                        'allo_id' => $allo->id,
+                        'user_id' => $user->id,
+                        'viewed_at' => now(),
+                    ]);
+                }
+            } catch (\Throwable $exception) {
+                logger()->warning('Impossible de tracer la visite allo.', [
+                    'allo_id' => $allo->id,
+                    'user_id' => $user->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+
+        return view('allo-slots', [
+            'alloId' => $alloId,
+        ]);
+    }
+
+    private function canBookNew(Allo $allo, User $user, Carbon $now): bool
+    {
+        $dailyLimit = $allo->daily_booking_limit;
+
+        if ($dailyLimit === null || $dailyLimit <= 0) {
+            return true;
+        }
+
+        $availabilityThreshold = $now->copy()->addMinutes(max((int) ($allo->security_margin_minutes ?? 0), 0));
+        $slotCapacityFallback = $allo->resolveSlotCapacity();
+
+        $bookingCountsByDate = AlloUsage::query()
+            ->selectRaw('DATE(slot_start_at) as slot_date, COUNT(*) as bookings_count')
+            ->where('user_id', $user->id)
+            ->where('allo_id', $allo->id)
+            ->whereIn('status', [
+                AlloUsageService::STATUS_PENDING,
+                AlloUsageService::STATUS_ACCEPTED,
+                AlloUsageService::STATUS_DONE,
+            ])
+            ->groupBy('slot_date')
+            ->get()
+            ->pluck('bookings_count', 'slot_date');
+
+        $slots = AlloSlot::query()
+            ->where('allo_id', $allo->id)
+            ->where('slot_start_at', '>=', $availabilityThreshold)
+            ->whereIn('status', ['available', 'partial'])
+            ->withCount(['usages as bookings_count' => function ($usageQuery): void {
+                $usageQuery->whereIn('status', [
+                    AlloUsageService::STATUS_PENDING,
+                    AlloUsageService::STATUS_ACCEPTED,
+                    AlloUsageService::STATUS_DONE,
+                ]);
+            }])
+            ->get();
+
+        return $slots->contains(function (AlloSlot $slot) use ($bookingCountsByDate, $dailyLimit, $slotCapacityFallback): bool {
+            $slotDate = $slot->slot_start_at?->toDateString();
+
+            if ($slotDate === null) {
+                return false;
+            }
+
+            $capacity = (int) ($slot->capacity ?? $slotCapacityFallback);
+            $bookingsCount = (int) ($slot->bookings_count ?? 0);
+            $remaining = max($capacity - $bookingsCount, 0);
+
+            if ($remaining <= 0) {
+                return false;
+            }
+
+            $currentCount = (int) ($bookingCountsByDate[$slotDate] ?? 0);
+
+            return $currentCount < $dailyLimit;
+        });
     }
 
     public function activities(): Factory|View
@@ -200,6 +374,56 @@ class PageController extends Controller
         return view('team', [
             'teamPoles' => $teamPoles,
         ]);
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}|null
+     */
+    private function resolveWindowBounds(Allo $allo): ?array
+    {
+        if ($allo->window_start_at !== null && $allo->window_end_at !== null) {
+            return [$allo->window_start_at, $allo->window_end_at];
+        }
+
+        $timeSlots = $allo->time_slots;
+
+        if (!is_array($timeSlots) || count($timeSlots) === 0) {
+            return null;
+        }
+
+        $minStart = null;
+        $maxEnd = null;
+
+        foreach ($timeSlots as $slot) {
+            if (!is_array($slot)) {
+                continue;
+            }
+
+            $startDate = $slot['start_date'] ?? null;
+            $endDate = $slot['end_date'] ?? null;
+            $startTime = $slot['start_time'] ?? null;
+            $endTime = $slot['end_time'] ?? null;
+
+            if (!is_string($startDate) || !is_string($endDate) || !is_string($startTime) || !is_string($endTime)) {
+                continue;
+            }
+
+            $start = Carbon::createFromFormat('Y-m-d H:i', "{$startDate} {$startTime}");
+            $end = Carbon::createFromFormat('Y-m-d H:i', "{$endDate} {$endTime}");
+
+            if (! $start instanceof Carbon || ! $end instanceof Carbon) {
+                continue;
+            }
+
+            $minStart = $minStart === null || $start->lessThan($minStart) ? $start : $minStart;
+            $maxEnd = $maxEnd === null || $end->greaterThan($maxEnd) ? $end : $maxEnd;
+        }
+
+        if ($minStart === null || $maxEnd === null) {
+            return null;
+        }
+
+        return [$minStart, $maxEnd];
     }
 
 

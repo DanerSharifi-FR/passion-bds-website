@@ -137,9 +137,15 @@
                         <i class="fa-solid fa-trophy w-6 @if(request()->routeIs('admin.challenges')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
                         <span>Défis & Quêtes</span>
                     </a>
-                    <a href="{{ route('admin.allos') }}"
-                       class="flex items-center px-4 @if(request()->routeIs('admin.allos')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-yellow-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
-                        <i class="fa-solid fa-phone-volume w-6 @if(request()->routeIs('admin.allos')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
+                @endif
+
+                @if(auth()->user()->hasAnyRole(['ROLE_SUPER_ADMIN', 'ROLE_BLOGGER', 'ROLE_GAMEMASTER', 'ROLE_SHOP', 'ROLE_TEAM']))
+                    <!-- Allos -->
+                    <div class="pt-4 pb-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Allos
+                    </div>
+                    <a href="{{ route('admin.allos.requests') }}"
+                       class="flex items-center px-4 @if(request()->routeIs('admin.allos.*')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-yellow-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                        <i class="fa-solid fa-phone-volume w-6 @if(request()->routeIs('admin.allos.*')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
                         <span>Allos</span>
                     </a>
                 @endif

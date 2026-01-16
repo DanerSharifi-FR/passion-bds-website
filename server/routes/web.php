@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\AdminUsersApiController;
 use App\Http\Controllers\Admin\AdminUsersController;
+use App\Http\Controllers\Admin\AlloApiController;
 use App\Http\Controllers\Admin\AlloController;
 use App\Http\Controllers\Admin\ChallengeController;
 use App\Http\Controllers\Admin\TransactionApiController;
@@ -30,12 +31,11 @@ Route::middleware([TemporaryIpBlockMiddleware::class])->group(function () {
         Route::get('/galerie', 'gallery')->name('gallery');
         Route::get('/classement', 'leaderboard')->name('leaderboard');
 
-        Route::get('/activities/{activity}', 'activityLeaderboard')->name('activities.leaderboard');
-        Route::get('/activities', 'activities')->name('activities');
-
-        Route::get('/allos', 'allos')->name('allos');
-        Route::get('/connexion', 'login')->middleware('guest')->name('login');
-    });
+    Route::get('/allos', 'allos')->middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')->name('allos');
+    Route::get('/allos/reservations', 'alloReservations')->middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')->name('allos.reservations');
+    Route::get('/allos/{alloId}/creneaux', 'alloSlots')->middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')->name('allos.slots');
+    Route::get('/connexion', 'login')->middleware('guest')->name('login');
+});
 
     Route::get('/api/leaderboard', [LeaderboardApiController::class, 'index'])->name('api.leaderboard');
 
@@ -75,21 +75,29 @@ Route::middleware([TemporaryIpBlockMiddleware::class])->group(function () {
                 ->middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')
                 ->name('dashboard');
 
-            // Admin pages (views)
-            Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')->group(function () {
-                Route::get('/challenges', [ChallengeController::class, 'index'])->name('challenges');
-                Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions');
-                Route::get('/allos', [AlloController::class, 'index'])->name('allos');
+        // Admin pages (views)
+        Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')->group(function () {
+            Route::get('/challenges', [ChallengeController::class, 'index'])->name('challenges');
+            Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions');
 
                 Route::get('/activities', [ActivitiesController::class, 'index'])->name('activities');
                 Route::get('/activities/{activity}/players', [ActivityPlayersController::class, 'index'])->name('activities.players');
             });
 
-            // Admin API
-            Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')
-                ->prefix('api')
-                ->as('api.')
-                ->group(function () {
+        Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')
+            ->prefix('allos')
+            ->name('allos.')
+            ->group(function () {
+                Route::get('/', [AlloController::class, 'index'])->name('index');
+                Route::get('/demandes', [AlloController::class, 'requests'])->name('requests');
+                Route::get('/catalogue-creneaux', [AlloController::class, 'catalog'])->name('catalog');
+            });
+
+        // Admin API
+        Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')
+            ->prefix('api')
+            ->as('api.')
+            ->group(function () {
 
                     // Transactions (existing)
                     Route::get('/transactions', [TransactionApiController::class, 'index'])->name('transactions.index');
@@ -152,10 +160,25 @@ Route::middleware([TemporaryIpBlockMiddleware::class])->group(function () {
                     Route::get('/audit-logs', [AdminAuditLogsApiController::class, 'index']);
                 });
 
-            // Users page + API (keep as-is)
-            Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')->group(function () {
-                Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
-                Route::get('/users', [AdminUsersController::class, 'index'])->name('users');
+        Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')
+            ->prefix('api')
+            ->as('api.')
+            ->group(function () {
+                // Allos management
+                Route::get('/allos', [AlloApiController::class, 'index'])->name('allos.index');
+                Route::post('/allos', [AlloApiController::class, 'store'])->name('allos.store');
+                Route::put('/allos/{allo}', [AlloApiController::class, 'update'])->name('allos.update');
+                Route::delete('/allos/{allo}', [AlloApiController::class, 'destroy'])->name('allos.delete');
+                Route::get('/allo-admins', [AlloApiController::class, 'listAdmins'])->name('allos.admins.index');
+                Route::get('/allo-usages', [AlloApiController::class, 'usages'])->name('allos.usages.index');
+                Route::get('/allo-visits', [AlloApiController::class, 'visits'])->name('allos.visits.index');
+                Route::put('/allo-usages/{usage}', [AlloApiController::class, 'updateUsage'])->name('allos.usages.update');
+            });
+
+        // Users page + API (keep as-is)
+        Route::middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')->group(function () {
+            Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
+            Route::get('/users', [AdminUsersController::class, 'index'])->name('users');
 
                 Route::prefix('api')->name('api.')->group(function () {
                     Route::get('/users', [AdminUsersApiController::class, 'index'])->name('users');

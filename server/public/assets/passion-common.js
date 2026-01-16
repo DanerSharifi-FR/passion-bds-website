@@ -119,14 +119,15 @@
                     statusBadge.style.backgroundColor = '#9B1237';
                     statusBadge.style.color = 'white';
                     statusText.textContent = "WARM UP";
-                    msg.textContent = "On prepare vos allos... RDV janvier 2026 !";
+                    msg.textContent = "On prépare vos allos... RDV en janvier 2026 !";
                     btnText.textContent = "J'active la machine !";
                 } else {
                     statusBadge.style.backgroundColor = '#FF914D';
                     statusBadge.style.color = '#9B1237';
                     statusText.textContent = "GAME ON";
-                    msg.textContent = "C'est parti mon grand. Fais tes choix.";
+                    msg.textContent = "C'est parti ! Profitez xO";
                     btnText.textContent = "Lancer un Allo";
+                    toggleState();
                 }
             }
 
@@ -137,9 +138,9 @@
                     card.classList.add('machine-state-open');
                     updateUI('open');
                 } else {
-                    card.classList.remove('machine-state-open');
-                    card.classList.add('machine-state-closed');
-                    updateUI('closed');
+                    //card.classList.remove('machine-state-open');
+                    //card.classList.add('machine-state-closed');
+                    updateUI('open');
                 }
             }
 
@@ -281,7 +282,7 @@
             }
 
             // Init
-            updateUI('closed');
+            updateUI('open');
             if (typeof triggerFileSelection === 'function') window.triggerFileSelection = triggerFileSelection;
             if (typeof validateInput === 'function') window.validateInput = validateInput;
             if (typeof checkQcm === 'function') window.checkQcm = checkQcm;
