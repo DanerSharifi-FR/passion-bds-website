@@ -37,49 +37,43 @@
 
         <!-- Allos Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <!-- Cards remain same -->
-            <div
-                class="relative group h-32 bg-passion-pink-100 border-2 border-passion-pink-300 overflow-hidden hover:border-passion-red transition-colors">
-                <div class="allo-real-content p-4 h-full flex flex-col justify-center transition-all duration-300">
-                    <div class="flex justify-between items-start mb-1">
-                        <h3 class="font-display font-black text-xl text-passion-red uppercase">Petit puff</h3>
-                        <span
-                            class="text-xs font-bold bg-white text-passion-red px-2 py-0.5 border border-passion-red rounded-sm">FEET</span>
-                    </div>
-                    <p class="text-sm font-medium text-passion-red leading-tight">Doucement chef ! c'est la maquette
-                        hein... petit malin</p>
-                </div>
+            @forelse($randomAllos as $allo)
                 <div
-                    class="allo-mystery-overlay absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjRkNFMkVDIi8+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIHN0cm9rZT0iI0U0NDc2QSIgc3Ryb2tlLXdpZHRoPSIxIiBvcGFjaXR5PSIwLjEiLz4KPC9zdmc+')] flex items-center justify-center group-hover:bg-passion-pink-200 transition-colors">
-                    <span
-                        class="font-display font-black text-2xl text-passion-pink-400 opacity-50 -rotate-6 group-hover:scale-110 transition-transform">LOCKED 🔒</span>
-                </div>
-            </div>
-
-            <!-- Card 2 -->
-            <div
-                class="relative group h-32 bg-passion-pink-100 border-2 border-passion-pink-300 overflow-hidden hover:border-passion-red transition-colors">
-                <div class="allo-real-content p-4 h-full flex flex-col justify-center transition-all duration-300">
-                    <div class="flex justify-between items-start mb-1">
-                        <h3 class="font-display font-black text-xl text-passion-red uppercase">BRAVO</h3>
-                        <span
-                            class="text-xs font-bold bg-white text-passion-red px-2 py-0.5 border border-passion-red rounded-sm">CLEAN</span>
+                    class="relative group h-32 bg-passion-pink-100 border-2 border-passion-pink-300 overflow-hidden hover:border-passion-red transition-colors">
+                    <div class="allo-real-content p-4 h-full flex flex-col justify-center transition-all duration-300">
+                        <div class="flex justify-between items-start mb-1">
+                            <h3 class="font-display font-black text-xl text-passion-red uppercase">{{ $allo->title }}</h3>
+                            <span
+                                class="text-xs font-bold bg-white text-passion-red px-2 py-0.5 border border-passion-red rounded-sm">
+                                {{ $allo->status }}
+                            </span>
+                        </div>
+                        <p class="text-sm font-medium text-passion-red leading-tight">
+                            {{ $allo->description ?? 'Découvre cet allo !' }}
+                        </p>
                     </div>
-                    <p class="text-sm font-medium text-passion-red leading-tight">T'as su manipuler du css, maintenant
-                        va dormir on vous prepare des masterclasses</p>
                 </div>
+            @empty
                 <div
-                    class="allo-mystery-overlay absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjRkNFMkVDIi8+CjxwYXRoIGQ9Ik0wIDBMOCA4Wk04IDBMMCA4WiIHN0cm9rZT0iI0U0NDc2QSIgc3Ryb2tlLXdpZHRoPSIxIiBvcGFjaXR5PSIwLjEiLz4KPC9zdmc+')] flex items-center justify-center group-hover:bg-passion-pink-200 transition-colors">
-                    <span
-                        class="font-display font-black text-2xl text-passion-pink-400 opacity-50 -rotate-6 group-hover:scale-110 transition-transform">LOCKED 🔒</span>
+                    class="relative group h-32 bg-passion-pink-100 border-2 border-passion-pink-300 overflow-hidden">
+                    <div class="allo-real-content p-4 h-full flex flex-col justify-center transition-all duration-300">
+                        <div class="flex justify-between items-start mb-1">
+                            <h3 class="font-display font-black text-xl text-passion-red uppercase">Aucun allo</h3>
+                            <span
+                                class="text-xs font-bold bg-white text-passion-red px-2 py-0.5 border border-passion-red rounded-sm">INFO</span>
+                        </div>
+                        <p class="text-sm font-medium text-passion-red leading-tight">
+                            Reviens bientôt pour réserver un créneau !
+                        </p>
+                    </div>
                 </div>
-            </div>
+            @endforelse
         </div>
 
         <!-- Footer Action -->
         <div class="flex flex-col items-center gap-4 text-center">
             <p id="status-message" class="font-medium text-passion-red md:text-base px-2"></p>
-            <a href="{{ route('login') }}"
+            <a href="{{ route('allos') }}"
                class="main-btn skew-box px-6 py-3 md:px-10 md:py-4 font-display font-black text-lg md:text-xl uppercase tracking-wider transition-all duration-200 shadow-md">
                 <span class="unskew-text btn-text"></span>
             </a>

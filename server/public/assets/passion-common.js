@@ -127,6 +127,7 @@
                     statusText.textContent = "GAME ON";
                     msg.textContent = "C'est parti mon grand. Fais tes choix.";
                     btnText.textContent = "Lancer un Allo";
+                    toggleState();
                 }
             }
 
@@ -139,7 +140,7 @@
                 } else {
                     card.classList.remove('machine-state-open');
                     card.classList.add('machine-state-closed');
-                    updateUI('closed');
+                    updateUI('open');
                 }
             }
 
@@ -281,7 +282,7 @@
             }
 
             // Init
-            updateUI('closed');
+            updateUI('open');
             if (typeof triggerFileSelection === 'function') window.triggerFileSelection = triggerFileSelection;
             if (typeof validateInput === 'function') window.validateInput = validateInput;
             if (typeof checkQcm === 'function') window.checkQcm = checkQcm;

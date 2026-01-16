@@ -23,8 +23,15 @@ class PageController extends Controller
     {
         $leaderboardWidget = $this->buildLeaderboardWidgetData(auth()->id());
 
+        $randomAllos = Allo::query()
+            ->where('status', 'OPEN')
+            ->inRandomOrder()
+            ->limit(2)
+            ->get();
+
         return view('home', [
             'leaderboardWidget' => $leaderboardWidget,
+            'randomAllos' => $randomAllos,
         ]);
     }
 
