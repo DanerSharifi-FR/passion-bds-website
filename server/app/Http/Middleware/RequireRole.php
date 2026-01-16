@@ -11,7 +11,9 @@ class RequireRole
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         $user = $request->user();
-        if (!$user) abort(401);
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'You do not have the required role to access this page.');
+        }
 
         $user->loadMissing('roles');
 
@@ -20,7 +22,8 @@ class RequireRole
         }
 
         if (!$user->hasAnyRole($roles)) {
-            abort(403);
+            // redirect to connection page
+            return redirect()->route('login')->with('error', 'You do not have the required role to access this page.');
         }
 
         return $next($request);

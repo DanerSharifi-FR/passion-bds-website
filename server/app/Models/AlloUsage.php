@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -135,4 +136,34 @@ class AlloUsage extends Model
     {
         return $this->belongsTo(User::class, 'done_by_id');
     }
+
+    protected function userNote(): Attribute
+    {
+        return Attribute::make(
+            set: fn (mixed $value): ?string => $this->sanitizeUserNote($value),
+        );
+    }
+
+    private function sanitizeUserNote(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $s = (string) $value;
+
+        // keep \n but normalize
+        $s = str_replace(["\r\n", "\r"], "\n", $s);
+
+        // remove control chars except \n and \t
+        $s = preg_replace('/[^\P{C}\n\t]/u', '', $s) ?? '';
+
+        // strip any HTML tags (including <style>, <xss>, etc.)
+        $s = strip_tags($s);
+
+        $s = trim($s);
+
+        return $s === '' ? null : $s;
+    }
+
 }
