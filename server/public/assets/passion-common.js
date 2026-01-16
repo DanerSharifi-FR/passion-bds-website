@@ -125,7 +125,7 @@
                     statusBadge.style.backgroundColor = '#FF914D';
                     statusBadge.style.color = '#9B1237';
                     statusText.textContent = "GAME ON";
-                    msg.textContent = "C'est parti mon grand. Fais tes choix.";
+                    msg.textContent = "C'est parti ! Profitez xO";
                     btnText.textContent = "Lancer un Allo";
                     toggleState();
                 }
@@ -138,8 +138,8 @@
                     card.classList.add('machine-state-open');
                     updateUI('open');
                 } else {
-                    card.classList.remove('machine-state-open');
-                    card.classList.add('machine-state-closed');
+                    //card.classList.remove('machine-state-open');
+                    //card.classList.add('machine-state-closed');
                     updateUI('open');
                 }
             }

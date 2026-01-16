@@ -19,7 +19,7 @@
 
     <!-- Machine Card Container -->
     <div id="machine-card"
-         class="machine-container machine-state-closed w-full max-w-4xl p-6 md:p-8 rounded-sm relative bg-white z-20 mb-12">
+         class="machine-container machine-state-open w-full max-w-4xl p-6 md:p-8 rounded-sm relative bg-white z-20 mb-12">
 
         <!-- Top Bar: Status Board -->
         <div class="flex justify-between items-center mb-6 border-b-2 border-passion-pink-200 pb-4">
@@ -43,14 +43,11 @@
                     <div class="allo-real-content p-4 h-full flex flex-col justify-center transition-all duration-300">
                         <div class="flex justify-between items-start mb-1">
                             <h3 class="font-display font-black text-xl text-passion-red uppercase">{{ $allo->title }}</h3>
-                            <span
+                            <a href="{{ route('allos') }}"
                                 class="text-xs font-bold bg-white text-passion-red px-2 py-0.5 border border-passion-red rounded-sm">
-                                {{ $allo->status }}
-                            </span>
+                                RÉSERVER
+                            </a>
                         </div>
-                        <p class="text-sm font-medium text-passion-red leading-tight">
-                            {{ $allo->description ?? 'Découvre cet allo !' }}
-                        </p>
                     </div>
                 </div>
             @empty
