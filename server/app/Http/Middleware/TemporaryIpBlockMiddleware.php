@@ -57,11 +57,11 @@ class TemporaryIpBlockMiddleware
             $query->where(function ($q) use ($identifiers) {
                 $q->where('session_id', $identifiers['session_id']);
                 if ($identifiers['user_id']) {
-                    $q->orWhere('user_id', $identifiers['user_id']);
+                    $q->orWhere('actor_id', $identifiers['user_id']);
                 }
             });
         } elseif ($identifiers['user_id']) {
-            $query->where('user_id', $identifiers['user_id']);
+            $query->where('actor_id', $identifiers['user_id']);
         } else {
             // Fallback to IP only if no session exists (API clients, bots, etc.)
             $query->where('ip_address', $identifiers['ip']);
@@ -99,8 +99,17 @@ class TemporaryIpBlockMiddleware
      */
     private function getRateLimitIdentifiers(Request $request): array
     {
+        $sessionId = null;
+        try {
+            if ($request->hasSession()) {
+                $sessionId = $request->session()->getId();
+            }
+        } catch (\Throwable) {
+            // Session not available yet
+        }
+
         return [
-            'session_id' => $request->session()->getId(),
+            'session_id' => $sessionId,
             'user_id' => auth()->id(),
             'ip' => (string) $request->ip(),
         ];
