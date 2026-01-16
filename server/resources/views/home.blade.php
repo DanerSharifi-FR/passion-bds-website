@@ -35,7 +35,7 @@
             </div>
         </div>
 
-        <!-- Grid -->
+        <!-- Allos Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <!-- Cards remain same -->
             <div
