@@ -16,6 +16,7 @@ class AuditLogService
         array $metadata = [],
         ?string $ip = null,
         ?string $userAgent = null,
+        ?string $sessionId = null,
     ): void {
         AuditLog::create([
             'actor_id' => $actor?->id,
@@ -29,6 +30,7 @@ class AuditLogService
 
             'ip_address' => $ip !== null ? mb_substr(trim($ip), 0, 45) : null,
             'user_agent' => $userAgent !== null ? mb_substr($userAgent, 0, 500) : null,
+            'session_id' => $sessionId !== null ? mb_substr(trim($sessionId), 0, 100) : null,
 
             'created_at' => now(),
         ]);

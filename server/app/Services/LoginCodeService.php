@@ -56,12 +56,15 @@ class LoginCodeService
     /**
      * @throws ValidationException
      */
-    public function requestCode(string $email, string $ip, ?string $userAgent): void
+    public function requestCode(string $email, string $ip, ?string $userAgent, ?string $sessionId = null): void
     {
         $email = mb_strtolower(trim($email));
 
-        // Cooldown strict par IP: 1 demande toutes les 30s
-        $cooldownKey = 'login_code_cooldown_ip:' . $ip;
+        // Use session for rate limiting (fallback to IP for API clients without sessions)
+        $identifier = $sessionId ?: $ip;
+
+        // Cooldown strict par session: 1 demande toutes les 30s
+        $cooldownKey = 'login_code_cooldown:' . $identifier;
         if (RateLimiter::tooManyAttempts($cooldownKey, 1)) {
             $wait = RateLimiter::availableIn($cooldownKey);
 
@@ -77,8 +80,8 @@ class LoginCodeService
             ]);
         }
 
-        // Rate limit : empêcher spam d’envoi de codes (par email + ip)
-        $rateKey = 'login_code_req:' . sha1($email . '|' . $ip);
+        // Rate limit : empêcher spam d'envoi de codes (par email + session)
+        $rateKey = 'login_code_req:' . sha1($email . '|' . $identifier);
         if (RateLimiter::tooManyAttempts($rateKey, self::REQUEST_LIMIT)) {
             $wait = RateLimiter::availableIn($rateKey);
 
@@ -91,6 +94,7 @@ class LoginCodeService
                 metadata: [
                     'email' => $email,
                     'ip' => $ip,
+                    'session_id' => $sessionId,
                     'rate_key' => $rateKey,
                     'wait_seconds' => $wait,
                     'max_attempts' => self::REQUEST_LIMIT,
@@ -98,6 +102,7 @@ class LoginCodeService
                 ],
                 ip: $ip,
                 userAgent: $userAgent,
+                sessionId: $sessionId,
             );
 
             throw ValidationException::withMessages([
@@ -157,12 +162,15 @@ class LoginCodeService
     /**
      * @throws ValidationException
      */
-    public function requestAdminCode(string $email, string $ip, ?string $userAgent): void
+    public function requestAdminCode(string $email, string $ip, ?string $userAgent, ?string $sessionId = null): void
     {
         $email = mb_strtolower(trim($email));
 
-        // cooldown IP (same as user)
-        $cooldownKey = 'admin_login_code_cooldown_ip:' . $ip;
+        // Use session for rate limiting (fallback to IP for API clients without sessions)
+        $identifier = $sessionId ?: $ip;
+
+        // cooldown session (same as user)
+        $cooldownKey = 'admin_login_code_cooldown:' . $identifier;
         if (RateLimiter::tooManyAttempts($cooldownKey, 1)) {
             $wait = RateLimiter::availableIn($cooldownKey);
 
@@ -174,20 +182,21 @@ class LoginCodeService
             throw ValidationException::withMessages(['email' => 'Format invalide (prenom.nom@imt-atlantique.net)']);
         }
 
-        // rate limit email+ip
-        $rateKey = 'admin_login_code_req:' . sha1($email . '|' . $ip);
+        // rate limit email+session
+        $rateKey = 'admin_login_code_req:' . sha1($email . '|' . $identifier);
         if (RateLimiter::tooManyAttempts($rateKey, self::REQUEST_LIMIT)) {
             $wait = RateLimiter::availableIn($rateKey);
 
             $this->auditLogService->log(
                 actor: null,
-                action: 'AUTH.ADMIN_LOGIN_CODE.COOLDOWN_HIT',
+                action: 'AUTH.ADMIN_LOGIN_CODE.REQUEST_RATE_LIMIT',
                 entityType: 'login_codes',
                 entityId: null,
                 description: 'SPAMMING ADMIN: +6 in 10min',
                 metadata: [
                     'email' => $email,
                     'ip' => $ip,
+                    'session_id' => $sessionId,
                     'cooldown_key' => $cooldownKey,
                     'wait_seconds' => $wait,
                     'max_attempts' => 1,
@@ -195,6 +204,7 @@ class LoginCodeService
                 ],
                 ip: $ip,
                 userAgent: $userAgent,
+                sessionId: $sessionId,
             );
 
             throw ValidationException::withMessages(['email' => 'Trop de demandes. Réessaie plus tard.']);
@@ -243,9 +253,9 @@ class LoginCodeService
     /**
      * @throws ValidationException
      */
-    public function verifyAdminCode(string $email, string $code, string $ip): User
+    public function verifyAdminCode(string $email, string $code, string $ip, ?string $sessionId = null): User
     {
-        $user = $this->verifyCode($email, $code, $ip);
+        $user = $this->verifyCode($email, $code, $ip, $sessionId);
 
         $user->loadMissing('roles');
 
@@ -259,10 +269,13 @@ class LoginCodeService
     /**
      * @throws ValidationException
      */
-    public function verifyCode(string $email, string $code, string $ip): User
+    public function verifyCode(string $email, string $code, string $ip, ?string $sessionId = null): User
     {
         $email = Str::lower(trim($email));
         $code  = preg_replace('/\D+/', '', trim($code)); // keep digits only
+
+        // Use session for rate limiting (fallback to IP for API clients without sessions)
+        $identifier = $sessionId ?: $ip;
 
         // Defensive validation (backend must not trust frontend)
         $mailFormat = '/^[a-z0-9][a-z0-9-]*\.[a-z0-9][a-z0-9-]*@imt-atlantique\.net$/i';
@@ -278,8 +291,8 @@ class LoginCodeService
             ]);
         }
 
-        // Rate limit verify attempts (email+ip)
-        $verifyKey = 'login_code_verify:' . sha1($email . '|' . $ip);
+        // Rate limit verify attempts (email+session)
+        $verifyKey = 'login_code_verify:' . sha1($email . '|' . $identifier);
         if (RateLimiter::tooManyAttempts($verifyKey, self::VERIFY_LIMIT)) {
             $wait = RateLimiter::availableIn($verifyKey);
 
@@ -292,6 +305,7 @@ class LoginCodeService
                 metadata: [
                     'email' => $email,
                     'ip' => $ip,
+                    'session_id' => $sessionId,
                     'verify_key' => $verifyKey,
                     'wait_seconds' => $wait,
                     'max_attempts' => self::VERIFY_LIMIT,
@@ -299,6 +313,7 @@ class LoginCodeService
                 ],
                 ip: $ip,
                 userAgent: null,
+                sessionId: $sessionId,
             );
 
             throw ValidationException::withMessages([

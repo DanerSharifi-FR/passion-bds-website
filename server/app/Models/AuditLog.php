@@ -18,6 +18,7 @@ class AuditLog extends Model
         'metadata_json',
         'ip_address',
         'user_agent',
+        'session_id',
         'created_at',
     ];
 
