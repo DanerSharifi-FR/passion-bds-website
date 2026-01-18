@@ -32,13 +32,10 @@ Route::controller(PageController::class)->group(function () {
     Route::get('/activities', 'activities')->name('activities');
 
     Route::get('/allos', 'allos')
-        ->middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')
         ->name('allos');
     Route::get('/allos/reservations', 'alloReservations')
-        ->middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')
         ->name('allos.reservations');
     Route::get('/allos/{alloId}/creneaux', 'alloSlots')
-        ->middleware('role:ROLE_SUPER_ADMIN,ROLE_BLOGGER,ROLE_GAMEMASTER,ROLE_SHOP,ROLE_TEAM')
         ->name('allos.slots');
     Route::get('/connexion', 'login')->middleware('guest')->name('login');
 });
