@@ -6,6 +6,8 @@ services:
             target: dev
         volumes:
             - ./:/var/www/html
+            - ./docker/php-fpm/www.8c16g.conf:/usr/local/etc/php-fpm.d/www.conf:ro
+            - ./docker/php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/zz-opcache.ini:ro
         restart: unless-stopped
         networks:
             - internal
@@ -22,12 +24,14 @@ services:
             MYSQL_PASSWORD: passion_bds
         volumes:
             - mysql_data:/var/lib/mysql
+            - ./docker/mysql/conf.d:/etc/mysql/conf.d:ro
         networks:
             - internal
         ports:
             - "3307:3306" # host 3307 -> container 3306 (for Adminer / DBeaver etc.)
 
     phpmyadmin:
+        profiles: ["debug"] # only run when "docker-compose --profile debug up" is used
         image: phpmyadmin:latest
         depends_on:
             - mysql_bds
