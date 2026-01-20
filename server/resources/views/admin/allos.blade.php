@@ -123,6 +123,7 @@
             </div>
         </div>
         <div class="space-y-4" id="requestsContainer"></div>
+        <div id="requestsPagination" class="mt-6"></div>
     </div>
 
     <!-- VIEW: CATALOG -->
@@ -347,6 +348,11 @@
         let requestActionState = {};
         let filtersPanelOpen = false;
         let visitsByAlloId = {};
+        let requestPagination = {
+            page: 1,
+            perPage: 20,
+            signature: '',
+        };
         const defaultRequestFilters = {
             statuses: ['PENDING', 'ACCEPTED', 'DONE', 'CANCELLED'],
             scope: 'mine',
@@ -1017,6 +1023,12 @@
             const container = document.getElementById('requestsContainer');
             container.innerHTML = '';
 
+            const signature = JSON.stringify(requestFilters);
+            if (requestPagination.signature !== signature) {
+                requestPagination.page = 1;
+                requestPagination.signature = signature;
+            }
+
             let filtered = requests.filter(r => {
                 const statusMatch = requestFilters.statuses.length === 0
                     || requestFilters.statuses.includes(r.status);
@@ -1092,10 +1104,18 @@
                 `;
                 renderActiveFilters();
                 updateResetButtonState();
+                renderRequestsPagination(0);
                 return;
             }
 
-            filtered.forEach(r => {
+            const totalPages = Math.max(1, Math.ceil(filtered.length / requestPagination.perPage));
+            if (requestPagination.page > totalPages) {
+                requestPagination.page = totalPages;
+            }
+            const startIndex = (requestPagination.page - 1) * requestPagination.perPage;
+            const pageItems = filtered.slice(startIndex, startIndex + requestPagination.perPage);
+
+            pageItems.forEach(r => {
                 const statusConfig = requestStatusConfig(r.status);
                 const isLoading = !!requestActionState[r.id];
                 const cardBorder = r.status === 'PENDING'
@@ -1162,6 +1182,48 @@
             bindAssignControls();
             renderActiveFilters();
             updateResetButtonState();
+            renderRequestsPagination(filtered.length);
+        }
+
+        function renderRequestsPagination(totalCount) {
+            const container = document.getElementById('requestsPagination');
+            if (!container) return;
+            if (totalCount <= requestPagination.perPage) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.max(1, Math.ceil(totalCount / requestPagination.perPage));
+            const start = (requestPagination.page - 1) * requestPagination.perPage + 1;
+            const end = Math.min(requestPagination.page * requestPagination.perPage, totalCount);
+            const isFirst = requestPagination.page === 1;
+            const isLast = requestPagination.page === totalPages;
+
+            container.innerHTML = `
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3">
+                    <p class="text-xs text-slate-400">Affichage ${start}–${end} sur ${totalCount}</p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" data-page="prev" class="px-3 py-1.5 rounded-md text-xs border border-slate-600 text-slate-200 ${isFirst ? 'opacity-40 cursor-not-allowed' : 'hover:text-white hover:border-slate-500'}" ${isFirst ? 'disabled' : ''}>
+                            Précédent
+                        </button>
+                        <span class="text-xs text-slate-400">Page ${requestPagination.page} / ${totalPages}</span>
+                        <button type="button" data-page="next" class="px-3 py-1.5 rounded-md text-xs border border-slate-600 text-slate-200 ${isLast ? 'opacity-40 cursor-not-allowed' : 'hover:text-white hover:border-slate-500'}" ${isLast ? 'disabled' : ''}>
+                            Suivant
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            container.querySelectorAll('[data-page]').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (button.dataset.page === 'prev') {
+                        requestPagination.page = Math.max(1, requestPagination.page - 1);
+                    } else {
+                        requestPagination.page = Math.min(totalPages, requestPagination.page + 1);
+                    }
+                    renderRequests();
+                });
+            });
         }
 
         async function updateStatus(id, status) {
