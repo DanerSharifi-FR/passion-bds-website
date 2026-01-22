@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Api\ActivityLeaderboardApiController;
 use App\Http\Controllers\Api\LeaderboardApiController;
 use App\Http\Controllers\Auth\CodeAuthController;
+use App\Http\Controllers\BettingAdminController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\UserBetMatchController;
 use App\Http\Controllers\UserBetsController;
@@ -216,4 +217,7 @@ Route::middleware('auth')->prefix('paris')->as('betting.')->group(function () {
     Route::put('/bets/{bet}', [UserBetsController::class, 'update'])->name('bets.update');
     Route::delete('/bets/{bet}', [UserBetsController::class, 'destroy'])->name('bets.destroy');
     Route::get('/mes-paris', [UserBetsController::class, 'index'])->name('bets.index');
+    Route::post('/reset-credits', [BettingAdminController::class, 'resetCredits'])
+        ->middleware('role:ROLE_SUPER_ADMIN,ROLE_GAMEMASTER')
+        ->name('reset-credits');
 });

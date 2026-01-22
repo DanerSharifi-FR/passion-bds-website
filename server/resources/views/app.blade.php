@@ -139,6 +139,20 @@
             font-size: 14px;
         }
 
+        .confirm-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            font-size: 14px;
+            color: #1f2937;
+        }
+
+        .confirm-check-input {
+            width: 18px;
+            height: 18px;
+        }
+
         .confirm-actions {
             display: flex;
             justify-content: flex-end;
@@ -986,6 +1000,10 @@
     <div class="confirm-card" role="document">
         <h2 id="confirm-title"></h2>
         <p id="confirm-text"></p>
+        <label class="confirm-check hidden" id="confirm-check-wrap">
+            <input type="checkbox" id="confirm-check" class="confirm-check-input">
+            <span id="confirm-check-label"></span>
+        </label>
         <div class="confirm-actions">
             <button type="button" class="btn-secondary" data-cancel="1">Annuler</button>
             <button type="button" class="btn-danger" data-confirm="1">Confirmer</button>

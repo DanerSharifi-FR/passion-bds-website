@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Enums\WalletTransactionType;
+use App\Models\Wallet;
 use App\Services\LoginCodeService;
+use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,7 +36,7 @@ class CodeAuthController extends Controller
     /**
      * @throws ValidationException
      */
-    public function verifyCode(Request $request, LoginCodeService $service): JsonResponse
+    public function verifyCode(Request $request, LoginCodeService $service, WalletService $walletService): JsonResponse
     {
         $request->validate([
             'email' => ['required', 'string', 'max:255'],
@@ -49,6 +52,13 @@ class CodeAuthController extends Controller
 
         Auth::login($user, remember: true);
         $request->session()->regenerate();
+
+        $hasWallet = Wallet::query()
+            ->where('user_id', $user->id)
+            ->exists();
+        if (!$hasWallet) {
+            $walletService->deposit((int) $user->id, 1000, WalletTransactionType::INITIAL);
+        }
 
         return response()->json([
             'ok' => true,

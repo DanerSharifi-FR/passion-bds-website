@@ -126,34 +126,81 @@
 
         const titleEl = modal.querySelector('#confirm-title');
         const textEl = modal.querySelector('#confirm-text');
+        const checkWrap = modal.querySelector('#confirm-check-wrap');
+        const checkInput = modal.querySelector('#confirm-check');
+        const checkLabel = modal.querySelector('#confirm-check-label');
         const cancelBtn = modal.querySelector('[data-cancel]');
         const confirmBtn = modal.querySelector('[data-confirm]');
         const backdrop = modal.querySelector('[data-close]');
         let pendingForm = null;
+        let requireCheck = false;
 
         const closeModal = () => {
             modal.classList.add('hidden');
             modal.classList.remove('active');
+            if (checkInput) {
+                checkInput.checked = false;
+            }
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+            if (checkWrap) {
+                checkWrap.classList.add('hidden');
+            }
             pendingForm = null;
         };
 
-        const openModal = (form, title, text) => {
+        const openModal = (form, title, text, needsCheck, checkText) => {
             pendingForm = form;
+            requireCheck = needsCheck;
             titleEl.textContent = title || 'Confirmer';
             textEl.textContent = text || 'Cette action est irréversible.';
             modal.classList.remove('hidden');
             requestAnimationFrame(() => modal.classList.add('active'));
+            if (checkWrap && checkInput && checkLabel) {
+                if (needsCheck) {
+                    checkWrap.classList.remove('hidden');
+                    checkInput.checked = false;
+                    checkLabel.textContent = checkText || 'Je confirme cette action.';
+                    if (confirmBtn) {
+                        confirmBtn.disabled = true;
+                        confirmBtn.classList.add('opacity-60', 'cursor-not-allowed');
+                    }
+                } else {
+                    checkWrap.classList.add('hidden');
+                    if (confirmBtn) {
+                        confirmBtn.disabled = false;
+                        confirmBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                    }
+                }
+            }
             confirmBtn.focus();
         };
 
         document.body.addEventListener('submit', (event) => {
             const target = event.target;
             if (!(target instanceof HTMLFormElement)) return;
-            const trigger = target.querySelector('[data-confirm="delete-bet"]');
+            const trigger = target.querySelector('[data-confirm]');
             if (!trigger) return;
             event.preventDefault();
-            openModal(target, trigger.dataset.confirmTitle, trigger.dataset.confirmText);
+            openModal(
+                target,
+                trigger.dataset.confirmTitle,
+                trigger.dataset.confirmText,
+                trigger.dataset.confirmRequireCheck === '1',
+                trigger.dataset.confirmCheckLabel
+            );
         });
+
+        if (checkInput && confirmBtn) {
+            checkInput.addEventListener('change', () => {
+                if (!requireCheck) return;
+                confirmBtn.disabled = !checkInput.checked;
+                confirmBtn.classList.toggle('opacity-60', !checkInput.checked);
+                confirmBtn.classList.toggle('cursor-not-allowed', !checkInput.checked);
+            });
+        }
 
         cancelBtn?.addEventListener('click', closeModal);
         backdrop?.addEventListener('click', closeModal);

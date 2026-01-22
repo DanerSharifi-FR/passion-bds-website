@@ -32,6 +32,27 @@
             </div>
         </div>
 
+        @if(auth()->user()?->hasRole('ROLE_GAMEMASTER') || auth()->user()?->hasRole('ROLE_SUPER_ADMIN'))
+            <div class="mb-6 bg-white border border-gray-200 rounded-xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <div class="text-sm font-semibold text-gray-900">Réinitialiser les crédits</div>
+                    <div class="text-xs text-gray-500 mt-1">Tous les utilisateurs seront remis à 1000 crédits.</div>
+                </div>
+                <form method="POST" action="{{ route('betting.reset-credits') }}">
+                    @csrf
+                    <button type="submit"
+                            class="px-4 py-2 rounded-full bg-amber-600 text-white font-semibold hover:bg-amber-500 transition"
+                            data-confirm="reset-credits"
+                            data-confirm-title="Réinitialiser les crédits ?"
+                            data-confirm-text="Tous les utilisateurs seront mis à 1000 crédits."
+                            data-confirm-require-check="1"
+                            data-confirm-check-label="Je confirme la remise à 1000 crédits.">
+                        Reset crédits
+                    </button>
+                </form>
+            </div>
+        @endif
+
         @if($matches->count() === 0)
             <div class="bg-white border border-gray-200 rounded-xl p-6 text-gray-600">
                 Aucun match disponible pour le moment.
