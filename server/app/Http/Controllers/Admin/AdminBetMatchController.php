@@ -67,11 +67,9 @@ class AdminBetMatchController extends Controller
         $betOpenAt = Carbon::parse($validated['bet_open_at']);
         $matchStartAt = Carbon::parse($validated['match_start_at']);
         $matchEndAt = Carbon::parse($validated['match_end_at']);
-        $closeOffsetSeconds = (int) config('betting.bet_close_offset_seconds');
-
-        if ($betOpenAt->gte($matchStartAt->copy()->subSeconds($closeOffsetSeconds))) {
+        if ($betOpenAt->gte($matchEndAt)) {
             throw ValidationException::withMessages([
-                'bet_open_at' => 'La date d’ouverture doit être au moins 30 secondes avant le début du match.',
+                'bet_open_at' => 'La date d’ouverture doit être avant la fin du match.',
             ]);
         }
 

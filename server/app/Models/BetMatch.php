@@ -103,9 +103,6 @@ class BetMatch extends Model
             return false;
         }
 
-        $closeAt = $this->match_start_at->copy()
-            ->subSeconds((int) config('betting.bet_close_offset_seconds'));
-
-        return $now->gte($this->bet_open_at) && $now->lt($closeAt);
+        return $now->gte($this->bet_open_at) && $now->lt($this->match_end_at);
     }
 }
