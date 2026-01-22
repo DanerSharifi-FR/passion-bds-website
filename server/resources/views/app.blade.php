@@ -34,6 +34,141 @@
     <link rel="apple-touch-icon" href="https://placehold.co/180x180/FF914D/9B1237?text=P">
 
     <style>
+        .hidden {
+            display: none;
+        }
+
+        .bet-status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 4px 12px;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .bet-status-open {
+            background: rgba(22, 163, 74, .15);
+            color: #15803d;
+        }
+
+        .bet-status-upcoming {
+            background: rgba(234, 179, 8, .2);
+            color: #92400e;
+        }
+
+        .bet-status-closed {
+            background: rgba(100, 116, 139, .2);
+            color: #475569;
+        }
+
+        .bet-status-finished {
+            background: rgba(30, 41, 59, .15);
+            color: #1f2937;
+        }
+
+        .odds {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 999px;
+            transition: background-color .6s, color .6s, transform .25s;
+        }
+
+        .odds-up {
+            color: #16a34a;
+            background: rgba(22, 163, 74, .15);
+            transform: translateY(-2px);
+        }
+
+        .odds-down {
+            color: #dc2626;
+            background: rgba(220, 38, 38, .15);
+            transform: translateY(2px);
+        }
+
+        .confirm-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+
+        .confirm-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, .6);
+            opacity: 0;
+            transition: opacity .2s ease;
+        }
+
+        .confirm-card {
+            position: relative;
+            width: min(420px, 100%);
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, .25);
+            transform: translateY(10px);
+            opacity: 0;
+            transition: transform .2s ease, opacity .2s ease;
+        }
+
+        .confirm-modal.active .confirm-backdrop {
+            opacity: 1;
+        }
+
+        .confirm-modal.active .confirm-card {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .confirm-card h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .confirm-card p {
+            margin-top: 8px;
+            color: #475569;
+            font-size: 14px;
+        }
+
+        .confirm-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn-secondary,
+        .btn-danger {
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .btn-secondary:focus,
+        .btn-danger:focus {
+            outline: 2px solid #f97316;
+            outline-offset: 2px;
+        }
         :root {
             --passion-red: #9B1237;
             --passion-fire-orange: #FF914D;
@@ -324,12 +459,18 @@
                     class="relative font-display font-black text-lg text-passion-red uppercase tracking-wide px-2 group-hover:text-passion-red transition-colors">Galerie</span>
             </a>--}}
             @auth
-                {{--<a href="{{ route('allos') }}" class="relative group py-2">
+                <a href="{{ route('betting.matches.index') }}" class="relative group py-2">
                     <div
-                        class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('login') || request()->routeIs('allos')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                        class="absolute inset-0 bg-passion-fire-orange skew-box @if(request()->routeIs('betting.matches.*')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
                     <span
-                        class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('login') || request()->routeIs('allos')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Allos</span>
-                </a>--}}
+                        class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('betting.matches.*')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Paris</span>
+                </a>
+                <a href="{{ route('betting.bets.index') }}" class="relative group py-2">
+                    <div
+                        class="absolute inset-0 bg-passion-pink-300 skew-box @if(request()->routeIs('betting.bets.*')) scale-y-100 @else transform scale-y-0 group-hover:scale-y-100 transition-transform origin-bottom @endif"></div>
+                    <span
+                        class="relative font-display font-black text-lg uppercase tracking-wide px-2 @if(request()->routeIs('betting.bets.*')) text-white @else text-passion-red group-hover:text-white transition-colors @endif">Mes paris</span>
+                </a>
             @else
                 {{--<a href="{{ route('login') }}" class="relative group py-2">
                     <div
@@ -514,7 +655,7 @@
         <span class="text-[9px] font-bold uppercase tracking-wider">Galerie</span>
     </a>--}}
     <a href="{{ route('team') }}"
-       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('team')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+       class="flex flex-col items-center p-2 transition-colors group w-1/6 text-center @if(request()->routeIs('team')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
         <!-- Icon Team -->
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
              viewBox="0 0 24 24">
@@ -524,7 +665,7 @@
         <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">La team P'AS'SION</span>
     </a>
     <a href="{{ route('home') }}"
-       class="flex flex-col items-center p-2 transition-colors group w-1/5 @if(request()->routeIs('home')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+       class="flex flex-col items-center p-2 transition-colors group w-1/6 @if(request()->routeIs('home')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
         <!-- Icon Home -->
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
              viewBox="0 0 24 24">
@@ -534,7 +675,7 @@
         <span class="text-[9px] font-bold uppercase tracking-wider">Accueil</span>
     </a>
     <a href="{{ route('allos') }}"
-       class="flex flex-col items-center p-2 transition-colors group relative w-1/5 @if(request()->routeIs('login') || request()->routeIs('allos')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
+       class="flex flex-col items-center p-2 transition-colors group relative w-1/6 @if(request()->routeIs('login') || request()->routeIs('allos')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
         <!-- Icon Fire -->
         <div
             class="absolute -top-0 md:right-[35%] right-1/4 w-3 h-3 bg-passion-fire-orange rounded-full animate-pulse"></div>
@@ -549,7 +690,7 @@
     </a>
 
     <a href="{{ route('allos.reservations') }}"
-       class="flex flex-col items-center p-2 transition-colors group w-1/5 text-center @if(request()->routeIs('activities')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+       class="flex flex-col items-center p-2 transition-colors group w-1/6 text-center @if(request()->routeIs('activities')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
         <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
              viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -558,6 +699,24 @@
         <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">Mes Allos</span>
     </a>
     @auth
+        <a href="{{ route('betting.matches.index') }}"
+           class="flex flex-col items-center p-2 transition-colors group w-1/6 text-center @if(request()->routeIs('betting.matches.*')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+            <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 7h16M4 12h16M4 17h16M6 5v14M18 5v14"></path>
+            </svg>
+            <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">Paris</span>
+        </a>
+        <a href="{{ route('betting.bets.index') }}"
+           class="flex flex-col items-center p-2 transition-colors group w-1/6 text-center @if(request()->routeIs('betting.bets.*')) text-passion-red hover:text-passion-fire-orange @else text-gray-400  hover:text-passion-red @endif">
+            <svg class="w-6 h-6 mb-1 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor"
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 5h6m-6 4h6m-6 4h6m-6 4h6M5 5h.01M5 9h.01M5 13h.01M5 17h.01"></path>
+            </svg>
+            <span class="text-[8px] leading-tight font-bold uppercase tracking-wider">Mes paris</span>
+        </a>
         {{--<a href="{{ route('allos') }}"
            class="flex flex-col items-center p-2 transition-colors group relative w-1/5 @if(request()->routeIs('login') || request()->routeIs('allos')) text-passion-red hover:text-passion-fire-orange @else text-gray-400 hover:text-passion-red @endif">
             <!-- Icon Fire -->
@@ -822,6 +981,17 @@
         window.addEventListener("beforeunload", () => showLoaderOverlay());
     })();
 </script>
+<div id="confirm-modal" class="confirm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="confirm-backdrop" data-close="1"></div>
+    <div class="confirm-card" role="document">
+        <h2 id="confirm-title"></h2>
+        <p id="confirm-text"></p>
+        <div class="confirm-actions">
+            <button type="button" class="btn-secondary" data-cancel="1">Annuler</button>
+            <button type="button" class="btn-danger" data-confirm="1">Confirmer</button>
+        </div>
+    </div>
+</div>
 <script src="{{ asset('assets/passion-common.js') }}"></script>
 <script>
     function shortName(raw) {
@@ -854,6 +1024,8 @@
     });
 
 </script>
+<script src="{{ asset('assets/js/betting-live.js') }}" defer></script>
+<script src="{{ asset('assets/js/betting-ui.js') }}" defer></script>
 @stack('end_scripts')
 </body>
 </html>

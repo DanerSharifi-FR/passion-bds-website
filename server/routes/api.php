@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\AlloApiController;
+use App\Http\Controllers\Api\BettingApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AlloApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,4 +40,7 @@ Route::middleware('web')->group(function () {
     Route::delete('/allos/bookings/{booking}', [AlloApiController::class, 'cancelBooking'])
         ->middleware('auth')
         ->name('allos.api.bookings.cancel');
+
+    Route::get('/paris/matchs', [BettingApiController::class, 'index'])->name('betting.api.matches.index');
+    Route::get('/paris/matchs/{match}', [BettingApiController::class, 'show'])->name('betting.api.matches.show');
 });

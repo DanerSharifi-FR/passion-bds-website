@@ -137,6 +137,11 @@
                         <i class="fa-solid fa-trophy w-6 @if(request()->routeIs('admin.challenges')) text-yellow-400 @else group-hover:text-yellow-400 transition-colors @endif"></i>
                         <span>Défis & Quêtes</span>
                     </a>
+                    <a href="{{ route('admin.betting.matches.index') }}"
+                       class="flex items-center px-4 @if(request()->routeIs('admin.betting.*')) py-3 bg-slate-700/50 text-white rounded-lg group transition-colors border-l-4 border-emerald-500 @else py-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg group transition-colors @endif">
+                        <i class="fa-solid fa-dice w-6 @if(request()->routeIs('admin.betting.*')) text-emerald-400 @else group-hover:text-emerald-400 transition-colors @endif"></i>
+                        <span>Paris</span>
+                    </a>
                 @endif
 
                 @if(auth()->user()->hasAnyRole(['ROLE_SUPER_ADMIN', 'ROLE_BLOGGER', 'ROLE_GAMEMASTER', 'ROLE_SHOP', 'ROLE_TEAM']))
