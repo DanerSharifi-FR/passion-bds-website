@@ -11,6 +11,7 @@ enum WalletTransactionType: string
     case BET_UPDATE_DIFF = 'BET_UPDATE_DIFF';
     case BET_CANCEL_REFUND = 'BET_CANCEL_REFUND';
     case PAYOUT = 'PAYOUT';
+    case PAYOUT_UNDO = 'PAYOUT_UNDO';
     case ADJUSTMENT = 'ADJUSTMENT';
     case MATCH_DELETED_REFUND = 'MATCH_DELETED_REFUND';
 }

@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\AdminUsersApiController;
 use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Admin\AdminBetBetsController;
 use App\Http\Controllers\Admin\AdminBetMatchController;
+use App\Http\Controllers\Admin\AdminBetSettlementController;
 use App\Http\Controllers\Admin\AlloApiController;
 use App\Http\Controllers\Admin\AlloController;
 use App\Http\Controllers\Admin\ChallengeController;
@@ -95,10 +96,14 @@ Route::prefix('admin')->as('admin.')->group(function () {
                 Route::get('/matchs', [AdminBetMatchController::class, 'index'])->name('matches.index');
                 Route::get('/matchs/creer', [AdminBetMatchController::class, 'create'])->name('matches.create');
                 Route::post('/matchs', [AdminBetMatchController::class, 'store'])->name('matches.store');
+                Route::get('/matchs/{match}/edit', [AdminBetMatchController::class, 'edit'])->name('matches.edit');
+                Route::put('/matchs/{match}', [AdminBetMatchController::class, 'update'])->name('matches.update');
                 Route::get('/matchs/{match}', [AdminBetMatchController::class, 'show'])->name('matches.show');
                 Route::patch('/matchs/{match}/visibilite', [AdminBetMatchController::class, 'toggleVisibility'])->name('matches.visibility');
                 Route::delete('/matchs/{match}', [AdminBetMatchController::class, 'destroy'])->name('matches.destroy');
                 Route::get('/matchs/{match}/bets', [AdminBetBetsController::class, 'index'])->name('matches.bets.index');
+                Route::post('/matchs/{match}/winner', [AdminBetSettlementController::class, 'declareWinner'])->name('matches.winner');
+                Route::post('/matchs/{match}/winner/undo', [AdminBetSettlementController::class, 'undoWinner'])->name('matches.winner.undo');
                 Route::put('/bets/{bet}', [AdminBetBetsController::class, 'update'])->name('bets.update');
                 Route::delete('/bets/{bet}', [AdminBetBetsController::class, 'destroy'])->name('bets.destroy');
             });
@@ -210,7 +215,7 @@ Route::prefix('admin')->as('admin.')->group(function () {
     });
 });
 
-Route::middleware('auth')->prefix('paris')->as('betting.')->group(function () {
+Route::middleware(['auth', 'betting.claim'])->prefix('paris')->as('betting.')->group(function () {
     Route::get('/matchs', [UserBetMatchController::class, 'index'])->name('matches.index');
     Route::get('/matchs/{match}', [UserBetMatchController::class, 'show'])->name('matches.show');
     Route::post('/matchs/{match}/bet', [UserBetsController::class, 'store'])->name('bets.store');

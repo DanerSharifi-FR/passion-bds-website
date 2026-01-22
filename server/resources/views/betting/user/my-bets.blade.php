@@ -45,7 +45,24 @@
                             <td class="px-4 py-3 text-gray-700">{{ $bet->option?->label ?? '—' }}</td>
                             <td class="px-4 py-3 text-gray-700">{{ number_format($bet->stake) }}</td>
                             <td class="px-4 py-3 text-gray-700">{{ number_format((float) $bet->odds_locked, 2) }}</td>
-                            <td class="px-4 py-3 text-gray-700">{{ $bet->status->value }}</td>
+                            <td class="px-4 py-3 text-gray-700">
+                                {{ $bet->status->value }}
+                                @if($bet->result)
+                                    <div class="text-xs mt-1">
+                                        @switch($bet->result->value)
+                                            @case('WON')
+                                                <span class="text-emerald-600">Gagné</span>
+                                                @break
+                                            @case('LOST')
+                                                <span class="text-rose-600">Perdu</span>
+                                                @break
+                                            @case('REFUNDED')
+                                                <span class="text-slate-500">Remboursé</span>
+                                                @break
+                                        @endswitch
+                                    </div>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-gray-500">
                                 <span class="bet-edit-countdown"
                                       data-editable-until="{{ $bet->editable_until?->toIso8601String() }}"></span>

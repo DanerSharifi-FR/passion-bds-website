@@ -35,15 +35,22 @@ class WalletService
      * @param Model|null $ref
      * @return void
      */
-    public function deposit(int $userId, int $amount, WalletTransactionType $type, ?Model $ref = null): void
+    public function deposit(
+        int $userId,
+        int $amount,
+        WalletTransactionType $type,
+        ?Model $ref = null,
+        ?string $batchUuid = null,
+        ?string $batchType = null
+    ): void
     {
-        DB::transaction(function () use ($userId, $amount, $type, $ref): void {
+        DB::transaction(function () use ($userId, $amount, $type, $ref, $batchUuid, $batchType): void {
             $wallet = $this->findOrCreateLocked($userId);
 
             $wallet->balance += $amount;
             $wallet->save();
 
-            $this->createTransaction($userId, $amount, $type, $ref);
+            $this->createTransaction($userId, $amount, $type, $ref, $batchUuid, $batchType);
         });
     }
 
@@ -58,9 +65,16 @@ class WalletService
      *
      * @throws ValidationException
      */
-    public function withdraw(int $userId, int $amount, WalletTransactionType $type, ?Model $ref = null): void
+    public function withdraw(
+        int $userId,
+        int $amount,
+        WalletTransactionType $type,
+        ?Model $ref = null,
+        ?string $batchUuid = null,
+        ?string $batchType = null
+    ): void
     {
-        DB::transaction(function () use ($userId, $amount, $type, $ref): void {
+        DB::transaction(function () use ($userId, $amount, $type, $ref, $batchUuid, $batchType): void {
             $wallet = $this->findOrCreateLocked($userId);
 
             if ($wallet->balance < $amount) {
@@ -72,7 +86,7 @@ class WalletService
             $wallet->balance -= $amount;
             $wallet->save();
 
-            $this->createTransaction($userId, -$amount, $type, $ref);
+            $this->createTransaction($userId, -$amount, $type, $ref, $batchUuid, $batchType);
         });
     }
 
@@ -113,12 +127,21 @@ class WalletService
      * @param Model|null $ref
      * @return void
      */
-    private function createTransaction(int $userId, int $amount, WalletTransactionType $type, ?Model $ref = null): void
+    private function createTransaction(
+        int $userId,
+        int $amount,
+        WalletTransactionType $type,
+        ?Model $ref = null,
+        ?string $batchUuid = null,
+        ?string $batchType = null
+    ): void
     {
         WalletTransaction::query()->create([
             'user_id' => $userId,
             'amount' => $amount,
             'type' => $type,
+            'batch_uuid' => $batchUuid,
+            'batch_type' => $batchType,
             'reference_type' => $ref?->getMorphClass(),
             'reference_id' => $ref?->getKey(),
         ]);

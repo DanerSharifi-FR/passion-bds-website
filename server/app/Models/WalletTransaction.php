@@ -19,6 +19,8 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property int $amount
  * @property WalletTransactionType $type
+ * @property string|null $batch_uuid
+ * @property string|null $batch_type
  * @property string|null $reference_type
  * @property int|null $reference_id
  * @property Carbon|null $created_at
@@ -37,6 +39,8 @@ class WalletTransaction extends Model
         'user_id',
         'amount',
         'type',
+        'batch_uuid',
+        'batch_type',
         'reference_type',
         'reference_id',
     ];
@@ -48,6 +52,8 @@ class WalletTransaction extends Model
         'user_id' => 'integer',
         'amount' => 'integer',
         'type' => WalletTransactionType::class,
+        'batch_uuid' => 'string',
+        'batch_type' => 'string',
         'reference_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

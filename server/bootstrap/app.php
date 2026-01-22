@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\RequireRole;
 use App\Http\Middleware\TemporaryIpBlockMiddleware;
+use App\Http\Middleware\ClaimPendingBetWinnings;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => RequireRole::class,
+            'betting.claim' => ClaimPendingBetWinnings::class,
         ]);
 
         $middleware->web(append: [TemporaryIpBlockMiddleware::class]);

@@ -41,9 +41,12 @@ class UserBetMatchController extends Controller
             abort(404);
         }
 
-        $match->load(['options' => function ($query) {
-            $query->whereNotNull('label')->whereNotNull('current_odds');
-        }]);
+        $match->load([
+            'options' => function ($query) {
+                $query->whereNotNull('label')->whereNotNull('current_odds');
+            },
+            'winnerOption',
+        ]);
         $wallet = $this->walletService->getOrCreate((int) auth()->id());
         $activeBet = BetBet::query()
             ->where('match_id', $match->id)
@@ -51,8 +54,14 @@ class UserBetMatchController extends Controller
             ->where('status', BetBetStatus::ACTIVE)
             ->orderByDesc('created_at')
             ->first();
-        if ($activeBet) {
-            $activeBet->load('option');
+        $displayBet = $activeBet ?? BetBet::query()
+            ->where('match_id', $match->id)
+            ->where('user_id', (int) auth()->id())
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($displayBet) {
+            $displayBet->load('option');
         }
         $now = now();
 
@@ -60,6 +69,7 @@ class UserBetMatchController extends Controller
             'match' => $match,
             'wallet' => $wallet,
             'activeBet' => $activeBet,
+            'displayBet' => $displayBet,
             'now' => $now,
         ]);
     }

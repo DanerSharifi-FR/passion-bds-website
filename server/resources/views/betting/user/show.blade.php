@@ -57,6 +57,16 @@
                 </div>
             @endif
 
+            @if($match->winnerOption)
+                <div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800 text-sm">
+                    <div class="font-semibold">Match terminé</div>
+                    <div class="mt-1">
+                        Résultat: {{ $match->score_a ?? '—' }} - {{ $match->score_b ?? '—' }}
+                        · Gagnant: {{ $match->winnerOption->label ?? '—' }}
+                    </div>
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('betting.bets.store', $match) }}" class="mt-6 space-y-5">
                 @csrf
                 <div class="grid gap-3">
@@ -108,17 +118,35 @@
                 </div>
             </form>
 
-            @if($activeBet)
+            @if($displayBet)
                 <div class="mt-8 border-t border-gray-100 pt-6">
                     <h2 class="text-lg font-semibold text-gray-900">Mon pari</h2>
                     <p class="text-sm text-gray-600 mt-1">
-                        Option: {{ $activeBet->option?->label ?? '—' }}
-                        · Mise: {{ number_format($activeBet->stake) }} crédits
-                        · Cote: {{ number_format((float) $activeBet->odds_locked, 2) }}
+                        Option: {{ $displayBet->option?->label ?? '—' }}
+                        · Mise: {{ number_format($displayBet->stake) }} crédits
+                        · Cote: {{ number_format((float) $displayBet->odds_locked, 2) }}
                     </p>
+                    @if($displayBet->result)
+                        <p class="text-sm text-gray-700 mt-1">
+                            Résultat:
+                            @switch($displayBet->result->value)
+                                @case('WON')
+                                    <span class="font-semibold text-emerald-600">Gagné</span>
+                                    @break
+                                @case('LOST')
+                                    <span class="font-semibold text-rose-600">Perdu</span>
+                                    @break
+                                @case('REFUNDED')
+                                    <span class="font-semibold text-slate-600">Remboursé</span>
+                                    @break
+                                @default
+                                    —
+                            @endswitch
+                        </p>
+                    @endif
                     <p class="text-xs text-gray-500 mt-2">
                         <span class="bet-edit-countdown"
-                              data-editable-until="{{ $activeBet->editable_until?->toIso8601String() }}"></span>
+                              data-editable-until="{{ $displayBet->editable_until?->toIso8601String() }}"></span>
                     </p>
 
                     @if($canEdit)

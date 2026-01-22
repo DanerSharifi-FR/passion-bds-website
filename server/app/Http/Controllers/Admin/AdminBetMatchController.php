@@ -126,11 +126,129 @@ class AdminBetMatchController extends Controller
 
     public function show(BetMatch $match): Factory|View
     {
-        $match->load(['options', 'bets']);
+        $match->load(['options', 'bets', 'winnerOption']);
 
         return view('betting.admin.matches.show', [
             'match' => $match,
         ]);
+    }
+
+    public function edit(BetMatch $match): Factory|View
+    {
+        $match->load(['options' => function ($query) {
+            $query->orderBy('id');
+        }]);
+
+        $hasBets = $match->bets()->exists();
+        $hasPool = $match->options()->where('pool_total', '>', 0)->exists();
+        $canEditOptions = !$hasBets && !$hasPool;
+
+        return view('betting.admin.matches.edit', [
+            'match' => $match,
+            'canEditOptions' => $canEditOptions,
+        ]);
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    public function update(Request $request, BetMatch $match): RedirectResponse
+    {
+        $hasBets = $match->bets()->exists();
+        $hasPool = $match->options()->where('pool_total', '>', 0)->exists();
+        $canEditOptions = !$hasBets && !$hasPool;
+
+        $rules = [
+            'title' => ['required', 'string', 'max:255'],
+            'bet_open_at' => ['required', 'date'],
+            'match_start_at' => ['required', 'date'],
+            'match_end_at' => ['required', 'date'],
+            'is_visible' => ['nullable', 'boolean'],
+        ];
+
+        if ($canEditOptions) {
+            $rules['options'] = ['required', 'array', 'size:3'];
+            $rules['options.*.label'] = ['nullable', 'string', 'max:255'];
+            $rules['options.*.odds'] = ['nullable', 'numeric', 'min:1.01', 'max:50'];
+        }
+
+        $validated = $request->validate($rules, [
+            'title.required' => 'Le titre est obligatoire.',
+            'title.max' => 'Le titre ne doit pas dépasser 255 caractères.',
+            'bet_open_at.required' => 'La date d’ouverture des paris est obligatoire.',
+            'match_start_at.required' => 'La date de début du match est obligatoire.',
+            'match_end_at.required' => 'La date de fin du match est obligatoire.',
+            'options.size' => 'Il faut exactement 3 options de pari.',
+            'options.*.odds.min' => 'La cote minimale est 1.01.',
+            'options.*.odds.max' => 'La cote maximale est 50.00.',
+        ]);
+
+        if (!$canEditOptions && $request->has('options')) {
+            throw ValidationException::withMessages([
+                'options' => 'Impossible de modifier les options/cotes : des paris existent déjà.',
+            ]);
+        }
+
+        $betOpenAt = Carbon::parse($validated['bet_open_at']);
+        $matchStartAt = Carbon::parse($validated['match_start_at']);
+        $matchEndAt = Carbon::parse($validated['match_end_at']);
+
+        if ($betOpenAt->gte($matchEndAt)) {
+            throw ValidationException::withMessages([
+                'bet_open_at' => 'La date d’ouverture doit être avant la fin du match.',
+            ]);
+        }
+
+        if ($matchStartAt->gte($matchEndAt)) {
+            throw ValidationException::withMessages([
+                'match_end_at' => 'La fin du match doit être après le début.',
+            ]);
+        }
+
+        if ($canEditOptions) {
+            foreach ($validated['options'] as $index => $option) {
+                $label = trim((string) ($option['label'] ?? ''));
+                $odds = $option['odds'] ?? null;
+                $hasLabel = $label !== '';
+                $hasOdds = $odds !== null && $odds !== '';
+
+                if ($hasLabel !== $hasOdds) {
+                    throw ValidationException::withMessages([
+                        "options.{$index}" => 'Une option doit avoir un libellé ET une cote, ou être laissée vide.',
+                    ]);
+                }
+            }
+        }
+
+        DB::transaction(function () use ($match, $validated, $betOpenAt, $matchStartAt, $matchEndAt, $canEditOptions): void {
+            $match->title = $validated['title'];
+            $match->bet_open_at = $betOpenAt;
+            $match->match_start_at = $matchStartAt;
+            $match->match_end_at = $matchEndAt;
+            $match->is_visible = (bool) ($validated['is_visible'] ?? false);
+            $match->save();
+
+            if ($canEditOptions) {
+                $options = $match->options()->orderBy('id')->get();
+
+                foreach ($options as $index => $option) {
+                    $payload = $validated['options'][$index] ?? [];
+                    $label = trim((string) ($payload['label'] ?? ''));
+                    $odds = $payload['odds'] ?? null;
+                    $isEmpty = $label === '' && ($odds === null || $odds === '');
+
+                    $option->label = $isEmpty ? null : $label;
+                    $option->initial_odds = $isEmpty ? null : $odds;
+                    $option->current_odds = $isEmpty ? null : $odds;
+                    $option->pool_total = 0;
+                    $option->save();
+                }
+            }
+        });
+
+        return redirect()
+            ->route('admin.betting.matches.show', $match)
+            ->with('success', 'Match mis à jour.');
     }
 
     public function toggleVisibility(Request $request, BetMatch $match): RedirectResponse

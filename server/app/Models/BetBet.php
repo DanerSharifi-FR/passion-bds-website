@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\BetBetStatus;
+use App\Enums\BetResult;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,8 @@ use Illuminate\Support\Carbon;
  * @property int $stake
  * @property string $odds_locked
  * @property BetBetStatus $status
+ * @property BetResult|null $result
+ * @property string|null $settled_batch_uuid
  * @property Carbon $editable_until
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -44,6 +47,8 @@ class BetBet extends Model
         'stake',
         'odds_locked',
         'status',
+        'result',
+        'settled_batch_uuid',
         'editable_until',
     ];
 
@@ -57,6 +62,8 @@ class BetBet extends Model
         'stake' => 'integer',
         'odds_locked' => 'decimal:2',
         'status' => BetBetStatus::class,
+        'result' => BetResult::class,
+        'settled_batch_uuid' => 'string',
         'editable_until' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

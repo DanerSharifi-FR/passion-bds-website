@@ -8,6 +8,7 @@ use App\Enums\BetMatchStatus;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
@@ -21,6 +22,13 @@ use Illuminate\Support\Carbon;
  * @property Carbon $bet_open_at
  * @property Carbon $match_start_at
  * @property Carbon $match_end_at
+ * @property int|null $score_a
+ * @property int|null $score_b
+ * @property bool $score_is_auto
+ * @property int|null $winner_option_id
+ * @property Carbon|null $settled_at
+ * @property int|null $settled_by
+ * @property int $settlement_version
  * @property BetMatchStatus $status
  * @property bool $is_visible
  * @property int $created_by
@@ -29,6 +37,7 @@ use Illuminate\Support\Carbon;
  *
  * @property-read Collection<int, BetOption> $options
  * @property-read Collection<int, BetBet> $bets
+ * @property-read BetOption|null $winnerOption
  */
 class BetMatch extends Model
 {
@@ -42,6 +51,13 @@ class BetMatch extends Model
         'bet_open_at',
         'match_start_at',
         'match_end_at',
+        'score_a',
+        'score_b',
+        'score_is_auto',
+        'winner_option_id',
+        'settled_at',
+        'settled_by',
+        'settlement_version',
         'status',
         'is_visible',
         'created_by',
@@ -54,6 +70,13 @@ class BetMatch extends Model
         'bet_open_at' => 'datetime',
         'match_start_at' => 'datetime',
         'match_end_at' => 'datetime',
+        'score_a' => 'integer',
+        'score_b' => 'integer',
+        'score_is_auto' => 'boolean',
+        'winner_option_id' => 'integer',
+        'settled_at' => 'datetime',
+        'settled_by' => 'integer',
+        'settlement_version' => 'integer',
         'status' => BetMatchStatus::class,
         'is_visible' => 'boolean',
         'created_by' => 'integer',
@@ -79,6 +102,16 @@ class BetMatch extends Model
     public function bets(): HasMany
     {
         return $this->hasMany(BetBet::class, 'match_id');
+    }
+
+    /**
+     * Option gagnante du match.
+     *
+     * @return BelongsTo<BetOption, BetMatch>
+     */
+    public function winnerOption(): BelongsTo
+    {
+        return $this->belongsTo(BetOption::class, 'winner_option_id');
     }
 
     /**
