@@ -51,8 +51,8 @@ class AdminBetMatchController extends Controller
             'match_start_at' => ['required', 'date'],
             'match_end_at' => ['required', 'date'],
             'options' => ['required', 'array', 'size:3'],
-            'options.*.label' => ['required', 'string', 'max:255'],
-            'options.*.odds' => ['required', 'numeric', 'min:1.01', 'max:50'],
+            'options.*.label' => ['nullable', 'string', 'max:255'],
+            'options.*.odds' => ['nullable', 'numeric', 'min:1.01', 'max:50'],
         ], [
             'title.required' => 'Le titre est obligatoire.',
             'title.max' => 'Le titre ne doit pas dépasser 255 caractères.',
@@ -60,8 +60,6 @@ class AdminBetMatchController extends Controller
             'match_start_at.required' => 'La date de début du match est obligatoire.',
             'match_end_at.required' => 'La date de fin du match est obligatoire.',
             'options.size' => 'Il faut exactement 3 options de pari.',
-            'options.*.label.required' => 'Le libellé de chaque option est obligatoire.',
-            'options.*.odds.required' => 'La cote de chaque option est obligatoire.',
             'options.*.odds.min' => 'La cote minimale est 1.01.',
             'options.*.odds.max' => 'La cote maximale est 50.00.',
         ]);
@@ -83,6 +81,19 @@ class AdminBetMatchController extends Controller
             ]);
         }
 
+        foreach ($validated['options'] as $index => $option) {
+            $label = trim((string) ($option['label'] ?? ''));
+            $odds = $option['odds'] ?? null;
+            $hasLabel = $label !== '';
+            $hasOdds = $odds !== null && $odds !== '';
+
+            if ($hasLabel !== $hasOdds) {
+                throw ValidationException::withMessages([
+                    "options.{$index}" => 'Une option doit avoir un libellé ET une cote, ou être laissée vide.',
+                ]);
+            }
+        }
+
         $match = DB::transaction(function () use ($validated, $betOpenAt, $matchStartAt, $matchEndAt): BetMatch {
             $match = BetMatch::query()->create([
                 'title' => $validated['title'],
@@ -94,11 +105,15 @@ class AdminBetMatchController extends Controller
             ]);
 
             foreach ($validated['options'] as $option) {
+                $label = trim((string) ($option['label'] ?? ''));
+                $odds = $option['odds'] ?? null;
+                $isEmpty = $label === '' && ($odds === null || $odds === '');
+
                 BetOption::query()->create([
                     'match_id' => $match->id,
-                    'label' => $option['label'],
-                    'initial_odds' => $option['odds'],
-                    'current_odds' => $option['odds'],
+                    'label' => $isEmpty ? null : $label,
+                    'initial_odds' => $isEmpty ? null : $odds,
+                    'current_odds' => $isEmpty ? null : $odds,
                     'pool_total' => 0,
                 ]);
             }

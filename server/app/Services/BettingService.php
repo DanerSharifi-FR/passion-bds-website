@@ -53,9 +53,9 @@ class BettingService
             $options = $this->lockMatchOptions($matchId);
             $option = $options->firstWhere('id', $optionId);
 
-            if ($option === null) {
+            if ($option === null || $option->label === null || $option->current_odds === null) {
                 throw ValidationException::withMessages([
-                    'option' => 'Option de pari invalide pour ce match.',
+                    'option' => 'Option de pari indisponible.',
                 ]);
             }
 
@@ -124,9 +124,9 @@ class BettingService
             $options = $this->lockMatchOptions($matchId);
             $option = $options->firstWhere('id', $optionId);
 
-            if ($option === null) {
+            if ($option === null || $option->label === null || $option->current_odds === null) {
                 throw ValidationException::withMessages([
-                    'option' => 'Option de pari invalide pour ce match.',
+                    'option' => 'Option de pari indisponible.',
                 ]);
             }
 
@@ -273,9 +273,9 @@ class BettingService
             $options = $this->lockMatchOptions($match->id);
             $newOption = $options->firstWhere('id', $optionId);
 
-            if ($newOption === null) {
+            if ($newOption === null || $newOption->label === null || $newOption->current_odds === null) {
                 throw ValidationException::withMessages([
-                    'option' => 'Option de pari invalide pour ce match.',
+                    'option' => 'Option de pari indisponible.',
                 ]);
             }
 

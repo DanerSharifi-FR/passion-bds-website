@@ -81,7 +81,6 @@
                                 name="options[{{ $i }}][label]"
                                 value="{{ old('options.' . $i . '.label') }}"
                                 class="mt-2 w-full rounded-lg border border-slate-600 bg-slate-900 text-white px-3 py-2"
-                                required
                             >
                         </div>
                         <div>
@@ -94,7 +93,6 @@
                                 name="options[{{ $i }}][odds]"
                                 value="{{ old('options.' . $i . '.odds') }}"
                                 class="mt-2 w-full rounded-lg border border-slate-600 bg-slate-900 text-white px-3 py-2"
-                                required
                             >
                         </div>
                     </div>

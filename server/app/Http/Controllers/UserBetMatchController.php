@@ -19,7 +19,9 @@ class UserBetMatchController extends Controller
     public function index(): Factory|View
     {
         $matches = BetMatch::query()
-            ->with('options')
+            ->with(['options' => function ($query) {
+                $query->whereNotNull('label')->whereNotNull('current_odds');
+            }])
             ->where('is_visible', true)
             ->orderBy('match_start_at')
             ->paginate(10);
@@ -39,7 +41,9 @@ class UserBetMatchController extends Controller
             abort(404);
         }
 
-        $match->load('options');
+        $match->load(['options' => function ($query) {
+            $query->whereNotNull('label')->whereNotNull('current_odds');
+        }]);
         $wallet = $this->walletService->getOrCreate((int) auth()->id());
         $activeBet = BetBet::query()
             ->where('match_id', $match->id)

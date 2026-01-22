@@ -29,7 +29,7 @@
             </div>
         @endif
 
-        <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden max-h-[70vh] overflow-y-auto">
             <table class="min-w-full text-sm">
                 <thead class="bg-slate-900 text-slate-300">
                 <tr>

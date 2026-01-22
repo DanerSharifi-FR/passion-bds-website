@@ -11,7 +11,9 @@ class BettingApiController extends Controller
     public function index(): JsonResponse
     {
         $matches = BetMatch::query()
-            ->with('options')
+            ->with(['options' => function ($query) {
+                $query->whereNotNull('label')->whereNotNull('current_odds');
+            }])
             ->where('is_visible', true)
             ->orderBy('match_start_at')
             ->get();
@@ -53,7 +55,9 @@ class BettingApiController extends Controller
             abort(404);
         }
 
-        $match->load('options');
+        $match->load(['options' => function ($query) {
+            $query->whereNotNull('label')->whereNotNull('current_odds');
+        }]);
 
         return response()->json([
             'data' => [
