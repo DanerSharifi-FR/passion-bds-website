@@ -6,7 +6,7 @@ services:
             target: dev
         volumes:
             - ./:/var/www/html
-            - ./docker/php-fpm/www.8c16g.conf:/usr/local/etc/php-fpm.d/zz-pm.conf:ro
+            - ./docker/php-fpm/www.4c8g.conf:/usr/local/etc/php-fpm.d/zz-pm.conf:ro
             - ./docker/php/conf.d/opcache.ini:/usr/local/etc/php/conf.d/zz-opcache.ini:ro
         restart: unless-stopped
         networks:
