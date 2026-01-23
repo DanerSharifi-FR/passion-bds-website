@@ -1,28 +1,37 @@
 # /docker/mysql/conf.d/custom.cnf
 #
-# Two profiles:
-# 1) PROD_BIG (ACTIVE): 8 vCPU / 16 GB RAM (app + mysql on same machine)
-# 2) PROD_TINY (COMMENTED): 1 vCPU / 1 GB RAM (VERY constrained)
+# Three profiles:
+# 1) PROD_BIG (COMMENTED): 8 vCPU / 16 GB RAM (app + mysql on same machine)
+# 2) PROD_MEDIUM (ACTIVE): 4 vCPU / 8 GB RAM (app + mysql on same machine)
+# 3) PROD_TINY (COMMENTED): 1 vCPU / 1 GB RAM (VERY constrained)
 #
-# To switch to PROD_TINY:
-# - comment PROD_BIG lines
-# - uncomment PROD_TINY lines
-# - recreate mysql container: docker compose up -d --force-recreate mysql_bds
+# After changes: recreate mysql container:
+# docker compose up -d --force-recreate mysql_bds
 
 [mysqld]
 
 # =========================
-# PROD_BIG (8 vCPU / 16 GB) - ACTIVE
+# PROD_BIG (8 vCPU / 16 GB) - PREVIOUS
 # =========================
-innodb_buffer_pool_size = 7G
-innodb_buffer_pool_instances = 4
+# innodb_buffer_pool_size = 7G
+# innodb_buffer_pool_instances = 4
+# innodb_flush_method = O_DIRECT
+# innodb_redo_log_capacity = 1024M
+# max_connections = 200
+# skip_name_resolve = 1
+
+# =========================
+# PROD_MEDIUM (4 vCPU / 8 GB) - ACTIVE
+# =========================
+innodb_buffer_pool_size = 3G
+innodb_buffer_pool_instances = 2
 innodb_flush_method = O_DIRECT
-innodb_redo_log_capacity = 1024M
-max_connections = 200
+innodb_redo_log_capacity = 512M
+max_connections = 150
 skip_name_resolve = 1
 
 # =========================
-# PROD_TINY (1 vCPU / 1 GB) - FALLBACK (uncomment if you downgrade)
+# PROD_TINY (1 vCPU / 1 GB) - FALLBACK
 # =========================
 # innodb_buffer_pool_size = 256M
 # innodb_buffer_pool_instances = 1
