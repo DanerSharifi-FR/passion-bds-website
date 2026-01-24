@@ -223,8 +223,8 @@
         updateCountdowns();
         setupModal();
 
-        window.setInterval(updateStatusBadges, 5000);
-        window.setInterval(updateCountdowns, 1000);
+        // window.setInterval(updateStatusBadges, 5000);
+        // window.setInterval(updateCountdowns, 1000);
     };
 
     window.BettingUI = {

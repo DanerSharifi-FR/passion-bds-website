@@ -104,7 +104,7 @@
         };
 
         run();
-        window.setInterval(run, POLL_INTERVAL_MS);
+        // window.setInterval(run, POLL_INTERVAL_MS);
     };
 
     const startEcho = (matchIds) => {

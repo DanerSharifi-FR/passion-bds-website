@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     refreshLeaderboard();
-    setInterval(refreshLeaderboard, refreshIntervalMs);
+    {{-- setInterval(refreshLeaderboard, refreshIntervalMs); --}}
 });
 </script>
 @endpush

@@ -23,22 +23,22 @@
 # =========================
 # PROD_MEDIUM (4 vCPU / 8 GB) - ACTIVE
 # =========================
-innodb_buffer_pool_size = 3G
-innodb_buffer_pool_instances = 2
-innodb_flush_method = O_DIRECT
-innodb_redo_log_capacity = 512M
-max_connections = 150
-skip_name_resolve = 1
+# innodb_buffer_pool_size = 3G
+# innodb_buffer_pool_instances = 2
+# innodb_flush_method = O_DIRECT
+# innodb_redo_log_capacity = 512M
+# max_connections = 150
+# skip_name_resolve = 1
 
 # =========================
 # PROD_TINY (1 vCPU / 1 GB) - FALLBACK
 # =========================
-# innodb_buffer_pool_size = 256M
-# innodb_buffer_pool_instances = 1
-# innodb_flush_method = O_DIRECT
-# innodb_redo_log_capacity = 128M
-# max_connections = 50
-# skip_name_resolve = 1
+innodb_buffer_pool_size = 256M
+innodb_buffer_pool_instances = 1
+innodb_flush_method = O_DIRECT
+innodb_redo_log_capacity = 128M
+max_connections = 50
+skip_name_resolve = 1
 #
 # Optional extra clamps for tiny boxes (only if you see OOM / swapping):
 # table_open_cache = 200

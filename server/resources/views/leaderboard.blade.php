@@ -398,7 +398,7 @@
 
             // Init + poll
             refreshLeaderboard();
-            setInterval(refreshLeaderboard, refreshIntervalMs);
+            // setInterval(refreshLeaderboard, refreshIntervalMs);
         });
     </script>
 

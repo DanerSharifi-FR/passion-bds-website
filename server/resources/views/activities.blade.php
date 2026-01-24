@@ -191,7 +191,7 @@
             fetchAndRender();
 
             // Loop
-            setInterval(fetchAndRender, REFRESH_RATE);
+            // setInterval(fetchAndRender, REFRESH_RATE);
         });
     </script>
 @endpush
